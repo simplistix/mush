@@ -2,40 +2,52 @@ from unittest import TestCase
 
 from testfixtures import ShouldRaise
 
-from mush import Context, Thing
-from .test_thing import TheType
+from mush import Context
 
-class TestThing(TestCase):
+class TheType(object):
+    def __repr__(self):
+        return '<TheType obj>'
+
+class TestContext(TestCase):
 
     def test_simple(self):
         obj = TheType()
         context = Context()
-        context.add(Thing(obj))
+        context.add(obj)
 
         self.assertTrue(context.get(TheType) is obj)
         self.assertEqual(
             repr(context),
-            '<Context: '
-            '(<Thing (<TheType obj>): type=TheType>)>'
+            "<Context: {<class 'tests.test_context.TheType'>: <TheType obj>}>"
             )
         self.assertEqual(
             str(context),
-            '<Context: '
-            '(<Thing (<TheType obj>): type=TheType>)>'
+            "<Context: {<class 'tests.test_context.TheType'>: <TheType obj>}>"
             )
-        
+
+    def test_explicit_type(self):
+        class T2(object):
+            pass
+        obj = TheType()
+        context = Context()
+        context.add(obj, T2)
+        self.assertTrue(context.get(T2) is obj)
+        self.assertEqual(
+            repr(context),
+            "<Context: {<class 'tests.test_context.T2'>: <TheType obj>}>"
+            )
+        self.assertEqual(
+            str(context),
+            "<Context: {<class 'tests.test_context.T2'>: <TheType obj>}>"
+            )
+
     def test_clash(self):
         obj1 = TheType()
         obj2 = TheType()
         context = Context()
-        context.add(Thing(obj1))
+        context.add(obj1)
         with ShouldRaise(ValueError('Context already contains TheType')):
-            context.add(Thing(obj2))
-
-    def test_wrong_type(self):
-        context = Context()
-        with ShouldRaise(TypeError('Can only add Thing instances to Contexts')):
-            context.add(TheType())
+            context.add(obj2)
 
     def test_missing(self):
         context = Context()

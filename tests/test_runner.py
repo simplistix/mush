@@ -3,7 +3,7 @@ from unittest import TestCase
 from mock import Mock, call
 from testfixtures import ShouldRaise, StringComparison as S, compare
 
-from mush import Runner, Requirement, Thing, requires, requires_last
+from mush import Runner, Requirement, requires, requires_first, requires_last
 
 class RunnerTests(TestCase):
 
@@ -66,16 +66,17 @@ class RunnerTests(TestCase):
                 ], m.mock_calls)
 
 
-    def test_returns_thing(self):
+    def test_returns_type_mapping(self):
         m = Mock()        
-        class T(object): pass
-        t = T()
+        class T1(object): pass
+        class T2(object): pass
+        t = T1()
 
         def job1():
             m.job1()
-            return Thing(t)
+            return {T2:t}
 
-        @requires(T)
+        @requires(T2)
         def job2(obj):
             m.job2(obj)
 

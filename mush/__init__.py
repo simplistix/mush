@@ -2,41 +2,24 @@ from collections import defaultdict
 
 type_func = type
 
-class Thing(object):
-
-    def __init__(self, it, type=None):
-        self.it = it
-        if type is None:
-            self.type = type_func(it)
-        else:
-            self.type = type
-
-    def __repr__(self):
-        return '<Thing (%r): type=%s>' % (
-            self.it, self.type.__name__
-            )
-
 class Context(dict):
 
-    def add(self, thing):
-        if not isinstance(thing, Thing):
-            raise TypeError('Can only add Thing instances to Contexts')
-        if thing.type in self:
+    def add(self, it, type=None):
+        type = type or type_func(it)
+        if type in self:
             raise ValueError('Context already contains %s' % (
-                    thing.type.__name__
+                    type.__name__
                     ))
-        self[thing.type] = thing
+        self[type] = it
 
     def get(self, type):
         obj = super(Context, self).get(type)
         if obj is None:
             raise KeyError('No %s in context' % type.__name__)
-        return obj.it
+        return obj
 
     def __repr__(self):
-        return '<Context: (%s)>' % (', '.join(
-            repr(thing) for key, thing in sorted(self.items())
-            ))
+        return '<Context: %s>' % super(Context, self).__repr__()
 
 class Requirement(object):
 
@@ -111,9 +94,11 @@ class Runner(list):
                     raise KeyError('%s attempting to call %r' % (e, obj))
                 result = obj(*args, **kw)
                 if result is not None:
-                    if not isinstance(result, (tuple, list)):
-                        result = (result, )
-                    for obj in result:
-                        if not isinstance(obj, Thing):
-                            obj = Thing(obj)
-                        context.add(obj)
+                    if type_func(result) in (tuple, list):
+                        for obj in result:
+                            context.add(obj)
+                    elif type_func(result) is dict:
+                        for type, obj in result.items():
+                            context.add(obj, type)
+                    else:
+                        context.add(result)
