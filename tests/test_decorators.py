@@ -15,7 +15,7 @@ class RequiresTests(TestCase):
         def job(obj):
             pass
 
-        compare(([C(Requirement(Type1, None))], {}, 0),
+        compare(([C(Requirement(Type1))], {}, 0),
                 job.__requires__)
 
     def test_complex(self):
@@ -24,23 +24,11 @@ class RequiresTests(TestCase):
         def job(obj, k1=None, k2=None):
             pass
 
-        compare(([C(Requirement(Type1, None))],
-                 {'k2':C(Requirement(Type2, None))},
+        compare(([C(Requirement(Type1))],
+                 {'k2':C(Requirement(Type2))},
                  0),
                 job.__requires__)
 
-    def test_named(self):
-        
-        @requires(Requirement(Type1, name='foo'),
-                  a2=Requirement(Type2, name='bar'))
-        def job(a1, a2):
-            pass
-
-        compare(([C(Requirement(Type1, 'foo'))],
-                 {'a2':C(Requirement(Type2, 'bar'), )},
-                 0),
-                job.__requires__)
-    
     def test_no_molestation(self):
         def job(arg): pass
         decorated = requires(Type1)(job)
@@ -50,12 +38,12 @@ class RequiresTests(TestCase):
         @requires_first(Type1)
         def job(a):
             pass
-        compare(([C(Requirement(Type1, None))], {}, -1),
+        compare(([C(Requirement(Type1))], {}, -1),
                 job.__requires__)
 
     def test_requires_first(self):
         @requires_last(Type1)
         def job(a):
             pass
-        compare(([C(Requirement(Type1, None))], {}, 1),
+        compare(([C(Requirement(Type1))], {}, 1),
                 job.__requires__)

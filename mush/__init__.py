@@ -4,9 +4,8 @@ type_func = type
 
 class Thing(object):
 
-    def __init__(self, it, type=None, name=None, context_manager=None):
+    def __init__(self, it, type=None, context_manager=None):
         self.it = it
-        self.name = name
         if type is None:
             self.type = type_func(it)
         else:
@@ -19,8 +18,8 @@ class Thing(object):
             self.context_manager = context_manager
 
     def __repr__(self):
-        return '<Thing (%r): type=%s, name=%r, context_manager=%s>' % (
-            self.it, self.type.__name__, self.name, self.context_manager
+        return '<Thing (%r): type=%s, context_manager=%s>' % (
+            self.it, self.type.__name__, self.context_manager
             )
 
 class Context(dict):
@@ -28,17 +27,16 @@ class Context(dict):
     def add(self, thing):
         if not isinstance(thing, Thing):
             raise TypeError('Can only add Thing instances to Contexts')
-        key = (thing.type, thing.name)
-        if key in self:
-            raise ValueError('%s named %r already exists' % (
-                    thing.type.__name__, thing.name
+        if thing.type in self:
+            raise ValueError('Context already contains %s' % (
+                    thing.type.__name__
                     ))
-        self[key] = thing
+        self[thing.type] = thing
 
-    def get(self, type, name=None):
-        obj = super(Context, self).get((type, name))
+    def get(self, type):
+        obj = super(Context, self).get(type)
         if obj is None:
-            raise KeyError('No %s named %r' % (type.__name__, name))
+            raise KeyError('No %s in context' % type.__name__)
         return obj.it
 
     def __repr__(self):
@@ -48,9 +46,8 @@ class Context(dict):
 
 class Requirement(object):
 
-    def __init__(self, type, name):
+    def __init__(self, type):
         self.type = type
-        self.name = name
 
 class requires(object):
 
@@ -60,12 +57,12 @@ class requires(object):
         sargs = []
         for arg in args:
             if not isinstance(arg, Requirement):
-                arg = Requirement(arg, None)
+                arg = Requirement(arg)
             sargs.append(arg)
         skw = {}
         for k, v in kw.items():
             if not isinstance(v, Requirement):
-                v = Requirement(v, None)
+                v = Requirement(v)
             skw[k] = v
         self.__requires__ = (sargs, skw, self.when)
 
@@ -82,23 +79,25 @@ class requires_last(requires):
 class Runner(list):
 
     def __init__(self, *objs):
-        self.types = [(None, None)]
+        self.types = [None]
         self.callables = defaultdict(list)
         for obj in objs:
             self.add(obj)
 
     def add(self, obj):
-        args_required, kw_required = getattr(obj, '__requires__', ((), {}))
+        args_required, kw_required, order = getattr(obj,
+                                                    '__requires__',
+                                                    ((), {}, 0))
         found_req = False
         for reqs in args_required, kw_required.values():
             for req in reqs:
                 found_req = True
-                key = req.type, req.name
+                key = req.type
                 if key not in self.types:
                     self.types.append(key)
                 self.callables[key].append(obj)
         if not found_req:
-            self.callables[(None, None)].append(obj)
+            self.callables[None].append(obj)
 
     def __call__(self):
         context = Context()
@@ -106,12 +105,14 @@ class Runner(list):
             for obj in self.callables[key]:
                 args = []
                 kw = {}
-                args_required, kw_required = getattr(obj, '__requires__', ((), {}))
+                args_required, kw_required, order = getattr(obj,
+                                                            '__requires__',
+                                                            ((), {}, 0))
                 try:
                     for r in args_required:
-                        args.append(context.get(r.type, r.name))
+                        args.append(context.get(r.type))
                     for k, r in kw_required.items():
-                        kw[k] = context.get(r.type, r.name)
+                        kw[k] = context.get(r.type)
                 except KeyError, e:
                     raise KeyError('%s attempting to call %r' % (e, obj))
                 result = obj(*args, **kw)

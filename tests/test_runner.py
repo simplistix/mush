@@ -88,16 +88,17 @@ class RunnerTests(TestCase):
 
     def test_returns_tuple(self):
         m = Mock()        
-        class T(object): pass
+        class T1(object): pass
+        class T2(object): pass
 
-        t1 = T()
-        t2 = T()
+        t1 = T1()
+        t2 = T2()
 
         def job1():
             m.job1()
-            return Thing(t1, name='1'), Thing(t2, name='2')
+            return t1, t2
 
-        @requires(Requirement(T, '1'), Requirement(T, '2'))
+        @requires(Requirement(T1), Requirement(T2))
         def job2(obj1, obj2):
             m.job2(obj1, obj2)
 
@@ -141,7 +142,7 @@ class RunnerTests(TestCase):
 
         runner = Runner(job)
         with ShouldRaise(KeyError(
-                S("'No T named None' attempting to call <function job at \w+>")
+                S("'No T in context' attempting to call <function job at \w+>")
                 )):
             runner()
 
