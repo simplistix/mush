@@ -62,3 +62,8 @@ class TestThing(TestCase):
         context = Context()
         with ShouldRaise(TypeError('Can only add Thing instances to Contexts')):
             context.add(TheType())
+
+    def test_missing(self):
+        context = Context()
+        with ShouldRaise(KeyError('No TheType in context')):
+            context.get(TheType)
