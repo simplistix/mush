@@ -4,22 +4,16 @@ type_func = type
 
 class Thing(object):
 
-    def __init__(self, it, type=None, context_manager=None):
+    def __init__(self, it, type=None):
         self.it = it
         if type is None:
             self.type = type_func(it)
         else:
             self.type = type
-        if context_manager is None:
-            self.context_manager = bool(
-                getattr(it, '__enter__', None) and getattr(it, '__exit__', None)
-                )
-        else:
-            self.context_manager = context_manager
 
     def __repr__(self):
-        return '<Thing (%r): type=%s, context_manager=%s>' % (
-            self.it, self.type.__name__, self.context_manager
+        return '<Thing (%r): type=%s>' % (
+            self.it, self.type.__name__
             )
 
 class Context(dict):

@@ -16,12 +16,12 @@ class TestThing(TestCase):
         self.assertEqual(
             repr(context),
             '<Context: '
-            '(<Thing (<TheType obj>): type=TheType, context_manager=False>)>'
+            '(<Thing (<TheType obj>): type=TheType>)>'
             )
         self.assertEqual(
             str(context),
             '<Context: '
-            '(<Thing (<TheType obj>): type=TheType, context_manager=False>)>'
+            '(<Thing (<TheType obj>): type=TheType>)>'
             )
         
     def test_clash(self):
