@@ -3,7 +3,7 @@ from unittest import TestCase
 from mock import Mock, call
 from testfixtures import ShouldRaise, StringComparison as S, compare
 
-from mush import Runner, Requirement, requires, requires_first, requires_last
+from mush import Runner, requires, first, last
 
 class RunnerTests(TestCase):
 
@@ -99,7 +99,7 @@ class RunnerTests(TestCase):
             m.job1()
             return t1, t2
 
-        @requires(Requirement(T1), Requirement(T2))
+        @requires(T1, T2)
         def job2(obj1, obj2):
             m.job2(obj1, obj2)
 
@@ -162,7 +162,7 @@ class RunnerTests(TestCase):
         def base_args(obj):
             m.base_args(obj)
 
-        @requires_last(T1)
+        @requires(last(T1))
         def parse(obj):
             m.parse(obj)
             return t2

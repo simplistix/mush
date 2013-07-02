@@ -21,60 +21,81 @@ class Context(dict):
     def __repr__(self):
         return '<Context: %s>' % super(Context, self).__repr__()
 
-class Requirement(object):
+class Requirements(object):
 
-    def __init__(self, type):
-        self.type = type
+    def __init__(self, *args, **kw):
+        self.args = args
+        self.kw = kw
+
+    def __iter__(self):
+        for arg in self.args:
+            yield None, arg
+        for k, v in self.kw.items():
+            yield k, v
+
+nothing = Requirements()
 
 class requires(object):
 
-    when = 0
-    
     def __init__(self, *args, **kw):
-        sargs = []
-        for arg in args:
-            if not isinstance(arg, Requirement):
-                arg = Requirement(arg)
-            sargs.append(arg)
-        skw = {}
-        for k, v in kw.items():
-            if not isinstance(v, Requirement):
-                v = Requirement(v)
-            skw[k] = v
-        self.__requires__ = (sargs, skw, self.when)
+        self.__requires__ = Requirements(*args, **kw)
 
     def __call__(self, obj):
         obj.__requires__ = self.__requires__
         return obj
 
-class requires_first(requires):
-    when = -1
+class when(object):
+    def __init__(self, it):
+        self.it = it
+    @property
+    def __name__(self):
+        return self.it.__name__
+
+class first(when): pass
+class last(when): pass
+
+class Periods(object):
     
-class requires_last(requires):
-    when = 1
-    
+    def __init__(self):
+        self.first = []
+        self.normal = []
+        self.last = []
+        
+    def __iter__(self):
+        for obj in self.first:
+            yield obj
+        for obj in self.normal:
+            yield obj
+        for obj in self.last:
+            yield obj
+
+    def __repr__(self):
+        return '<Periods first:%r normal:%r last:%r>' % (
+            self.first, self.normal, self.last
+            )
+
 class Runner(list):
 
     def __init__(self, *objs):
         self.types = [None]
-        self.callables = defaultdict(list)
+        self.callables = defaultdict(Periods)
         for obj in objs:
             self.add(obj)
 
     def add(self, obj):
-        args_required, kw_required, order = getattr(obj,
-                                                    '__requires__',
-                                                    ((), {}, 0))
-        found_req = False
-        for reqs in args_required, kw_required.values():
-            for req in reqs:
-                found_req = True
-                key = req.type
-                if key not in self.types:
-                    self.types.append(key)
-                self.callables[key].append(obj)
-        if not found_req:
-            self.callables[None].append(obj)
+        for name, type in getattr(obj, '__requires__', nothing):
+            if isinstance(type, when):
+                t = type.it
+                period = getattr(self.callables[t], type.__class__.__name__)
+                
+            else:
+                t = type
+                period = self.callables[t].normal
+            period.append(obj)
+            if t not in self.types:
+                self.types.append(t)
+            return
+        self.callables[None].normal.append(obj)
 
     def __call__(self):
         context = Context()
@@ -82,16 +103,17 @@ class Runner(list):
             for obj in self.callables[key]:
                 args = []
                 kw = {}
-                args_required, kw_required, order = getattr(obj,
-                                                            '__requires__',
-                                                            ((), {}, 0))
-                try:
-                    for r in args_required:
-                        args.append(context.get(r.type))
-                    for k, r in kw_required.items():
-                        kw[k] = context.get(r.type)
-                except KeyError, e:
-                    raise KeyError('%s attempting to call %r' % (e, obj))
+                for name, type in getattr(obj, '__requires__', nothing):
+                    try:
+                        if isinstance(type, when):
+                            type = type.it
+                        o = context.get(type)
+                    except KeyError, e:
+                        raise KeyError('%s attempting to call %r' % (e, obj))
+                    if name is None:
+                        args.append(o)
+                    else:
+                        kw[name] = o
                 result = obj(*args, **kw)
                 if result is not None:
                     if type_func(result) in (tuple, list):
