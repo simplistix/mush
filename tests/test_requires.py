@@ -1,8 +1,8 @@
 from unittest import TestCase
 
-from testfixtures import compare
+from testfixtures import ShouldRaise, compare
 
-from mush import requires
+from mush import requires, first, last, when
 
 class Type1(object): pass
 class Type2(object): pass
@@ -31,3 +31,22 @@ class RequiresTests(TestCase):
         def job(arg): pass
         decorated = requires(Type1)(job)
         self.assertTrue(decorated is job)
+    def test_when_not_type(self):
+        obj = Type1()
+        w = when(obj)
+        with ShouldRaise(AttributeError(
+                "'Type1' object has no attribute '__name__'"
+                )):
+            repr(w)
+
+    def test_first(self):
+        f = first(Type1)
+        compare(repr(f), 'first(Type1)')
+        compare(f.type, Type1)
+        self.assertTrue(isinstance(f, when))
+
+    def test_last(self):
+        l = last(Type1)
+        compare(repr(l), 'last(Type1)')
+        compare(l.type, Type1)
+        self.assertTrue(isinstance(l, when))

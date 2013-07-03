@@ -45,11 +45,10 @@ class requires(object):
         return obj
 
 class when(object):
-    def __init__(self, it):
-        self.it = it
-    @property
-    def __name__(self):
-        return self.it.__name__
+    def __init__(self, type):
+        self.type = type
+    def __repr__(self):
+        return '%s(%s)' % (self.__class__.__name__, self.type.__name__)
 
 class first(when): pass
 class last(when): pass
@@ -85,7 +84,7 @@ class Runner(list):
     def add(self, obj):
         for name, type in getattr(obj, '__requires__', nothing):
             if isinstance(type, when):
-                t = type.it
+                t = type.type
                 period = getattr(self.callables[t], type.__class__.__name__)
                 
             else:
@@ -106,7 +105,7 @@ class Runner(list):
                 for name, type in getattr(obj, '__requires__', nothing):
                     try:
                         if isinstance(type, when):
-                            type = type.it
+                            type = type.type
                         o = context.get(type)
                     except KeyError, e:
                         raise KeyError('%s attempting to call %r' % (e, obj))
