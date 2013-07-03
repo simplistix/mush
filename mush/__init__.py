@@ -33,6 +33,14 @@ class Requirements(object):
         for k, v in self.kw.items():
             yield k, v
 
+    def __repr__(self):
+        bits = []
+        for arg in self.args:
+            bits.append(arg.__name__)
+        for k, v in sorted(self.kw.items()):
+            bits.append('%s=%s' % (k, v.__name__))
+        return 'Requirements(%s)' % ', '.join(bits)
+
 nothing = Requirements()
 
 class requires(object):
