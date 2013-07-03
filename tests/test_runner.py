@@ -3,7 +3,7 @@ from unittest import TestCase
 from mock import Mock, call
 from testfixtures import ShouldRaise, StringComparison as S, compare
 
-from mush import Runner, requires, first, last
+from mush import Periods, Runner, requires
 
 class RunnerTests(TestCase):
 
@@ -185,3 +185,29 @@ class RunnerTests(TestCase):
 
     def test_clone(self):
         pass
+
+class PeriodsTests(TestCase):
+
+    def test_repr(self):
+        p = Periods()
+        compare(repr(p), '<Periods first:[] normal:[] last:[]>')
+        
+        p.first.append(1)
+        p.normal.append(2)
+        p.last.append(3)
+        p.first.append(4)
+        p.normal.append(5)
+        p.last.append(6)
+        compare(repr(p), '<Periods first:[1, 4] normal:[2, 5] last:[3, 6]>')
+
+    def test_iter(self):
+        p = Periods()
+        compare(tuple(p), ())
+        
+        p.first.append(6)
+        p.first.append(5)
+        p.normal.append(4)
+        p.normal.append(3)
+        p.last.append(2)
+        p.last.append(1)
+        compare(tuple(p), (6, 5, 4, 3, 2, 1))
