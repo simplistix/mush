@@ -35,7 +35,7 @@ class RunnerTests(TestCase):
                 call.job2(),
                 ], m.mock_calls)
 
-    def test_context(self):
+    def test_context_declarative(self):
         m = Mock()        
         class T1(object): pass
         class T2(object): pass
@@ -63,6 +63,45 @@ class RunnerTests(TestCase):
                 call.job1(),
                 call.job2(t1),
                 call.job3(t2),
+                ], m.mock_calls)
+
+
+    def test_context_imperative(self):
+        m = Mock()        
+        class T1(object): pass
+        class T2(object): pass
+
+        t1 = T1()
+        t2 = T2()
+
+        def job1():
+            m.job1()
+            return t1
+
+        def job2(obj):
+            m.job2(obj)
+            return t2
+
+        def job3(t2_):
+            m.job3(t2_)
+
+        # imperative config trumps declarative
+        @requires(T1)
+        def job4(t2_):
+            m.job4(t2_)
+            
+        runner = Runner()
+        runner.add(job1)
+        runner.add(job2, T1)
+        runner.add(job3, t2_=T2)
+        runner.add(job4, T2)
+        runner()
+        
+        compare([
+                call.job1(),
+                call.job2(t1),
+                call.job3(t2),
+                call.job4(t2),
                 ], m.mock_calls)
 
 

@@ -89,31 +89,39 @@ class Runner(list):
         for obj in objs:
             self.add(obj)
 
-    def add(self, obj):
-        for name, type in getattr(obj, '__requires__', nothing):
+    def add(self, obj, *args, **kw):
+        if args or kw:
+            requirements = Requirements(*args, **kw)
+        else:
+            requirements = getattr(obj, '__requires__', nothing)
+        clean_args = []
+        clean_kw = {}
+        period = None
+        for name, type in requirements:
             if isinstance(type, when):
                 t = type.type
                 period = getattr(self.callables[t], type.__class__.__name__)
-                
             else:
                 t = type
                 period = self.callables[t].normal
-            period.append(obj)
             if t not in self.types:
                 self.types.append(t)
-            return
-        self.callables[None].normal.append(obj)
+            if name is None:
+                clean_args.append(t)
+            else:
+                clean_kw[name]=t
+        if period is None:
+            period = self.callables[None].normal
+        period.append((Requirements(*clean_args, **clean_kw), obj))
 
     def __call__(self):
         context = Context()
         for key in self.types:
-            for obj in self.callables[key]:
+            for requirements, obj in self.callables[key]:
                 args = []
                 kw = {}
-                for name, type in getattr(obj, '__requires__', nothing):
+                for name, type in requirements:
                     try:
-                        if isinstance(type, when):
-                            type = type.type
                         o = context.get(type)
                     except KeyError, e:
                         raise KeyError('%s attempting to call %r' % (e, obj))
