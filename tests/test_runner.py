@@ -187,39 +187,60 @@ class RunnerTests(TestCase):
             runner()
 
     def test_classes(self):
-        return
         m = Mock()        
+        class T0(object): pass
         class T1(object): pass
         class T2(object): pass
         t1 = T1()
         t2 = T2()
         
-        class Base(object):
+        class C1(object):
 
-            def parser(self):
-                m.Base.parser()
+            def __init__(self):
+                m.C1.__init__()
+                             
+            def meth(self):
+                m.C1.method()
                 return t1
 
-            @requires(T1)
-            def args(self, obj):
-                m.Base.args(obj)
-
-            @requires(T1)
-            def parse(self, obj):
-                m.Base.parse(obj)
-                return t2
             
-        class Actual(object):
+        @requires(T1)
+        class C2(object):
 
-            @requires(T1)
-            def args(self, obj):
-                m.Actual.args(obj)
+            def __init__(self, obj):
+                m.C2.init(obj)
+
+            @requires(T0)
+            def meth1(self, obj):
+                m.C2.meth1(type(obj))
+                return t2
+
+            @requires(T2)
+            def meth2(self, obj):
+                m.C2.meth2(obj)
+
+        class C3(object):
 
             @requires(T2)
             def __call__(self, obj):
-                m.Actual.call(obj)
-                
-    def test_context_manager(self):
+                m.C3.call(obj)
+
+        runner = Runner(
+            T0,
+            C1.meth,
+            C2.meth1,
+            C2.meth2,
+            )
+        runner.add(C3.__call__)
+        runner()
+        
+        compare([
+                call.C2.init(t1),
+                call.C2.meth1(T0),
+                call.C2.meth2(t2),
+                call.C3.call(t2),
+                ], m.mock_calls)
+        
         pass
 
     def test_clone(self):

@@ -1,4 +1,5 @@
 from collections import defaultdict
+from types import MethodType
 
 type_func = type
 
@@ -84,18 +85,33 @@ class Periods(object):
 class Runner(list):
 
     def __init__(self, *objs):
+        self.seen = set()
         self.types = [None]
         self.callables = defaultdict(Periods)
         for obj in objs:
             self.add(obj)
 
     def add(self, obj, *args, **kw):
+        if isinstance(obj, MethodType):
+            cls = obj.im_class
+            if cls not in self.types:
+                self._add(cls, None, None)
+            self._add(obj, args, kw, cls)
+        else:
+            self._add(obj, args, kw)
+
+    def _add(self, obj, args, kw, class_=None):
+        if obj in self.seen:
+            return
+        self.seen.add(obj)
         if args or kw:
             requirements = Requirements(*args, **kw)
         else:
             requirements = getattr(obj, '__requires__', nothing)
         clean_args = []
         clean_kw = {}
+        if class_ is not None:
+            clean_args.append(class_)
         period = None
         for name, type in requirements:
             if isinstance(type, when):
