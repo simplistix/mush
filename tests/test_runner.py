@@ -241,6 +241,60 @@ class RunnerTests(TestCase):
                 call.C3.call(t2),
                 ], m.mock_calls)
         
+    def test_context_manager(self):
+        m = Mock()
+        
+        class CM1(object):
+            def __enter__(self):
+                m.cm1.enter()
+            def __exit__(self, type, obj, tb):
+                m.cm1.exit(type, obj)
+                return True
+
+        class CM2(object):
+            def __enter__(self):
+                m.cm2.enter()
+            def __exit__(self, type, obj, tb):
+                m.cm2.exit(type, obj)
+
+        @requires(CM1)
+        def func1(obj):
+            m.func1(type(obj))
+
+        @requires(CM1, CM2)
+        def func2(obj1, obj2):
+            m.func2(type(obj1), type(obj2))
+            
+        runner = Runner(
+            CM1,
+            CM2,
+            func1,
+            func2,
+            )
+        
+        runner()
+        compare([
+                call.cm1.enter(),
+                call.cm2.enter(),
+                call.func1(CM1),
+                call.func2(CM1, CM2),
+                call.cm2.exit(None, None),
+                call.cm1.exit(None, None)
+                ], m.mock_calls)
+        
+        # now check with an exception
+        m.reset_mock()
+        m.func2.side_effect = e = Exception()
+        runner()
+        compare([
+                call.cm1.enter(),
+                call.cm2.enter(),
+                call.func1(CM1),
+                call.func2(CM1, CM2),
+                call.cm2.exit(Exception, e),
+                call.cm1.exit(Exception, e)
+                ], m.mock_calls)
+        
         pass
 
     def test_clone(self):

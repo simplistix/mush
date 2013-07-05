@@ -5,6 +5,10 @@ type_func = type
 
 class Context(dict):
 
+    def __init__(self):
+        self.req_objs = []
+        self.index = 0
+
     def add(self, it, type=None):
         type = type or type_func(it)
         if type in self:
@@ -12,6 +16,11 @@ class Context(dict):
                     type.__name__
                     ))
         self[type] = it
+
+    def __iter__(self):
+        while self.index < len (self.req_objs):
+            self.index += 1
+            yield self.req_objs[self.index-1]
 
     def get(self, type):
         obj = super(Context, self).get(type)
@@ -130,28 +139,36 @@ class Runner(list):
             period = self.callables[None].normal
         period.append((Requirements(*clean_args, **clean_kw), obj))
 
-    def __call__(self):
-        context = Context()
-        for key in self.types:
-            for requirements, obj in self.callables[key]:
-                args = []
-                kw = {}
-                for name, type in requirements:
-                    try:
-                        o = context.get(type)
-                    except KeyError, e:
-                        raise KeyError('%s attempting to call %r' % (e, obj))
-                    if name is None:
-                        args.append(o)
-                    else:
-                        kw[name] = o
-                result = obj(*args, **kw)
-                if result is not None:
-                    if type_func(result) in (tuple, list):
-                        for obj in result:
-                            context.add(obj)
-                    elif type_func(result) is dict:
-                        for type, obj in result.items():
-                            context.add(obj, type)
-                    else:
-                        context.add(result)
+    def __call__(self, context=None):
+        if context is None:
+            context = Context()
+            for key in self.types:
+                for req_obj in self.callables[key]:
+                    context.req_objs.append(req_obj)
+            
+        for requirements, obj in context:
+            args = []
+            kw = {}
+            for name, type in requirements:
+                try:
+                    o = context.get(type)
+                except KeyError, e:
+                    raise KeyError('%s attempting to call %r' % (e, obj))
+                if name is None:
+                    args.append(o)
+                else:
+                    kw[name] = o
+            result = obj(*args, **kw)
+            if result is not None:
+                if type_func(result) in (tuple, list):
+                    for obj in result:
+                        context.add(obj)
+                elif type_func(result) is dict:
+                    for type, obj in result.items():
+                        context.add(obj, type)
+                elif getattr(result, '__enter__', None):
+                    context.add(result)
+                    with result:
+                        self(context)
+                else:
+                    context.add(result)

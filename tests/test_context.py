@@ -53,3 +53,13 @@ class TestContext(TestCase):
         context = Context()
         with ShouldRaise(KeyError('No TheType in context')):
             context.get(TheType)
+
+    def test_iter(self):
+        # check state is preserved
+        context = Context()
+        context.req_objs.append(1)
+        self.assertEqual(tuple(context), (1, ))
+        context.req_objs.append(2)
+        self.assertEqual(tuple(context), (2, ))
+        
+
