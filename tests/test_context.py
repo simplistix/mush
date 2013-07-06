@@ -63,3 +63,12 @@ class TestContext(TestCase):
         self.assertEqual(tuple(context), (2, ))
         
 
+    def test_add_none(self):
+        context = Context()
+        with ShouldRaise(ValueError('Cannot add None to context')):
+            context.add(None)
+
+    def test_add_none_with_type(self):
+        context = Context()
+        context.add(None, TheType)
+        self.assertTrue(context.get(TheType) is None)

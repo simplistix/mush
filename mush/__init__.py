@@ -2,6 +2,8 @@ from collections import defaultdict
 from types import MethodType
 
 type_func = type
+none_type = type_func(None)
+marker = object()
 
 class Context(dict):
 
@@ -11,6 +13,8 @@ class Context(dict):
 
     def add(self, it, type=None):
         type = type or type_func(it)
+        if type is none_type:
+            raise ValueError('Cannot add None to context')
         if type in self:
             raise ValueError('Context already contains %s' % (
                     type.__name__
@@ -23,8 +27,8 @@ class Context(dict):
             yield self.req_objs[self.index-1]
 
     def get(self, type):
-        obj = super(Context, self).get(type)
-        if obj is None:
+        obj = super(Context, self).get(type, marker)
+        if obj is marker:
             raise KeyError('No %s in context' % type.__name__)
         return obj
 
@@ -154,10 +158,11 @@ class Runner(list):
                     o = context.get(type)
                 except KeyError, e:
                     raise KeyError('%s attempting to call %r' % (e, obj))
-                if name is None:
-                    args.append(o)
-                else:
-                    kw[name] = o
+                if o is not None:
+                    if name is None:
+                        args.append(o)
+                    else:
+                        kw[name] = o
             result = obj(*args, **kw)
             if result is not None:
                 if type_func(result) in (tuple, list):
