@@ -1,7 +1,7 @@
 from collections import defaultdict
 from types import MethodType
 
-type_func = type
+type_func = lambda obj: obj.__class__
 none_type = type_func(None)
 marker = object()
 
