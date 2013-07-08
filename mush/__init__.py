@@ -27,6 +27,8 @@ class Context(dict):
             yield self.req_objs[self.index-1]
 
     def get(self, type):
+        if type is none_type:
+            return None
         obj = super(Context, self).get(type, marker)
         if obj is marker:
             raise KeyError('No %s in context' % type.__name__)

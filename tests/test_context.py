@@ -72,3 +72,7 @@ class TestContext(TestCase):
         context = Context()
         context.add(None, TheType)
         self.assertTrue(context.get(TheType) is None)
+        
+    def test_get_nonetype(self):
+        self.assertTrue(Context().get(type(None)) is None)
+
