@@ -40,6 +40,10 @@ class RequiresTests(TestCase):
                 )):
             repr(w)
 
+    def test_when_default(self):
+        w = when()
+        self.assertTrue(w.type is type(None))
+
     def test_first(self):
         f = first(Type1)
         compare(repr(f), 'first(Type1)')

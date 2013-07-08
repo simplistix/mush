@@ -57,3 +57,32 @@ class RunnerTests(TestCase):
     def test_complex_(self):
         # parser -> args -> dbs (later) -> job (earlier)
         pass
+
+    def test_ordering(self):
+        m = Mock()
+        class Type(): pass
+
+        @requires(first())
+        def f_none(): m.f_none()
+        def n_none(): m.n_none()
+        @requires(last())
+        def l_none(): m.l_none()
+        def make_t(): return Type()
+
+        @requires(first(Type))
+        def f_t(t): m.f_t()
+        @requires(Type)
+        def n_t(t): m.n_t()
+        @requires(last(Type))
+        def l_t(t): m.l_t()
+        
+        Runner(l_t, n_t, l_none, f_t, f_none, n_none, make_t)()
+        
+        compare([
+                call.f_none(),
+                call.n_none(),
+                call.l_none(),
+                call.f_t(),
+                call.n_t(),
+                call.l_t(),
+                ], m.mock_calls)

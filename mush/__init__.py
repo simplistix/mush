@@ -69,7 +69,7 @@ class requires(object):
         return obj
 
 class when(object):
-    def __init__(self, type):
+    def __init__(self, type=none_type):
         self.type = type
     def __repr__(self):
         return '%s(%s)' % (self.__class__.__name__, self.type.__name__)
@@ -101,7 +101,7 @@ class Runner(list):
 
     def __init__(self, *objs):
         self.seen = set()
-        self.types = [None]
+        self.types = [none_type]
         self.callables = defaultdict(Periods)
         for obj in objs:
             self.add(obj)
@@ -137,12 +137,14 @@ class Runner(list):
                 period = self.callables[t].normal
             if t not in self.types:
                 self.types.append(t)
+            if t is none_type:
+                continue
             if name is None:
                 clean_args.append(t)
             else:
                 clean_kw[name]=t
         if period is None:
-            period = self.callables[None].normal
+            period = self.callables[none_type].normal
         period.append((Requirements(*clean_args, **clean_kw), obj))
 
     def __call__(self, context=None):
