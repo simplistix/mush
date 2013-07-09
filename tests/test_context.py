@@ -26,8 +26,7 @@ class TestContext(TestCase):
             )
 
     def test_explicit_type(self):
-        class T2(object):
-            pass
+        class T2(object): pass
         obj = TheType()
         context = Context()
         context.add(obj, T2)

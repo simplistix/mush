@@ -178,7 +178,7 @@ class RunnerTests(TestCase):
 
         @requires(T)
         def job(arg):
-            pass
+            pass # pragma: nocover
 
         runner = Runner(job)
         with ShouldRaise(KeyError(
