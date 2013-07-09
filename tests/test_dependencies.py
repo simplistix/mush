@@ -1,7 +1,7 @@
 from unittest import TestCase
 
 from mock import Mock, call
-from testfixtures import ShouldRaise, StringComparison as S, compare
+from testfixtures import ShouldRaise, compare
 
 from mush import Runner, requires, first, last
 
@@ -52,11 +52,116 @@ class RunnerTests(TestCase):
                 ], m.mock_calls)
 
     def test_circular(self):
-        pass
+        class T1(object): pass
+        class T2(object): pass
+        class T3(object): pass
+
+        def f1(): return T1()
+        def f2(t1, t3): return T2()
+        def f3(t2): return T3()
+
+        runner = Runner()
+        runner.add(f1)
+        runner.add(f2, T1, T3)
+        runner.add(f3, T2)
+
+        with ShouldRaise(KeyError(
+                "'No T3 in context' attempting to call "+repr(f2)
+                )):
+            runner()
 
     def test_complex_(self):
         # parser -> args -> dbs (later) -> job (earlier)
-        pass
+        m = Mock()
+        class T1(object): pass
+        class T2(object): pass
+        class T3(object): pass
+
+        def parser():
+            m.parser()
+            return T1()
+
+        @requires(T1)
+        def args(obj):
+            m.args(type(obj))
+        
+        @requires(T2)
+        def dbs(obj):
+            m.dbs(type(obj))
+            return T3()
+        
+        @requires(last(T1))
+        def parse(obj):
+            m.parse(type(obj))
+            return T2()
+
+        runner = Runner(parser, args, dbs, parse)
+        
+        @requires(T1)
+        def more_args(obj):
+            m.more_args(type(obj))
+        
+        @requires(T2, T3)
+        def job(o1, o2):
+            m.job(type(o1), type(o2))
+
+        runner.add(more_args)
+        runner.add(job)
+        runner()
+        
+        compare([
+                call.parser(),
+                call.args(T1),
+                call.more_args(T1),
+                call.parse(T1),
+                call.dbs(T2),
+                call.job(T2, T3),
+                ], m.mock_calls)
+        
+    def test_classes(self):
+        m = Mock()        
+        class T1(object): pass
+        class T2(object): pass
+        t1 = T1()
+        t2 = T2()
+        
+        class Base(object):
+
+            def parser(self):
+                m.Base.parser()
+                return t1
+
+            @requires(T1)
+            def args(self, obj):
+                m.Base.args(obj)
+
+            @requires(last(T1))
+            def parse(self, obj):
+                m.Base.parse(obj)
+                return t2
+
+
+        class Actual(object):
+
+            @requires(T1)
+            def args(self, obj):
+                m.Actual.args(obj)
+
+            @requires(T2)
+            def __call__(self, obj):
+                m.Actual.call(obj)
+
+        runner = Runner(Base, Base.parser, Base.args, Base.parse,
+                        Actual, Actual.args, Actual.__call__)
+        runner()
+        
+        compare([
+                call.Base.parser(),
+                call.Base.args(t1),
+                call.Actual.args(t1),
+                call.Base.parse(t1),
+                call.Actual.call(t2),
+                ], m.mock_calls)
 
     def test_ordering(self):
         m = Mock()
