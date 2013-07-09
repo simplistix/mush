@@ -97,7 +97,7 @@ class Periods(object):
             self.first, self.normal, self.last
             )
 
-class Runner(list):
+class Runner(object):
 
     def __init__(self, *objs):
         self.seen = set()
@@ -106,6 +106,16 @@ class Runner(list):
         for obj in objs:
             self.add(obj)
 
+    def clone(self):
+        c = Runner()
+        c.seen.update(self.seen)
+        c.types = list(self.types)
+        for type, source in self.callables.items():
+            target = c.callables[type]
+            for name, contents in vars(source).items():
+                getattr(target, name).extend(contents)
+        return c
+        
     def add(self, obj, *args, **kw):
         if isinstance(obj, MethodType):
             cls = obj.im_class

@@ -3,7 +3,7 @@ from unittest import TestCase
 from mock import Mock, call
 from testfixtures import ShouldRaise, StringComparison as S, compare
 
-from mush import Periods, Runner, requires
+from mush import Periods, Runner, requires, first, last
 
 class RunnerTests(TestCase):
 
@@ -318,8 +318,59 @@ class RunnerTests(TestCase):
                 ], m.mock_calls)
 
     def test_clone(self):
-        pass
-
+        m = Mock()
+        class T1(object): pass
+        class T2(object): pass
+        def f1(): m.f1()
+        def n1():
+            m.n1()
+            return T1(), T2()
+        def l1(): m.l1()
+        def t1(obj): m.t1()
+        def t2(obj): m.t2()
+        # original
+        runner1 = Runner()
+        runner1.add(f1, first())
+        runner1.add(n1)
+        runner1.add(l1, last())
+        runner1.add(t1, T1)
+        runner1.add(t2, T2)
+        # now clone and add bits
+        def f2(): m.f2()
+        def n2(): m.n2()
+        def l2(): m.l2()
+        def tn(obj): m.tn()
+        runner2 = runner1.clone()
+        runner2.add(f2, first())
+        runner2.add(n2)
+        runner2.add(l2, last())
+        # make sure types stay in order
+        runner2.add(tn, T2)
+        # make sure we don't allow double-adds
+        runner2.add(t2)
+        # now run both, and make sure we only get what we should
+        runner1()
+        compare([
+                call.f1(),
+                call.n1(),
+                call.l1(),
+                call.t1(),
+                call.t2(),
+                ], m.mock_calls)
+        m.reset_mock()
+        runner2()
+        compare([
+                call.f1(),
+                call.f2(),
+                call.n1(),
+                call.n2(),
+                call.l1(),
+                call.l2(),
+                call.t1(),
+                call.t2(),
+                call.tn()
+                ], m.mock_calls)
+        
 class PeriodsTests(TestCase):
 
     def test_repr(self):
