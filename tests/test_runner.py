@@ -1,7 +1,11 @@
 from unittest import TestCase
 
 from mock import Mock, call
-from testfixtures import ShouldRaise, StringComparison as S, compare
+from testfixtures import (
+    ShouldRaise,
+    StringComparison as S,
+    compare
+    )
 
 from mush import Periods, Runner, requires, first, last
 
@@ -371,6 +375,31 @@ class RunnerTests(TestCase):
                 call.tn()
                 ], m.mock_calls)
         
+
+    def test_addition(self):
+        m = Mock()        
+
+        def job1():
+            m.job1()
+
+        def job2():
+            m.job2()
+
+        def job3():
+            m.job3()
+
+        runner1 = Runner(job1, job2)
+        runner2 = Runner(job3)
+        runner = runner1 + runner2
+        runner()
+        
+        compare([
+                call.job1(),
+                call.job2(),
+                call.job3(),
+                ], m.mock_calls)
+        
+
 class PeriodsTests(TestCase):
 
     def test_repr(self):

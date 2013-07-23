@@ -106,16 +106,25 @@ class Runner(object):
         for obj in objs:
             self.add(obj)
 
-    def clone(self):
-        c = Runner()
-        c.seen.update(self.seen)
-        c.types = list(self.types)
-        for type, source in self.callables.items():
-            target = c.callables[type]
+    def _merge(self, other):
+        self.seen.update(other.seen)
+        self.types = list(other.types)
+        for type, source in other.callables.items():
+            target = self.callables[type]
             for name, contents in vars(source).items():
                 getattr(target, name).extend(contents)
-        return c
         
+    def clone(self):
+        c = Runner()
+        c._merge(self)
+        return c
+    
+    def __add__(self, other):
+        runner = Runner()
+        for r in self, other:
+            runner._merge(r)
+        return runner
+
     def add(self, obj, *args, **kw):
         if isinstance(obj, MethodType):
             cls = obj.im_class
