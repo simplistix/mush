@@ -103,8 +103,7 @@ class Runner(object):
         self.seen = set()
         self.types = [none_type]
         self.callables = defaultdict(Periods)
-        for obj in objs:
-            self.add(obj)
+        self.extend(*objs)
 
     def _merge(self, other):
         self.seen.update(other.seen)
@@ -165,6 +164,10 @@ class Runner(object):
         if period is None:
             period = self.callables[none_type].normal
         period.append((Requirements(*clean_args, **clean_kw), obj))
+    
+    def extend(self, *objs):
+        for obj in objs:
+            self.add(obj)
 
     def __call__(self, context=None):
         if context is None:

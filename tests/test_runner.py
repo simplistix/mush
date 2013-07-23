@@ -375,6 +375,36 @@ class RunnerTests(TestCase):
                 call.tn()
                 ], m.mock_calls)
         
+    def test_extend(self):
+        m = Mock()        
+        class T1(object): pass
+        class T2(object): pass
+
+        t1 = T1()
+        t2 = T2()
+
+        def job1():
+            m.job1()
+            return t1
+
+        @requires(T1)
+        def job2(obj):
+            m.job2(obj)
+            return t2
+
+        @requires(T2)
+        def job3(obj):
+            m.job3(obj)
+
+        runner = Runner()
+        runner.extend(job1, job2, job3)
+        runner()
+        
+        compare([
+                call.job1(),
+                call.job2(t1),
+                call.job3(t2),
+                ], m.mock_calls)
 
     def test_addition(self):
         m = Mock()        
