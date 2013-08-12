@@ -7,7 +7,7 @@ from testfixtures import (
     compare
     )
 
-from mush import Periods, Runner, requires, first, last
+from mush import Periods, Runner, requires, first, last, attr, item
 
 class RunnerTests(TestCase):
 
@@ -190,6 +190,44 @@ class RunnerTests(TestCase):
                 )):
             runner()
 
+    def test_attr(self):
+        class T(object):
+            foo = 'bar'
+        m = Mock()
+        def job1():
+            m.job1()
+            return T()
+        def job2(obj):
+            m.job2(obj)
+        runner = Runner()
+        runner.add(job1)
+        runner.add(job2, attr(T, 'foo'))
+        runner()
+        
+        compare([
+                call.job1(),
+                call.job2('bar'),
+                ], m.mock_calls)
+
+    def test_item(self):
+        class MyDict(dict): pass
+        m = Mock()
+        def job1():
+            m.job1()
+            obj = MyDict()
+            obj['the_thing'] = m.the_thing
+            return obj
+        def job2(obj):
+            m.job2(obj)
+        runner = Runner()
+        runner.add(job1)
+        runner.add(job2, item(MyDict, 'the_thing'))
+        runner()
+        compare([
+                call.job1(),
+                call.job2(m.the_thing),
+                ], m.mock_calls)
+    
     def test_classes(self):
         m = Mock()        
         class T0(object): pass

@@ -1,4 +1,5 @@
 from collections import defaultdict
+from operator import __getitem__
 from types import MethodType
 
 type_func = lambda obj: obj.__class__
@@ -73,10 +74,30 @@ class when(object):
         self.type = type
     def __repr__(self):
         return '%s(%s)' % (self.__class__.__name__, self.type.__name__)
+    @property
+    def __name__(self):
+        return repr(self)
 
 class first(when): pass
 class last(when): pass
 
+class how(object):
+    def __init__(self, type, name):
+        self.type = type
+        self.name = name
+    def __repr__(self):
+        return self.pattern % (self.type.__name__, self.name)
+    @property
+    def __name__(self):
+        return repr(self)
+    
+class attr(how):
+    pattern = '%s.%s'
+    op = getattr
+class item(how):
+    pattern = '%s[%r]'
+    op = __getitem__
+    
 class Periods(object):
     
     def __init__(self):
@@ -134,33 +155,44 @@ class Runner(object):
             self._add(obj, args, kw)
 
     def _add(self, obj, args, kw, class_=None):
+
         if obj in self.seen:
             return
         self.seen.add(obj)
+
         if args or kw:
             requirements = Requirements(*args, **kw)
         else:
             requirements = getattr(obj, '__requires__', nothing)
+
         clean_args = []
         clean_kw = {}
         if class_ is not None:
             clean_args.append(class_)
+
         period = None
         for name, type in requirements:
-            if isinstance(type, when):
-                t = type.type
-                period = getattr(self.callables[t], type.__class__.__name__)
-            else:
-                t = type
-                period = self.callables[t].normal
-            if t not in self.types:
-                self.types.append(t)
-            if t is none_type:
+            period_name = 'normal'
+            method = None
+            while isinstance(type, (when, how)):
+                if isinstance(type, when):
+                    period_name = type.__class__.__name__
+                else:
+                    method = type.__class__
+                    key = type.name
+                type = type.type
+
+            period = getattr(self.callables[type], period_name)
+            if type not in self.types:
+                self.types.append(type)
+            if type is none_type:
                 continue
+            if method is not None:
+                type = method(type, key)
             if name is None:
-                clean_args.append(t)
+                clean_args.append(type)
             else:
-                clean_kw[name]=t
+                clean_kw[name]=type
         if period is None:
             period = self.callables[none_type].normal
         period.append((Requirements(*clean_args, **clean_kw), obj))
@@ -177,19 +209,30 @@ class Runner(object):
                     context.req_objs.append(req_obj)
             
         for requirements, obj in context:
+
             args = []
             kw = {}
             for name, type in requirements:
+                if isinstance(type, how):
+                    method = type.op
+                    key = type.name
+                    type = type.type
+                else:
+                    method = None
                 try:
                     o = context.get(type)
                 except KeyError, e:
                     raise KeyError('%s attempting to call %r' % (e, obj))
                 if o is not None:
+                    if method is not None:
+                        o = method(o, key)
                     if name is None:
                         args.append(o)
                     else:
                         kw[name] = o
+
             result = obj(*args, **kw)
+
             if result is not None:
                 if type_func(result) in (tuple, list):
                     for obj in result:

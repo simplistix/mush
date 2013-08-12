@@ -3,7 +3,7 @@ from unittest import TestCase
 from mock import Mock, call
 from testfixtures import ShouldRaise, compare
 
-from mush import Runner, requires, first, last
+from mush import Runner, requires, first, last, attr, item
 
 class RunnerTests(TestCase):
 
@@ -191,3 +191,52 @@ class RunnerTests(TestCase):
                 call.n_t(),
                 call.l_t(),
                 ], m.mock_calls)
+
+    def test_when_how(self):
+        m = Mock()
+        class T(dict):
+            foo = 'bar'
+        @requires(first(attr(T, 'foo')))
+        def f_t(o): m.f_t(o)
+        @requires(T)
+        def n_t(o): m.n_t(o.__class__)
+        @requires(last(item(T, 'baz')))
+        def l_t(o): m.l_t(o)
+
+        def make_t():
+            t = T()
+            t['baz'] = 'bob'
+            return t
+
+        Runner(l_t, n_t, f_t, make_t)()
+
+        compare([
+                call.f_t('bar'),
+                call.n_t(T),
+                call.l_t('bob'),
+                ], m.mock_calls)
+
+    def test_how_when(self):
+        m = Mock()
+        class T(dict):
+            foo = 'bar'
+        @requires(item(first(T), 'baz'))
+        def f_t(o): m.f_t(o)
+        @requires(T)
+        def n_t(o): m.n_t(o.__class__)
+        @requires(attr(last(T), 'foo'))
+        def l_t(o): m.l_t(o)
+
+        def make_t():
+            t = T()
+            t['baz'] = 'bob'
+            return t
+
+        Runner(l_t, n_t, f_t, make_t)()
+
+        compare([
+                call.f_t('bob'),
+                call.n_t(T),
+                call.l_t('bar'),
+                ], m.mock_calls)
+    
