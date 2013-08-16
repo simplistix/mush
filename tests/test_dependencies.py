@@ -117,51 +117,6 @@ class RunnerTests(TestCase):
                 call.dbs(T2),
                 call.job(T2, T3),
                 ], m.mock_calls)
-        
-    def test_classes(self):
-        m = Mock()        
-        class T1(object): pass
-        class T2(object): pass
-        t1 = T1()
-        t2 = T2()
-        
-        class Base(object):
-
-            def parser(self):
-                m.Base.parser()
-                return t1
-
-            @requires(T1)
-            def args(self, obj):
-                m.Base.args(obj)
-
-            @requires(last(T1))
-            def parse(self, obj):
-                m.Base.parse(obj)
-                return t2
-
-
-        class Actual(object):
-
-            @requires(T1)
-            def args(self, obj):
-                m.Actual.args(obj)
-
-            @requires(T2)
-            def __call__(self, obj):
-                m.Actual.call(obj)
-
-        runner = Runner(Base, Base.parser, Base.args, Base.parse,
-                        Actual, Actual.args, Actual.__call__)
-        runner()
-        
-        compare([
-                call.Base.parser(),
-                call.Base.args(t1),
-                call.Actual.args(t1),
-                call.Base.parse(t1),
-                call.Actual.call(t2),
-                ], m.mock_calls)
 
     def test_ordering(self):
         m = Mock()

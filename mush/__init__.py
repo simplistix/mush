@@ -121,13 +121,11 @@ class Periods(object):
 class Runner(object):
 
     def __init__(self, *objs):
-        self.seen = set()
         self.types = [none_type]
         self.callables = defaultdict(Periods)
         self.extend(*objs)
 
     def _merge(self, other):
-        self.seen.update(other.seen)
         self.types = list(other.types)
         for type, source in other.callables.items():
             target = self.callables[type]
@@ -146,19 +144,6 @@ class Runner(object):
         return runner
 
     def add(self, obj, *args, **kw):
-        if isinstance(obj, MethodType):
-            cls = obj.im_class
-            if cls not in self.types:
-                self._add(cls, None, None)
-            self._add(obj, args, kw, cls)
-        else:
-            self._add(obj, args, kw)
-
-    def _add(self, obj, args, kw, class_=None):
-
-        if obj in self.seen:
-            return
-        self.seen.add(obj)
 
         if args or kw:
             requirements = Requirements(*args, **kw)
@@ -167,8 +152,6 @@ class Runner(object):
 
         clean_args = []
         clean_kw = {}
-        if class_ is not None:
-            clean_args.append(class_)
 
         period = None
         for name, type in requirements:

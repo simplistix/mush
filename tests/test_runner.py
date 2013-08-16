@@ -227,61 +227,6 @@ class RunnerTests(TestCase):
                 call.job1(),
                 call.job2(m.the_thing),
                 ], m.mock_calls)
-    
-    def test_classes(self):
-        m = Mock()        
-        class T0(object): pass
-        class T1(object): pass
-        class T2(object): pass
-        t1 = T1()
-        t2 = T2()
-        
-        class C1(object):
-
-            def __init__(self):
-                m.C1.__init__()
-                             
-            def meth(self):
-                m.C1.method()
-                return t1
-
-            
-        @requires(T1)
-        class C2(object):
-
-            def __init__(self, obj):
-                m.C2.init(obj)
-
-            @requires(T0)
-            def meth1(self, obj):
-                m.C2.meth1(type(obj))
-                return t2
-
-            @requires(T2)
-            def meth2(self, obj):
-                m.C2.meth2(obj)
-
-        class C3(object):
-
-            @requires(T2)
-            def __call__(self, obj):
-                m.C3.call(obj)
-
-        runner = Runner(
-            T0,
-            C1.meth,
-            C2.meth1,
-            C2.meth2,
-            )
-        runner.add(C3.__call__)
-        runner()
-        
-        compare([
-                call.C2.init(t1),
-                call.C2.meth1(T0),
-                call.C2.meth2(t2),
-                call.C3.call(t2),
-                ], m.mock_calls)
         
     def test_context_manager(self):
         m = Mock()
@@ -388,8 +333,6 @@ class RunnerTests(TestCase):
         runner2.add(l2, last())
         # make sure types stay in order
         runner2.add(tn, T2)
-        # make sure we don't allow double-adds
-        runner2.add(t2)
         # now run both, and make sure we only get what we should
         runner1()
         compare([
