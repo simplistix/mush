@@ -10,4 +10,4 @@
 /.coverage
 /htmlcov
 /.tox
-/.nosideids
+/.noseids
