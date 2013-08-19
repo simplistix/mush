@@ -6,13 +6,11 @@ parallel = True
 exclude_lines = 
   # the original exclude
   pragma: no cover
-
-  # code executed only when tests fail
-  'No exception raised!'
-  self\.fail\('Expected
-
-  # example code that we don't want to cover with pragma statements
-  guppy =
+  pragma: nocover
+  
+  # stuff that we don't worry about
+  pass
+  __name__ == '__main__'
 
 [paths]
 src = 
@@ -21,6 +19,6 @@ src =
   /var/lib/jenkins/slave/workspace/mush-buildout/*/mush
   /Users/Shared/Jenkins/Home/workspace/mush-buildout/*/mush
   ./tests/
-  C:\Jenkins\workspace\tests-buildout\*\tests
-  /var/lib/jenkins/slave/workspace/tests-buildout/*/tests
-  /Users/Shared/Jenkins/Home/workspace/tests-buildout/*/tests
+  C:\Jenkins\workspace\mush-buildout\*\tests
+  /var/lib/jenkins/slave/workspace/mush-buildout/*/tests
+  /Users/Shared/Jenkins/Home/workspace/mush-buildout/*/tests
