@@ -186,7 +186,8 @@ class RunnerTests(TestCase):
 
         runner = Runner(job)
         with ShouldRaise(KeyError(
-                S("'No T in context' attempting to call <function job at \w+>")
+                S("'No T in context' attempting to call "
+                  "<function .*job at \w+>")
                 )):
             runner()
 

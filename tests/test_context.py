@@ -4,6 +4,8 @@ from testfixtures import ShouldRaise
 
 from mush import Context
 
+from .compat import PY3
+
 class TheType(object):
     def __repr__(self):
         return '<TheType obj>'
@@ -31,14 +33,16 @@ class TestContext(TestCase):
         context = Context()
         context.add(obj, T2)
         self.assertTrue(context.get(T2) is obj)
-        self.assertEqual(
-            repr(context),
-            "<Context: {<class 'tests.test_context.T2'>: <TheType obj>}>"
-            )
-        self.assertEqual(
-            str(context),
-            "<Context: {<class 'tests.test_context.T2'>: <TheType obj>}>"
-            )
+        if PY3:
+            expected = ("<Context: {"
+                        "<class 'tests.test_context.TestContext."
+                        "test_explicit_type.<locals>.T2'>: "
+                        "<TheType obj>}>")
+        else:
+            expected = ("<Context: {<class 'tests.test_context.T2'>:"
+                        " <TheType obj>}>")
+        self.assertEqual(repr(context), expected)
+        self.assertEqual(str(context), expected)
 
     def test_clash(self):
         obj1 = TheType()

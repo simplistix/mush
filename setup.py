@@ -2,7 +2,10 @@
 # See license.txt for license details.
 
 import os
-from ConfigParser import RawConfigParser
+try:
+    from configparser import RawConfigParser
+except ImportError:
+    from ConfigParser import RawConfigParser
 from setuptools import setup, find_packages
 
 base_dir = os.path.dirname(__file__)
