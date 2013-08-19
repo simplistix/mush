@@ -4,7 +4,7 @@ from testfixtures import ShouldRaise
 
 from mush import Context
 
-from .compat import PY3
+from .compat import PY32
 
 class TheType(object):
     def __repr__(self):
@@ -33,7 +33,7 @@ class TestContext(TestCase):
         context = Context()
         context.add(obj, T2)
         self.assertTrue(context.get(T2) is obj)
-        if PY3:
+        if PY32:
             expected = ("<Context: {"
                         "<class 'tests.test_context.TestContext."
                         "test_explicit_type.<locals>.T2'>: "
