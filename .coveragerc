@@ -20,3 +20,7 @@ src =
   C:\Jenkins\workspace\mush-buildout\*\mush
   /var/lib/jenkins/slave/workspace/mush-buildout/*/mush
   /Users/Shared/Jenkins/Home/workspace/mush-buildout/*/mush
+  ./tests/
+  C:\Jenkins\workspace\tests-buildout\*\tests
+  /var/lib/jenkins/slave/workspace/tests-buildout/*/tests
+  /Users/Shared/Jenkins/Home/workspace/tests-buildout/*/tests
