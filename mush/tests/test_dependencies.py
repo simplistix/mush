@@ -56,9 +56,12 @@ class RunnerTests(TestCase):
         class T2(object): pass
         class T3(object): pass
 
-        def f1(): return T1()
-        def f2(t1, t3): return T2()
-        def f3(t2): return T3()
+        def f1():
+            return T1()
+        def f2(t1, t3):
+            return T2() # pragma: no cover
+        def f3(t2):
+            return T3() # pragma: no cover
 
         runner = Runner()
         runner.add(f1)
@@ -194,4 +197,3 @@ class RunnerTests(TestCase):
                 call.n_t(T),
                 call.l_t('bar'),
                 ], m.mock_calls)
-    
