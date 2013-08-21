@@ -20,11 +20,11 @@ class TestContext(TestCase):
         self.assertTrue(context.get(TheType) is obj)
         self.assertEqual(
             repr(context),
-            "<Context: {<class 'tests.test_context.TheType'>: <TheType obj>}>"
+            "<Context: {<class 'mush.tests.test_context.TheType'>: <TheType obj>}>"
             )
         self.assertEqual(
             str(context),
-            "<Context: {<class 'tests.test_context.TheType'>: <TheType obj>}>"
+            "<Context: {<class 'mush.tests.test_context.TheType'>: <TheType obj>}>"
             )
 
     def test_explicit_type(self):
@@ -35,11 +35,11 @@ class TestContext(TestCase):
         self.assertTrue(context.get(T2) is obj)
         if PY32:
             expected = ("<Context: {"
-                        "<class 'tests.test_context.TestContext."
+                        "<class 'mush.tests.test_context.TestContext."
                         "test_explicit_type.<locals>.T2'>: "
                         "<TheType obj>}>")
         else:
-            expected = ("<Context: {<class 'tests.test_context.T2'>:"
+            expected = ("<Context: {<class 'mush.tests.test_context.T2'>:"
                         " <TheType obj>}>")
         self.assertEqual(repr(context), expected)
         self.assertEqual(str(context), expected)
