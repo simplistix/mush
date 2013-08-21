@@ -4,7 +4,7 @@ parallel = True
 
 [report]
 exclude_lines = 
-  # the original exclude
+  # the original excludes
   pragma: no cover
   pragma: nocover
   
@@ -14,11 +14,7 @@ exclude_lines =
 
 [paths]
 src = 
-  ./mush/
-  C:\Jenkins\workspace\mush-buildout\*\mush
-  /var/lib/jenkins/slave/workspace/mush-buildout/*/mush
-  /Users/Shared/Jenkins/Home/workspace/mush-buildout/*/mush
-  ./tests/
-  C:\Jenkins\workspace\mush-buildout\*\tests
-  /var/lib/jenkins/slave/workspace/mush-buildout/*/tests
-  /Users/Shared/Jenkins/Home/workspace/mush-buildout/*/tests
+  ./
+  C:\Jenkins\workspace\mush-buildout\*\
+  /var/lib/jenkins/slave/workspace/mush-buildout/*/
+  /Users/Shared/Jenkins/Home/workspace/mush-buildout/*/

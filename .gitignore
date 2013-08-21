@@ -7,7 +7,7 @@
 /parts/
 *.pyc
 /*.xml
-/.coverage
+/.coverage*
 /htmlcov
 /.tox
 /.noseids
