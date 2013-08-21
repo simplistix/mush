@@ -14,7 +14,12 @@ exclude_lines =
 
 [paths]
 src = 
-  ./
-  C:\Jenkins\workspace\mush-buildout\*\
-  /var/lib/jenkins/slave/workspace/mush-buildout/*/
-  /Users/Shared/Jenkins/Home/workspace/mush-buildout/*/
+  ./mush/
+  C:\Jenkins\workspace\mush-buildout\*\mush\
+  /var/lib/jenkins/slave/workspace/mush-buildout/*/mush/
+  /Users/Shared/Jenkins/Home/workspace/mush-buildout/*/mush/
+tests =
+  ./tests/
+  C:\Jenkins\workspace\mush-buildout\*\tests\
+  /var/lib/jenkins/slave/workspace/mush-buildout/*/tests/
+  /Users/Shared/Jenkins/Home/workspace/mush-buildout/*/tests/
