@@ -235,13 +235,18 @@ class RunnerTests(TestCase):
         class CM1(object):
             def __enter__(self):
                 m.cm1.enter()
+                return self
             def __exit__(self, type, obj, tb):
                 m.cm1.exit(type, obj)
                 return True
 
+        class CM2Context(object): pass
+            
         class CM2(object):
             def __enter__(self):
                 m.cm2.enter()
+                return CM2Context()
+            
             def __exit__(self, type, obj, tb):
                 m.cm2.exit(type, obj)
 
@@ -249,9 +254,11 @@ class RunnerTests(TestCase):
         def func1(obj):
             m.func1(type(obj))
 
-        @requires(CM1, CM2)
-        def func2(obj1, obj2):
-            m.func2(type(obj1), type(obj2))
+        @requires(CM1, CM2, CM2Context)
+        def func2(obj1, obj2, obj3):
+            m.func2(type(obj1),
+                    type(obj2),
+                    type(obj3))
             
         runner = Runner(
             CM1,
@@ -265,7 +272,7 @@ class RunnerTests(TestCase):
                 call.cm1.enter(),
                 call.cm2.enter(),
                 call.func1(CM1),
-                call.func2(CM1, CM2),
+                call.func2(CM1, CM2, CM2Context),
                 call.cm2.exit(None, None),
                 call.cm1.exit(None, None)
                 ], m.mock_calls)
@@ -278,7 +285,7 @@ class RunnerTests(TestCase):
                 call.cm1.enter(),
                 call.cm2.enter(),
                 call.func1(CM1),
-                call.func2(CM1, CM2),
+                call.func2(CM1, CM2, CM2Context),
                 call.cm2.exit(Exception, e),
                 call.cm1.exit(Exception, e)
                 ], m.mock_calls)

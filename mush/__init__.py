@@ -225,7 +225,9 @@ class Runner(object):
                         context.add(obj, type)
                 elif getattr(result, '__enter__', None):
                     context.add(result)
-                    with result:
+                    with result as obj:
+                        if obj not in (None, result):
+                            context.add(obj)
                         self(context)
                 else:
                     context.add(result)
