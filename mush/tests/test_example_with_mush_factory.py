@@ -17,9 +17,9 @@ class Tests(TestCase):
 [main]
 db = %s
 log = %s
-''' % (db_path, d.getpath('script.log')))
+''' % (db_path, d.getpath('script.log')), 'ascii')
             # setup file to read
-            source = d.write('test.txt', 'some text')
+            source = d.write('test.txt', 'some text', 'ascii')
             with Replacer() as r:
                 r.replace('sys.argv', ['script.py', config, source, '--quiet'])
                 main()
