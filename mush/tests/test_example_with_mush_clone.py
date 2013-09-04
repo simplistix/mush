@@ -95,6 +95,6 @@ class DatabaseHandlerTests(TestCase):
         curs = handler.conn.cursor()
         curs.execute('select * from notes')
         self.assertEqual(curs.fetchall(), [])
-        # check there was no logging
+        # check the error was logged
         self.log.check(('root', 'ERROR', 'Something went wrong'))
     
