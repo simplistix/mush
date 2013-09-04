@@ -12,7 +12,7 @@ As you can see, the script above takes some command line arguments, loads some c
 __ http://pythonhosted.org/testfixtures
 
 .. literalinclude:: ../mush/tests/test_example_without_mush.py
-   :lines: 2-30
+   :lines: 3-31
 
 The problem is that, in order to test the different paths through the small piece of logic at the end of the script, we have to work around all the set up and handling done by the rest of the script.
 
@@ -37,7 +37,7 @@ Finally, there is a function that configures log handling and a context manager 
 Each of these components can be separately and thoroughly tested. The Mush decorations are inert to all but the Mush :class:`Runner`, meaning that they can be used independently of Mush in whatever way is convenient. As an example, the following tests use a :class:`~testfixtures.TempDirectory` and a :class:`~testfixtures.LogCapture` to fully test the database-handling context manager:
 
 .. literalinclude:: ../mush/tests/test_example_with_mush_clone.py
-   :lines: 60-98
+   :lines: 61-99
 
 Writing the specific parts of your script
 -----------------------------------------

@@ -1,3 +1,4 @@
+from .compat import win_skip; win_skip()
 from .example_without_mush import main
 from unittest import TestCase
 from testfixtures import TempDirectory, Replacer
