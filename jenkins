@@ -1,4 +1,4 @@
 $PYTHON_EXE  bootstrap.py
 bin/buildout
-bin/nosetests --nologcapture --with-xunit --with-cov --cov=mush --cov=tests
+bin/nosetests --nologcapture --with-xunit --with-cov --cov=mush
 bin/docpy setup.py sdist
