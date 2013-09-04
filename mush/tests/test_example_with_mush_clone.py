@@ -29,7 +29,7 @@ log = %s
             # check results
             self.assertEqual(
                 conn.execute('select * from notes').fetchall(),
-                [(u'test.txt', u'some text')]
+                [('test.txt', 'some text')]
                 )
 
     # coverage.py says no test of branch to log.check call!
@@ -47,7 +47,7 @@ log = %s
             # check results
             self.assertEqual(
                 conn.execute('select * from notes').fetchall(),
-                [(u'test.txt', u'some text')]
+                [('test.txt', 'some text')]
                 )
             # check logging
             log.check(('root', 'INFO', "Successfully added 'test.txt'"))
@@ -80,7 +80,7 @@ class DatabaseHandlerTests(TestCase):
         # check the row was inserted and committed
         curs = self.conn.cursor()
         curs.execute('select * from notes')
-        self.assertEqual(curs.fetchall(), [(u'test.txt', u'a note')])
+        self.assertEqual(curs.fetchall(), [('test.txt', 'a note')])
         # check there was no logging
         self.log.check()
 

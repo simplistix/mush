@@ -1,5 +1,5 @@
 from argparse import ArgumentParser, Namespace
-from ConfigParser import RawConfigParser
+from .configparser import RawConfigParser
 from mush import Runner, requires, first, last, attr, item
 import logging, os, sqlite3, sys
 

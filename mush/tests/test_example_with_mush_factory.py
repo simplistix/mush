@@ -26,5 +26,5 @@ log = %s
             # check results
             self.assertEqual(
                 conn.execute('select * from notes').fetchall(),
-                [(u'test.txt', u'some text')]
+                [('test.txt', 'some text')]
                 )
