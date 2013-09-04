@@ -1,0 +1,64 @@
+Development
+===========
+
+.. highlight:: bash
+
+This package is developed using continuous integration which can be
+found here:
+
+http://jenkins.simplistix.co.uk/view/mush/
+
+The latest development version of the documentation can be found here:
+
+http://jenkins.simplistix.co.uk/job/mush-docs/Documentation/
+
+If you wish to contribute to this project, then you should fork the
+repository found here:
+
+https://github.com/Simplistix/mush/
+
+Once that has been done, you can follow these
+instructions to perform various development tasks:
+
+Setting up the buildout
+-----------------------
+
+All development requires that you run the buildout::
+
+  $ python bootstrap.py
+  $ bin/buildout
+
+Running the tests
+-----------------
+
+Once you have a buildout, the tests can be run as follows::
+
+  $ bin/nosetests
+
+Building the documentation
+--------------------------
+
+The Sphinx documentation is built by doing the following from the
+directory containg setup.py::
+
+  $ cd docs
+  $ make html
+
+Making a release
+----------------
+
+The following will build the distribution, upload it to PyPI, register
+the metadata with PyPI and upload the Sphinx documentation to PyPI::
+
+  $ bin/buildout -o
+  $ cd docs
+  $ make clean
+  $ make html
+  $ cd ..
+  $ bin/docpy setup.py sdist upload register upload_docs --upload-dir=docs/_build/html
+
+The ``bin/buildout`` will make sure the correct package information is
+used.
+
+This should all be done on a unix box so that a `.tgz` source
+distribution is produced.

@@ -1,0 +1,14 @@
+Installation Instructions
+=========================
+
+The easyiest way to install Mush is::
+
+  easy_install mush
+
+Or, if you're using `zc.buildout`, just specify ``mush`` as a
+requirement. 
+
+.. topic:: Python version requirements
+
+  This package has been tested with Python 2.6, 2.7, 3.2 and 3.3 on Linux,
+  Mac OS X and Windows.

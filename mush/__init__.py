@@ -7,12 +7,19 @@ none_type = type_func(None)
 marker = object()
 
 class Context(dict):
-
+    "Stores requirements, callables and resources for a particular run."
     def __init__(self):
         self.req_objs = []
         self.index = 0
 
     def add(self, it, type=None):
+        """
+        Add a resource to the context.
+        
+        Optionally specify the type to use for the object rather than
+        the type of the object itself.
+        """
+        
         type = type or type_func(it)
         if type is none_type:
             raise ValueError('Cannot add None to context')
@@ -23,11 +30,27 @@ class Context(dict):
         self[type] = it
 
     def __iter__(self):
+        """
+        When iterated over, the context will yield tuples containing
+        the requirements for a callable and the callable itself in the
+        form ``(requirements, object)``.
+
+        This can only be done once for a given context.
+        A context that has been partially iterated over will remember
+        where it had got to and pick up from there when iteration
+        begins again.
+        """
         while self.index < len (self.req_objs):
             self.index += 1
             yield self.req_objs[self.index-1]
 
     def get(self, type):
+        """
+        Get an object of the specified type from the context.
+
+        This will raise a :class:`KeyError` if no object of that type
+        can be located.
+        """
         if type is none_type:
             return None
         obj = super(Context, self).get(type, marker)
@@ -39,12 +62,27 @@ class Context(dict):
         return '<Context: %s>' % super(Context, self).__repr__()
 
 class Requirements(object):
+    """
+    Represents requirements for a particular callable
+
+    The passed in `args` and `kw` should map to the types, including
+    any required :class:`when` or :class:`how`, for the matching
+    arguments or keyword parameters the callable requires.
+    """
 
     def __init__(self, *args, **kw):
         self.args = args
         self.kw = kw
 
     def __iter__(self):
+        """
+        When iterated over, yields tuples representing individual
+        types required by arguments or keyword parameters in the form
+        ``(keyword_name, decorated_type)``.
+
+        If the keyword name is ``None``, then the type is for
+        a positional argument.
+        """
         for arg in self.args:
             yield None, arg
         for k, v in self.kw.items():
@@ -58,10 +96,23 @@ class Requirements(object):
             bits.append('%s=%s' % (k, v.__name__))
         return 'Requirements(%s)' % ', '.join(bits)
 
+#: A singleton :class:`Requirements` indicating that a callable
+#: requires no resources.
 nothing = Requirements()
 
 class requires(object):
+    """
+    A decorator used for marking a callable with the
+    :class:`Requirements` it needs.
 
+    These are stored in an attribute called ``__requires__`` on the
+    callable meaning that the callable can be used in its original
+    form after decoration.
+
+    If you need to specify requirements for a callable that cannot
+    have attributes added to it, then use the :meth:`~Runner.add`
+    method to do so.
+    """
     def __init__(self, *args, **kw):
         self.__requires__ = Requirements(*args, **kw)
 
@@ -70,6 +121,12 @@ class requires(object):
         return obj
 
 class when(object):
+    """
+    The base class for type decorators that indicate when a callable
+    requires a particular type.
+
+    :param type: The type to be decorated.
+    """
     def __init__(self, type=none_type):
         self.type = type
     def __repr__(self):
@@ -78,10 +135,26 @@ class when(object):
     def __name__(self):
         return repr(self)
 
-class first(when): pass
-class last(when): pass
+class first(when):
+    """
+    A :class:`when` that indicates the callable requires first use
+    of the decorated type.
+    """
+
+class last(when):
+    """
+    A :class:`when` that indicates the callable requires last use
+    of the decorated type.
+    """
 
 class how(object):
+    """
+    The base class for type decorators that indicate which part of a
+    resource is required by a particular callable.
+
+    :param type: The type to be decorated.
+    :param name: The part of the type required by the callable.
+    """
     def __init__(self, type, name):
         self.type = type
         self.name = name
@@ -92,20 +165,41 @@ class how(object):
         return repr(self)
     
 class attr(how):
+    """
+    A :class:`how` that indicates the callable requires the named
+    attribute from the decorated type.
+    """
     pattern = '%s.%s'
     op = getattr
+
 class item(how):
+    """
+    A :class:`how` that indicates the callable requires the named
+    item from the decorated type.
+    """
     pattern = '%s[%r]'
     op = __getitem__
     
 class Periods(object):
+    """
+    A collection of lists used to store the callables that require a
+    particular resource type.
+    """
     
     def __init__(self):
+        #: The callables that require first use of a particular resource.
         self.first = []
+        #: The callables that require use of a particular resource in
+        #: the order to which they're added to the :class:`Runner`.
         self.normal = []
+        #: The callables that require last use of a particular resource.
         self.last = []
         
     def __iter__(self):
+        """
+        Yields callables in the order in which they require the
+        resource this instance is used for.
+        """
         for obj in self.first:
             yield obj
         for obj in self.normal:
@@ -119,7 +213,13 @@ class Periods(object):
             )
 
 class Runner(object):
+    """
+    Used to run callables in the order in which they require
+    particular resources and then, having taken that into account, in
+    the order they are added to the runner.
 
+    :param objs: The callables to add to the runner as it is created.
+    """
     def __init__(self, *objs):
         self.types = [none_type]
         self.callables = defaultdict(Periods)
@@ -133,18 +233,34 @@ class Runner(object):
                 getattr(target, name).extend(contents)
         
     def clone(self):
+        "Return a copy of this runner."
         c = Runner()
         c._merge(self)
         return c
     
     def __add__(self, other):
+        """
+        Concatenate two runners, returning a new runner.
+
+        The order of the new runner is as if the callables had been
+        added in order from runner on the left-hand side of expression
+        and then in order from the runner on the right-hand side of
+        the expression.
+        """
         runner = Runner()
         for r in self, other:
             runner._merge(r)
         return runner
 
     def add(self, obj, *args, **kw):
+        """
+        Add a callable to the runner.
 
+        If either ``args`` or ``kw`` are specified, they will be used
+        to create the :class:`Requirements` in this runner for the
+        callable added in favour of any decoration done with
+        :class:`requires`.
+        """
         if args or kw:
             requirements = Requirements(*args, **kw)
         else:
@@ -181,10 +297,25 @@ class Runner(object):
         period.append((Requirements(*clean_args, **clean_kw), obj))
     
     def extend(self, *objs):
+        "Add the specified objects to this runner."
         for obj in objs:
             self.add(obj)
 
     def __call__(self, context=None):
+        """
+        Execute the callables in this runner in the required order
+        storing objects that are returned and providing them as
+        arguments or keyword parameters when required.
+
+        A runner may be called multiple times. Each time a new
+        :class:`Context` will be created meaning that no required
+        objects are kept between calls and all callables will be
+        called each time.
+        
+        :param context:
+          Used for passing a context when context managers are used.
+          You should never need to pass this parameter.
+        """
         if context is None:
             context = Context()
             for key in self.types:

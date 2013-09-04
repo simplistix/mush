@@ -1,0 +1,10 @@
+Mush is a light weight dependency injection framework aimed at
+enabling the easy testing and re-use of chunks of code that make up
+scripts. 
+
+This is done by combining several callables into a re-usable
+runner. Those callables may produce or require resource objects which
+mush passes between them based on the type of the object. The
+callables are called roughly in the order they are added to the
+runner, but adjusted for the resources required or procuced by it.
+ 

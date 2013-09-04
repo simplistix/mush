@@ -1,0 +1,7 @@
+API Reference
+=============
+
+.. automodule:: mush
+  :members:
+  :exclude-members: op
+  :special-members: __iter__, __add__, __call__

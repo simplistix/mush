@@ -1,0 +1,31 @@
+Mush Documentation
+==================
+
+Mush is a light weight type-based dependency injection framework aimed at
+enabling the easy testing and re-use of chunks of code that make up
+scripts. 
+
+.. toctree::
+   :maxdepth: 2
+
+   use.txt
+   examples.txt
+   api.txt
+
+For details of how to install the package or get involved in its
+development, please see the sections below:
+
+.. toctree::
+   :maxdepth: 1
+
+   installation.txt
+   development.txt
+   changes.txt
+   license.txt
+
+Indices and tables
+==================
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`

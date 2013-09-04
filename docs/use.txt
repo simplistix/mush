@@ -1,0 +1,511 @@
+How Mush works
+==============
+
+.. currentmodule:: mush
+
+.. note:: 
+
+  This documentation explains how Mush works using fairly abstract
+  examples. If you'd prefer more "real world" examples please see the
+  :doc:`examples` documentation.
+
+.. _constructing-runners:
+
+Constructing runners
+--------------------
+
+Mush works by assembling a number of callables into a :class:`Runner`:
+
+.. code-block:: python
+
+  from mush import Runner
+
+  def func1():
+      print('func1')
+
+  def func2():
+      print('func2')
+
+  runner = Runner(func1, func2)
+
+Once assembled, a runner can be called any number of times. Each time
+it is called, it will call each of its callables in turn:
+
+>>> runner()
+func1
+func2
+
+More callables can be added to a runner:
+
+.. code-block:: python
+
+ def func3():
+     print('func3')
+
+ runner.add(func3)
+
+If you want to add several callables in one go, you can use the
+runner's :meth:`~Runner.extend` method:
+
+.. code-block:: python
+
+ def func4():
+     print('func4')
+
+ def func5():
+     print('func5')
+
+ runner.extend(func4, func5)
+
+Now, when called, the runner will call all five functions:
+
+>>> runner()
+func1
+func2
+func3
+func4
+func5
+
+Runners can also be added together to create a new runner:
+
+.. code-block:: python
+
+  runner1 = Runner(func1)
+  runner2 = Runner(func2)
+  runner3 = runner1 + runner2
+
+This addition does not modify the existing runners, but does give the
+result you'd expect:
+
+>>> runner1()
+func1
+>>> runner2()
+func2
+>>> runner3()
+func1
+func2
+
+Finally, runners can be cloned, providing a way to encapsulate commonly
+used base runners that can then be extended for each specific use case:
+
+.. code-block:: python
+
+  runner4 = runner3.clone()
+  runner4.add(func4)
+
+The existing runner is not modified, while the new runner behaves as
+expected:
+
+>>> runner3()
+func1
+func2
+>>> runner4()
+func1
+func2
+func4
+
+.. _configuring-resources:
+
+Configuring Resources
+---------------------
+Where Mush becomes useful is when the callables in a runner either
+produce or require objects of a certain type. Given the right
+configuration, Mush will wire these together enabling you to write
+easily testable and reusable callables that encapsulate specific
+pieces of functionality. This configuration is done either
+imperatively, declaratively or using a combination of the two styles
+as described in the sections below.
+
+For the examples, we'll assume we have three types of resources:
+
+.. code-block:: python
+
+  class Apple: 
+      def __str__(self):
+          return 'an apple'
+      __repr__ = __str__
+
+  class Orange: 
+      def __str__(self):
+          return 'an orange'
+      __repr__ = __str__
+
+  class Juice:
+      def __str__(self):
+          return 'a refreshing fruit beverage' 
+      __repr__ = __str__
+
+Imperative configuration
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Imperative configuration requires no decorators and is great when
+working with callables that come from another package or the standard
+library:
+
+.. code-block:: python
+
+ def apple_tree():
+      print('I made an apple')
+      return Apple()
+
+ def magician(fruit):
+      print('I turned {0} into an orange'.format(fruit))
+      return Orange()
+
+ def juicer(fruit1, fruit2):
+      print('I made juice out of {0} and {1}'.format(fruit1, fruit2))
+
+The requirements are passed to the :meth:`~Runner.add`
+method of a runner which can express requirements for both arguments
+and keyword parameters:
+
+.. code-block:: python
+
+  runner = Runner()
+  runner.add(apple_tree)
+  runner.add(magician, Apple)
+  runner.add(juicer, fruit1=Apple, fruit2=Orange)
+
+Calling this runner will now manage the resources, collecting them and
+passing them in as configured:
+
+>>> runner()
+I made an apple
+I turned an apple into an orange
+I made juice out of an apple and an orange
+
+Declarative configuration
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This is done using the :func:`requires` decorator to mark the
+callables with their requirements, which can specify the types
+required for either arguments or keyword parameters:
+
+.. code-block:: python
+
+  from mush import requires
+
+  def apple_tree():
+      print('I made an apple')
+      return Apple()
+
+  @requires(Apple)
+  def magician(fruit):
+      print('I turned {0} into an orange'.format(fruit))
+      return Orange()
+
+  @requires(fruit1=Apple, fruit2=Orange)
+  def juicer(fruit1, fruit2):
+      print('I made juice out of {0} and {1}'.format(fruit1, fruit2))
+      return Juice()
+
+These can now be combined into a runner and executed. The runner will
+extract the requirements stored by the decorator and will use them to
+map the parameters as appropriate:
+
+>>> runner = Runner(apple_tree, magician, juicer)
+>>> runner()
+I made an apple
+I turned an apple into an orange
+I made juice out of an apple and an orange
+
+Hybrid configuration
+~~~~~~~~~~~~~~~~~~~~
+
+The two styles of configuration are entirely interchangeable, with
+declarative requirements being inspected whenever a callable is added
+to a runner, and imperative requirements being taken whenever they are
+passed via the :meth:`~Runner.add` method:
+
+.. code-block:: python
+
+  @requires(Juice)
+  def packager(juice):
+      print('I put {0} in a bottle'.format(juice))
+  
+  def orange_tree():
+      print('I made an orange')
+      return Orange()
+
+  trees = Runner(apple_tree, orange_tree)
+  runner = trees.clone()
+  runner.extend(juicer, packager)
+  
+This runner now ends up with bottled juice:
+
+>>> runner()
+I made an apple
+I made an orange
+I made juice out of an apple and an orange
+I put a refreshing fruit beverage in a bottle
+
+It's useful to note that imperative configuration will be used in
+preference to declarative configuration where both are present:
+
+.. code-block:: python
+
+  runner = trees.clone()
+  runner.add(juicer, Orange, Apple)
+
+This runner will give us juice made in a different order:
+
+>>> runner()
+I made an apple
+I made an orange
+I made juice out of an orange and an apple
+ 
+.. _usage-periods:
+
+Resource usage periods
+----------------------
+
+It can be important for a callable to have either first access or last
+access to a particular resource. For this reason, configuration can
+specify one of three periods during which a callable needs to be
+called with a particular resource; the default is `normal` and a
+decorator can be used to indicate either `first` or `last`. Within
+these periods, callables are called in the order they are added to the
+runner.
+
+As an example, consider a ring and some things that can be done to it:
+
+.. code-block:: python
+
+  class Ring:
+      def __str__(self):
+          return 'a ring'
+
+  def forge():
+      return Ring()
+
+  def polish(ring):
+      print('polishing {0}'.format(ring))
+
+  def more_polish(ring):
+      print('polishing {0} again'.format(ring))
+
+  def engrave(ring):
+      print('engraving {0}'.format(ring))
+
+  def package(ring):
+      print('packaging {0}'.format(ring))
+
+These can now be added to a runner with configuration expressing the
+correct periods:
+
+.. code-block:: python
+
+  from mush import Runner, first, last
+
+  runner = Runner(forge)
+  runner.add(package, last(Ring))
+  runner.add(polish, first(Ring))
+  runner.add(more_polish, first(Ring))
+  runner.add(engrave, Ring)
+
+Even though the callables were added out order, they will be executed
+correctly:
+
+>>> runner()
+polishing a ring
+polishing a ring again
+engraving a ring
+packaging a ring
+
+The configuration of periods works identically with both the imperative
+and declarative forms.
+
+Special return types
+---------------------
+
+There are certain types that can be returned from a callable that have
+special meaning. While these are provided in case of their specific
+need, you should think twice when you find yourself wanting to use
+them as it is often a sign that your code can be better structured
+differently.
+
+For the examples below, we'll use the fruit classes from above.
+
+Returning multiple resources
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A callable can return multiple resources by returning either a list or
+a tuple:
+
+
+.. code-block:: python
+
+  def orchard():
+      return Apple(), Orange()
+
+This can be used to provide both types of fruit:
+
+>>> runner = Runner(orchard, juicer)
+>>> runner()
+I made juice out of an apple and an orange
+
+Overriding the type of a resource
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Sometimes you may need to force a returned resource to be of a
+particular type. When this is the case, a callable can return a
+dictionary mapping the forced type to the required type:
+
+.. code-block:: python
+
+  class Pear: 
+      def __str__(self):
+          return 'a pear'
+
+  def desperation():
+      print('oh well, a pear will have to do')
+      return {Apple: Pear()}
+
+We can now make juice even though we don't have apples:
+
+>>> runner = Runner(orange_tree, desperation, juicer)
+>>> runner()
+I made an orange
+oh well, a pear will have to do
+I made juice out of a pear and an orange
+
+Returning marker types
+~~~~~~~~~~~~~~~~~~~~~~
+
+In some circumstances, you may need to ensure that some callables are
+used only after another callable has done its work, even though that
+work does not return a resource.
+This can be achieved using a marker type that is mapped to ``None``
+when it is returned:
+
+.. code-block:: python
+
+  class SetupComplete: pass
+
+  def setup():
+      print('setting things up')
+      return {SetupComplete: None}
+
+  @requires(SetupComplete)
+  def body():
+      print('doing stuff')
+
+Note that the :func:`body` callable does not take any arguments or
+parameters; because :func:`setup` maps the :class:`SetupComplete` type
+to ``None``, it is not passed to any callables that require it and it is
+used purely to affect the order of calling:
+
+>>> runner = Runner(body, setup)
+>>> runner()
+setting things up
+doing stuff
+
+.. _resource-parts:
+
+Using parts of a resource
+-------------------------
+
+When pieces of functionality use settings provided either by command
+line arguments or from configuration files, it's often cleaner to
+structure that code to recieve the specific setting value rather than
+the setting's container. It's certainly easier to test. Mush can take
+care of the needed wiring when configured to do so using the
+:class:`attr` and :class:`item` helpers:
+
+.. code-block:: python
+
+    from mush import Runner, attr, item, requires
+
+    class Config(dict): pass
+
+    class Args(object):
+        fruit = 'apple'
+
+    def parse_args():
+        return Args()
+
+    def read_config():
+        return Config(fruit='orange')
+
+    @requires(attr(Args, 'fruit'), item(Config, 'fruit'))
+    def pick(fruit1, fruit2):
+        print('I picked {0} and {1}'.format(fruit1, fruit2))
+        picked = []
+        for fruit in fruit1, fruit2:
+            if fruit=='apple':
+                picked.append(Apple())
+            elif fruit=='orange':
+                picked.append(Orange())
+            else:
+                raise TypeError('You have made a poor fruit choice')
+        return picked
+
+While the :func:`pick` function remains usable and testable on its
+own:
+
+>>> pick('apple', 'orange')
+I picked apple and orange
+[an apple, an orange]
+
+It can also be added to a runner with the other necessary functions
+and Mush will do the hard work:
+
+>>> runner = Runner(parse_args, read_config, pick, juicer)
+>>> runner()
+I picked apple and orange
+I made juice out of an apple and an orange
+
+.. _context-managers:
+
+Context manager resources
+-------------------------
+
+A frequent requirement when writing scripts is to make sure that
+when unexpected things happen they are logged, transactions are
+aborted, and other necessary cleanup is done. Mush supports this
+pattern by allowing context managers to be added as callables:
+
+.. code-block:: python
+
+    from mush import Runner, requires
+
+    class Transactions(object):
+
+        def __enter__(self):
+            print('starting transaction')
+
+        def __exit__(self, type, obj, tb):
+            if type:
+                print(obj)
+                print('aborting transaction')
+            else:
+                print('committing transaction')
+            return True
+
+    def a_func():
+        print('doing my thing')
+
+    def good_func():
+        print('I have done my thing')
+
+    def bad_func():
+        raise Exception("I don't want to do my thing")
+
+The context manager is wrapped around all callables that are called
+after it:
+
+>>> runner = Runner(Transactions, a_func, good_func)
+>>> runner()
+starting transaction
+doing my thing
+I have done my thing
+committing transaction
+
+This gives it a chance to clear up when things go wrong:
+
+>>> runner = Runner(Transactions, a_func, bad_func)
+>>> runner()
+starting transaction
+doing my thing
+I don't want to do my thing
+aborting transaction
