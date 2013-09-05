@@ -44,7 +44,7 @@ log = %s
             source = d.write('test.txt', 'some text', 'ascii')
             with LogCapture() as log:
                 # call the function under test
-                do(source, conn) # pragma: no branch (coverage.py bug)
+                do(conn, source) # pragma: no branch (coverage.py bug)
             # check results
             self.assertEqual(
                 conn.execute('select * from notes').fetchall(),

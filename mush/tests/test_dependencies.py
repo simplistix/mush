@@ -197,3 +197,36 @@ class RunnerTests(TestCase):
                 call.n_t(T),
                 call.l_t('bar'),
                 ], m.mock_calls)
+
+    def test_pick_latest_type(self):
+        m = Mock()
+        class T1(object): pass
+        class T2(object): pass
+        class T3(object): pass
+
+        def makes_t1():
+            m.makes_t1()
+            return T1()
+
+        @requires(T1)
+        def makes_t2(obj):
+            m.makes_t2(type(obj))
+            return T2()
+            
+        @requires(T2)
+        def makes_t3(obj): 
+            m.makes_t3(type(obj))
+            return T3()
+        
+        @requires(T3, T1)
+        def user(obj1, obj2):
+            m.user(type(obj1), type(obj2))
+        
+        Runner(makes_t1, makes_t2, makes_t3, user)()
+
+        compare([
+                call.makes_t1(),
+                call.makes_t2(T1),
+                call.makes_t3(T2),
+                call.user(T3, T1),
+                ], m.mock_calls)

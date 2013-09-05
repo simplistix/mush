@@ -269,32 +269,42 @@ class Runner(object):
         clean_args = []
         clean_kw = {}
 
-        period = None
+        period_name = 'normal'
+        type_index = 0
         for name, type in requirements:
-            period_name = 'normal'
+            req_period = 'normal'
             method = None
             while isinstance(type, (when, how)):
                 if isinstance(type, when):
-                    period_name = type.__class__.__name__
+                    req_period = type.__class__.__name__
                 else:
                     method = type.__class__
                     key = type.name
                 type = type.type
-
-            period = getattr(self.callables[type], period_name)
+                
             if type not in self.types:
                 self.types.append(type)
+
+            req_type_index = self.types.index(type)
+            if req_type_index >= type_index:
+                period_name = req_period
+                type_index = req_type_index
+                
             if type is none_type:
                 continue
+                
             if method is not None:
                 type = method(type, key)
             if name is None:
                 clean_args.append(type)
             else:
                 clean_kw[name]=type
-        if period is None:
-            period = self.callables[none_type].normal
-        period.append((Requirements(*clean_args, **clean_kw), obj))
+
+        order_type = self.types[type_index]
+        period = getattr(self.callables[order_type], period_name)
+
+        requirements = Requirements(*clean_args, **clean_kw)
+        period.append((requirements, obj))
     
     def extend(self, *objs):
         "Add the specified objects to this runner."

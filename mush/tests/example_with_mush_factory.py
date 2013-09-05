@@ -26,8 +26,8 @@ def make_runner(do):
                verbose = attr(first(Namespace), 'verbose'))
     runner.add(DatabaseHandler, item(Config, 'db'))
     runner.add(do,
-               attr(Namespace, 'path'),
-               attr(DatabaseHandler, 'conn'))
+               attr(DatabaseHandler, 'conn'),
+               attr(Namespace, 'path'))
     return runner
 
 main = make_runner(do)

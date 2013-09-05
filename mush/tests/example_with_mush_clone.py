@@ -54,7 +54,7 @@ base_runner.add(setup_logging,
 def args(parser):
     parser.add_argument('path', help='Path to the file to process')
 
-def do(path, conn):
+def do(conn, path):
     filename = os.path.basename(path)
     with open(path) as source:
         conn.execute('insert into notes values (?, ?)',
@@ -66,8 +66,8 @@ main = base_runner.clone()
 main.add(args, ArgumentParser)
 main.add(DatabaseHandler, item(Config, 'db'))
 main.add(do,
-         attr(Namespace, 'path'),
-         attr(DatabaseHandler, 'conn'))
+         attr(DatabaseHandler, 'conn'),
+         attr(Namespace, 'path'))
 
 if __name__ == '__main__':
     main()
