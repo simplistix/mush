@@ -35,6 +35,7 @@ setup(
     ],    
     packages=find_packages(),
     zip_safe=False,
+    include_package_data=True,
     extras_require=dict(
         test=test_requires,
         )
