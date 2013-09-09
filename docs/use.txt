@@ -560,19 +560,19 @@ The debug information that would be written looks like this:
 >>> runner = Runner(makes_t1, makes_t2, makes_t3, user, debug=sys.stdout)
 Added <function makes_t1 ...> to 'normal' period for <... 'NoneType'> with Requirements()
 Current call order:
-For <class 'NoneType'>:
+For <... 'NoneType'>:
   normal: <function makes_t1 ...> requires Requirements()
 <BLANKLINE>
 Added <function makes_t2 ...> to 'normal' period for <class 'T1'> with Requirements(T1)
 Current call order:
-For <class 'NoneType'>:
+For <... 'NoneType'>:
   normal: <function makes_t1 ...> requires Requirements()
 For <class 'T1'>:
   normal: <function makes_t2 ...> requires Requirements(T1)
 <BLANKLINE>
 Added <function makes_t3 ...> to 'normal' period for <class 'T2'> with Requirements(T2)
 Current call order:
-For <class 'NoneType'>:
+For <... 'NoneType'>:
   normal: <function makes_t1 ...> requires Requirements()
 For <class 'T1'>:
   normal: <function makes_t2 ...> requires Requirements(T1)
@@ -581,7 +581,7 @@ For <class 'T2'>:
 <BLANKLINE>
 Added <function user ...> to 'normal' period for <class 'T3'> with Requirements(T3, T1)
 Current call order:
-For <class 'NoneType'>:
+For <... 'NoneType'>:
   normal: <function makes_t1 ...> requires Requirements()
 For <class 'T1'>:
   normal: <function makes_t2 ...> requires Requirements(T1)
