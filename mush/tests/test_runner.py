@@ -1,7 +1,14 @@
 from unittest import TestCase
+try:
+    from io import StringIO
+except ImportError:
+    from StringIO import StringIO
+
+import re
 
 from mock import Mock, call
 from testfixtures import (
+    OutputCapture,
     ShouldRaise,
     StringComparison as S,
     compare
@@ -417,8 +424,87 @@ class RunnerTests(TestCase):
                 call.job2(),
                 call.job3(),
                 ], m.mock_calls)
-        
 
+    def test_debug_clone(self):
+        runner1 = Runner(debug=object())
+        runner2 = runner1.clone()
+        self.assertTrue(runner2.debug is runner1.debug)
+
+    def test_debug(self):
+        class T1(object): pass
+        class T2(object): pass
+        class T3(object): pass
+
+        def makes_t1():
+            return T1()
+
+        @requires(T1)
+        def makes_t2(obj):
+            return T2()
+            
+        @requires(T2)
+        def makes_t3(obj): 
+            return T3()
+        
+        def user(obj1, obj2):
+            pass
+
+        expected = '''\
+Added {makes_t1} to 'normal' period for {nonetype} with Requirements()
+Current call order:
+For {nonetype}:
+  normal: {makes_t1} requires Requirements()
+
+Added {makes_t2} to 'normal' period for {T1} with Requirements(T1)
+Current call order:
+For {nonetype}:
+  normal: {makes_t1} requires Requirements()
+For {T1}:
+  normal: {makes_t2} requires Requirements(T1)
+
+Added {makes_t3} to 'normal' period for {T2} with Requirements(T2)
+Current call order:
+For {nonetype}:
+  normal: {makes_t1} requires Requirements()
+For {T1}:
+  normal: {makes_t2} requires Requirements(T1)
+For {T2}:
+  normal: {makes_t3} requires Requirements(T2)
+
+Added {user} to 'normal' period for {T3} with Requirements(T3, T1)
+Current call order:
+For {nonetype}:
+  normal: {makes_t1} requires Requirements()
+For {T1}:
+  normal: {makes_t2} requires Requirements(T1)
+For {T2}:
+  normal: {makes_t3} requires Requirements(T2)
+For {T3}:
+  normal: {user} requires Requirements(T3, T1)
+
+'''.format(nonetype=repr(None.__class__),
+           makes_t1=repr(makes_t1),
+           makes_t2=repr(makes_t2),
+           makes_t3=repr(makes_t3),
+           user=repr(user),
+           T1=repr(T1),
+           T2=repr(T2),
+           T3=repr(T3))
+                           
+        with OutputCapture() as output:
+            runner1 = Runner(makes_t1, debug=True)
+            runner1.extend(makes_t2, makes_t3)
+            runner1.add(user, T3, T1)
+
+        compare(expected, output.captured)
+
+        actual = StringIO()
+        runner2 = Runner(makes_t1, debug=actual)
+        runner2.extend(makes_t2, makes_t3)
+        runner2.add(user, T3, T1)
+
+        compare(expected, actual.getvalue())
+            
 class PeriodsTests(TestCase):
 
     def test_repr(self):

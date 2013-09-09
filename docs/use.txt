@@ -509,3 +509,84 @@ starting transaction
 doing my thing
 I don't want to do my thing
 aborting transaction
+
+.. _debugging-runners:
+
+Debugging
+---------
+
+Mush makes some heuristic decisions about the order in which to call
+objects added to a runner. If your expectations of the call order
+don't match that used by Mush, it can be confusing to figure out where
+the difference comes from.
+
+For this reason, when constructing a :class:`Runner` you can pass an
+optional debug parameter which can be either a boolean ``True`` or a
+file-like object. If passed, debug information will be generated
+whenever an object is added to the runner.
+
+If ``True``, this information will be written to
+:obj:`~sys.stderr`. If a file-like object is passed instead, the
+information will be written to that object.
+
+As an example, consider this code:
+
+.. code-block:: python
+
+    from mush import Runner, requires
+    
+    class T1(object): pass
+    class T2(object): pass
+    class T3(object): pass
+    
+    def makes_t1():
+        return T1()
+    
+    @requires(T1)
+    def makes_t2(obj):
+        return T2()
+    
+    @requires(T2)
+    def makes_t3(obj): 
+        return T3()
+    
+    @requires(T3, T1)
+    def user(obj1, obj2):
+        m.user(type(obj1), type(obj2))
+   
+The debug information that would be written looks like this:
+
+>>> import sys
+>>> runner = Runner(makes_t1, makes_t2, makes_t3, user, debug=sys.stdout)
+Added <function makes_t1 ...> to 'normal' period for <class 'NoneType'> with Requirements()
+Current call order:
+For <class 'NoneType'>:
+  normal: <function makes_t1 ...> requires Requirements()
+<BLANKLINE>
+Added <function makes_t2 ...> to 'normal' period for <class 'T1'> with Requirements(T1)
+Current call order:
+For <class 'NoneType'>:
+  normal: <function makes_t1 ...> requires Requirements()
+For <class 'T1'>:
+  normal: <function makes_t2 ...> requires Requirements(T1)
+<BLANKLINE>
+Added <function makes_t3 ...> to 'normal' period for <class 'T2'> with Requirements(T2)
+Current call order:
+For <class 'NoneType'>:
+  normal: <function makes_t1 ...> requires Requirements()
+For <class 'T1'>:
+  normal: <function makes_t2 ...> requires Requirements(T1)
+For <class 'T2'>:
+  normal: <function makes_t3 ...> requires Requirements(T2)
+<BLANKLINE>
+Added <function user ...> to 'normal' period for <class 'T3'> with Requirements(T3, T1)
+Current call order:
+For <class 'NoneType'>:
+  normal: <function makes_t1 ...> requires Requirements()
+For <class 'T1'>:
+  normal: <function makes_t2 ...> requires Requirements(T1)
+For <class 'T2'>:
+  normal: <function makes_t3 ...> requires Requirements(T2)
+For <class 'T3'>:
+  normal: <function user ...> requires Requirements(T3, T1)
+<BLANKLINE>

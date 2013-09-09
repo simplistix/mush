@@ -1,6 +1,6 @@
 from collections import defaultdict
 from operator import __getitem__
-from types import MethodType
+import sys
 
 type_func = lambda obj: obj.__class__
 none_type = type_func(None)
@@ -219,11 +219,26 @@ class Runner(object):
     the order they are added to the runner.
 
     :param objs: The callables to add to the runner as it is created.
+    :param debug:
+       If passed, debug information will be written whenever an object
+       is added to the runner. If ``True``, it will be written to
+       :obj:`~sys.stderr`. A file-like object can also be passed, in
+       which case the information will be written to that object.
     """
-    def __init__(self, *objs):
+    
+    def __init__(self, *objs, **debug):
+        self.debug = debug.pop('debug', False)
         self.types = [none_type]
         self.callables = defaultdict(Periods)
         self.extend(*objs)
+
+    def _debug(self, message, *args):
+        if self.debug:
+            if getattr(self.debug, 'write', None):
+                debug = self.debug
+            else:
+                debug = sys.stderr
+            debug.write(message % args + '\n')
 
     def _merge(self, other):
         self.types = list(other.types)
@@ -231,6 +246,7 @@ class Runner(object):
             target = self.callables[type]
             for name, contents in vars(source).items():
                 getattr(target, name).extend(contents)
+        self.debug = self.debug or other.debug
         
     def clone(self):
         "Return a copy of this runner."
@@ -305,6 +321,19 @@ class Runner(object):
 
         requirements = Requirements(*clean_args, **clean_kw)
         period.append((requirements, obj))
+        if self.debug:
+            self._debug('Added %r to %r period for %r with %r',
+                        obj, period_name, order_type, requirements)
+            self._debug('Current call order:')
+            for key in self.types:
+                self._debug('For %r:', key)
+                periods = self.callables[key]
+                for period in 'first', 'normal', 'last':
+                    callables = getattr(periods, period)
+                    for req, obj in callables:
+                        self._debug('%8s: %r requires %r',
+                                    period, obj, req)
+            self._debug('')
     
     def extend(self, *objs):
         "Add the specified objects to this runner."

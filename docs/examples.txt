@@ -92,3 +92,8 @@ Testing
 The examples above have shown how using Mush can make it easier to have smaller components that are easier to re-use and test, however care should still be taken with testing. In particular, it's a good idea to have some intergration tests that excercise the whole runner checking that it behaves as expected when all command line options are specified and when just the defaults are used.
 
 When using the factory pattern, the factories themselves should be unit tested. It can also make tests easier to write by having a "testing runner" that sets up the required resources, such as database connections, while maybe doing some things differently such as not reading a configuration file from disk or using a :class:`~testfixtures.LogCapture` instead of file or stream log handlers.
+
+Debugging
+---------
+
+Mush does its best to call the things added to runners in the best order possible. If this doesn't match your expectations, passing the ``debug`` flag when the :class:`Runner` is instantiated can give you more insight into what's going on. Please see :ref:`debugging-runners` for more information.
