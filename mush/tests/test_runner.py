@@ -436,19 +436,15 @@ class RunnerTests(TestCase):
         class T2(object): pass
         class T3(object): pass
 
-        def makes_t1():
-            return T1()
+        def makes_t1(): pass
 
         @requires(T1)
-        def makes_t2(obj):
-            return T2()
+        def makes_t2(obj): pass
             
         @requires(T2)
-        def makes_t3(obj): 
-            return T3()
+        def makes_t3(obj): pass
         
-        def user(obj1, obj2):
-            pass
+        def user(obj1, obj2): pass
 
         expected = '''\
 Added {makes_t1} to 'normal' period for {nonetype} with Requirements()
