@@ -233,12 +233,11 @@ class Runner(object):
         self.extend(*objs)
 
     def _debug(self, message, *args):
-        if self.debug:
-            if getattr(self.debug, 'write', None):
-                debug = self.debug
-            else:
-                debug = sys.stderr
-            debug.write(message % args + '\n')
+        if getattr(self.debug, 'write', None):
+            debug = self.debug
+        else:
+            debug = sys.stderr
+        debug.write(message % args + '\n')
 
     def _merge(self, other):
         self.types = list(other.types)
