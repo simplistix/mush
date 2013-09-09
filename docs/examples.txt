@@ -1,40 +1,79 @@
-Example Usage
+Example Usage 
 =============
 
 .. currentmodule:: mush
 
-To show how Mush works from a more practical point of view, let's start by looking at a simple script that covers several common patterns:
+To show how Mush works from a more practical point of view, let's
+start by looking at a simple script that covers several common
+patterns:
 
 .. literalinclude:: ../mush/tests/example_without_mush.py
 
-As you can see, the script above takes some command line arguments, loads some configuration from a file, sets up log handling and then loads a file into a database. While simple and effective, this script is hard to test. Even using the :class:`~testfixtures.TempDirectory` and :class:`~testfixtures.Replacer` helpers from the `TestFixtures`__ package, the only way to do so is to write one or more high level tests such as the following:
+As you can see, the script above takes some command line arguments,
+loads some configuration from a file, sets up log handling and then
+loads a file into a database. While simple and effective, this script
+is hard to test. Even using the :class:`~testfixtures.TempDirectory`
+and :class:`~testfixtures.Replacer` helpers from the `TestFixtures`__
+package, the only way to do so is to write one or more high level
+tests such as the following:
 
 __ http://pythonhosted.org/testfixtures
 
 .. literalinclude:: ../mush/tests/test_example_without_mush.py
    :lines: 3-31
 
-The problem is that, in order to test the different paths through the small piece of logic at the end of the script, we have to work around all the set up and handling done by the rest of the script.
+The problem is that, in order to test the different paths through the
+small piece of logic at the end of the script, we have to work around
+all the set up and handling done by the rest of the script.
 
-This also makes it hard to re-use parts of the script. It's common for a project to have several scripts, all of which get some config from the same file, have the same logging options and often use the same database connection.
+This also makes it hard to re-use parts of the script. It's common for
+a project to have several scripts, all of which get some config from
+the same file, have the same logging options and often use the same
+database connection.
 
 Encapsulating the re-usable parts of scripts
 --------------------------------------------
 
-So, let's start by looking at how these common sections of code can be extracted into re-usable functions that can be assembled by Mush into scripts:
+So, let's start by looking at how these common sections of code can be
+extracted into re-usable functions that can be assembled by Mush into
+scripts:
 
 .. literalinclude:: ../mush/tests/example_with_mush_clone.py
    :lines: 1-45
 
-We start with a function that adds the options needed by all our scripts to an :mod:`argparse` parser. This uses the :func:`requires` decorator to tell Mush that it must be called with an :class:`~argparse.ArgumentParser` instance. See :ref:`configuring-resources` for more details.
+We start with a function that adds the options needed by all our
+scripts to an :mod:`argparse` parser. This uses the :func:`requires`
+decorator to tell Mush that it must be called with an
+:class:`~argparse.ArgumentParser` instance. See
+:ref:`configuring-resources` for more details.
 
-Next, we have a function that calls :meth:`~argparse.ArgumentParser.parse_args` on the parser and returns the resulting :class:`~argparse.Namespace`. It uses the :func:`last` decorator to indicate that it should be the last callable to use the :class:`~argparse.ArgumentParser` instance. See :ref:`usage-periods` for more details.
+Next, we have a function that calls
+:meth:`~argparse.ArgumentParser.parse_args` on the parser and returns
+the resulting :class:`~argparse.Namespace`. It uses the :func:`last`
+decorator to indicate that it should be the last callable to use the
+:class:`~argparse.ArgumentParser` instance. See :ref:`usage-periods`
+for more details.
 
-The :func:`parse_config` function uses the :func:`first` decorator to indicate that it needs first use of the command line arguments. It uses those to read the specified configuration and return the configuration as a dictionary. A sub-class of :class:`dict` is used so that other callables can easily indicate that they require the configuration to be passed in.
+The :func:`parse_config` function uses the :func:`first` decorator to
+indicate that it needs first use of the command line arguments. It
+uses those to read the specified configuration and return the
+configuration as a dictionary. A sub-class of :class:`dict` is used so
+that other callables can easily indicate that they require the
+configuration to be passed in.
 
-Finally, there is a function that configures log handling and a context manager that provides a database connection and handles exceptions that occur by logging them and aborting the transaction. Context managers like this are handled by Mush in a specific way, see :ref:`context-managers` for more details.
+Finally, there is a function that configures log handling and a
+context manager that provides a database connection and handles
+exceptions that occur by logging them and aborting the
+transaction. Context managers like this are handled by Mush in a
+specific way, see :ref:`context-managers` for more details.
 
-Each of these components can be separately and thoroughly tested. The Mush decorations are inert to all but the Mush :class:`Runner`, meaning that they can be used independently of Mush in whatever way is convenient. As an example, the following tests use a :class:`~testfixtures.TempDirectory` and a :class:`~testfixtures.LogCapture` to fully test the database-handling context manager:
+Each of these components can be separately and thoroughly tested. The
+Mush decorations are inert to all but the Mush :class:`Runner`,
+meaning that they can be used independently of Mush in whatever way is
+convenient. As an example, the following tests use a
+:class:`~testfixtures.TempDirectory` and a
+:class:`~testfixtures.LogCapture` to fully test the database-handling
+context manager:
 
 .. literalinclude:: ../mush/tests/test_example_with_mush_clone.py
    :lines: 61-99
@@ -42,58 +81,93 @@ Each of these components can be separately and thoroughly tested. The Mush decor
 Writing the specific parts of your script
 -----------------------------------------
 
-Now that all the re-usable parts of the script have been abstracted, writing a specific script becomes a case of just writing two functions:
+Now that all the re-usable parts of the script have been abstracted,
+writing a specific script becomes a case of just writing two
+functions:
 
 
 .. literalinclude:: ../mush/tests/example_with_mush_clone.py
    :lines: 54-63
 
-As you can imagine, this much smaller set of code is simpler to test and easier to maintain.
+As you can imagine, this much smaller set of code is simpler to test
+and easier to maintain.
 
 Assembling the components into a script
 ---------------------------------------
 
-So, we now have a library of re-usable components and the specific callables we require for the current script. All we need to do now is assemble these parts into the final script. The full details of this are covered in :ref:`constructing-runners` but two common patterns are covered below.
+So, we now have a library of re-usable components and the specific
+callables we require for the current script. All we need to do now is
+assemble these parts into the final script. The full details of this
+are covered in :ref:`constructing-runners` but two common patterns are
+covered below.
 
-Cloning
+Cloning 
 ~~~~~~~
 
-With this pattern, a "base runner" is created, usually in the same place that other re-usable parts of the original script are located:
+With this pattern, a "base runner" is created, usually in the same
+place that other re-usable parts of the original script are located:
 
 .. literalinclude:: ../mush/tests/example_with_mush_clone.py
    :lines: 3,46-52
 
-The code above shows some different ways of getting Mush to pass parts of an object returned from a previous callable to the parameters of another callable. See :ref:`resource-parts` for full details.
+The code above shows some different ways of getting Mush to pass parts
+of an object returned from a previous callable to the parameters of
+another callable. See :ref:`resource-parts` for full details.
 
-Now, for each specific script, the base runner is cloned and the script-specific parts added to the clone leaving a callable that can be put in the usual block at the bottom of the script:
+Now, for each specific script, the base runner is cloned and the
+script-specific parts added to the clone leaving a callable that can
+be put in the usual block at the bottom of the script:
 
 .. literalinclude:: ../mush/tests/example_with_mush_clone.py
    :lines: 65-
 
-Using a factory
+Using a factory 
 ~~~~~~~~~~~~~~~
 
-This pattern is most useful when you have several or more scripts that all follow a similar pattern when it comes to assembling the runner from the common parts and the specific parts.
-For example, if all your scripts take a path to a config file and a path to a file that needs processing, you can write a factory function that returns a runner based on the callable that does the work as follows:
+This pattern is most useful when you have several or more scripts that
+all follow a similar pattern when it comes to assembling the runner
+from the common parts and the specific parts.  For example, if all
+your scripts take a path to a config file and a path to a file that
+needs processing, you can write a factory function that returns a
+runner based on the callable that does the work as follows:
 
 .. literalinclude:: ../mush/tests/example_with_mush_factory.py
    :lines: 10-31
 
-With this in place, the specific script becomes the :func:`do` function we abstracted above and a very short call to the factory:
+With this in place, the specific script becomes the :func:`do`
+function we abstracted above and a very short call to the factory:
 
 .. literalinclude:: ../mush/tests/example_with_mush_factory.py
    :lines: 33
 
-A combination of the clone and factory patterns can also be used to get the best of both worlds. Setting up several base runners and are clones of a parent runner and having factories that take common callable patterns and return complete runners can be very powerful.
+A combination of the clone and factory patterns can also be used to
+get the best of both worlds. Setting up several base runners and are
+clones of a parent runner and having factories that take common
+callable patterns and return complete runners can be very powerful.
 
 Testing
 -------
 
-The examples above have shown how using Mush can make it easier to have smaller components that are easier to re-use and test, however care should still be taken with testing. In particular, it's a good idea to have some intergration tests that excercise the whole runner checking that it behaves as expected when all command line options are specified and when just the defaults are used.
+The examples above have shown how using Mush can make it easier to
+have smaller components that are easier to re-use and test, however
+care should still be taken with testing. In particular, it's a good
+idea to have some intergration tests that excercise the whole runner
+checking that it behaves as expected when all command line options are
+specified and when just the defaults are used.
 
-When using the factory pattern, the factories themselves should be unit tested. It can also make tests easier to write by having a "testing runner" that sets up the required resources, such as database connections, while maybe doing some things differently such as not reading a configuration file from disk or using a :class:`~testfixtures.LogCapture` instead of file or stream log handlers.
+When using the factory pattern, the factories themselves should be
+unit tested. It can also make tests easier to write by having a
+"testing runner" that sets up the required resources, such as database
+connections, while maybe doing some things differently such as not
+reading a configuration file from disk or using a
+:class:`~testfixtures.LogCapture` instead of file or stream log
+handlers.
 
 Debugging
 ---------
 
-Mush does its best to call the things added to runners in the best order possible. If this doesn't match your expectations, passing the ``debug`` flag when the :class:`Runner` is instantiated can give you more insight into what's going on. Please see :ref:`debugging-runners` for more information.
+Mush does its best to call the things added to runners in the best
+order possible. If this doesn't match your expectations, passing the
+``debug`` flag when the :class:`Runner` is instantiated can give you
+more insight into what's going on. Please see :ref:`debugging-runners`
+for more information.
