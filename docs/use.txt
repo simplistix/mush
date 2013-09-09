@@ -558,7 +558,7 @@ The debug information that would be written looks like this:
 
 >>> import sys
 >>> runner = Runner(makes_t1, makes_t2, makes_t3, user, debug=sys.stdout)
-Added <function makes_t1 ...> to 'normal' period for <class 'NoneType'> with Requirements()
+Added <function makes_t1 ...> to 'normal' period for <... 'NoneType'> with Requirements()
 Current call order:
 For <class 'NoneType'>:
   normal: <function makes_t1 ...> requires Requirements()
