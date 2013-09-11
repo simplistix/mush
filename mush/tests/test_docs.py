@@ -4,7 +4,10 @@ from manuel import doctest, capture, codeblock
 from manuel.testing import TestSuite
 from os.path import dirname, join, pardir
 
-path = join(join(dirname(__file__), pardir, pardir), 'docs', '*.txt')
+import os
+
+workspace = os.environ.get('WORKSPACE', join(dirname(__file__), pardir, pardir))
+path = join(workspace, 'docs', '*.txt')
 tests = glob(path)
 
 def test_suite():
