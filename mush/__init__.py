@@ -318,26 +318,40 @@ class Runner(object):
         order_type = self.types[type_index]
         period = getattr(self.callables[order_type], period_name)
 
-        requirements = Requirements(*clean_args, **clean_kw)
-        period.append((requirements, obj))
+        clean = Requirements(*clean_args, **clean_kw)
+        period.append((clean, requirements, obj))
         if self.debug:
             self._debug('Added %r to %r period for %r with %r',
-                        obj, period_name, order_type, requirements)
+                        obj, period_name, order_type, clean)
             self._debug('Current call order:')
             for key in self.types:
                 self._debug('For %r:', key)
                 periods = self.callables[key]
                 for period in 'first', 'normal', 'last':
                     callables = getattr(periods, period)
-                    for req, obj in callables:
+                    for req, _, obj in callables:
                         self._debug('%8s: %r requires %r',
                                     period, obj, req)
             self._debug('')
     
+    def __iter__(self):
+        for key in self.types:
+            for req_obj in self.callables[key]:
+                yield req_obj
+        
     def extend(self, *objs):
-        "Add the specified objects to this runner."
+        """
+        Add the specified callables to this runner.
+
+        If any of the objects passed is a :class:`Runner`, the contents of that
+        runner will be added to this runner.
+        """
         for obj in objs:
-            self.add(obj)
+            if isinstance(obj, Runner):
+                for _, reqs, o in obj:
+                    self.add(o, *reqs.args, **reqs.kw)
+            else:
+                self.add(obj)
 
     def __call__(self, context=None):
         """
@@ -356,9 +370,8 @@ class Runner(object):
         """
         if context is None:
             context = Context()
-            for key in self.types:
-                for req_obj in self.callables[key]:
-                    context.req_objs.append(req_obj)
+            for req, _, obj in self:
+                context.req_objs.append((req, obj))
             
         for requirements, obj in context:
 

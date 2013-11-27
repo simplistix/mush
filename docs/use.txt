@@ -85,13 +85,34 @@ func2
 func1
 func2
 
+This can also be done by passing runners in when creating a new runner
+or calling the extend method on a runner, for example:
+
+.. code-block:: python
+
+  runner1 = Runner(func1)
+  runner2 = Runner(func2)
+  runner4_1 = Runner(runner1, runner2)
+  runner4_2 = Runner()
+  runner4_2.extend(runner1, runner2)
+
+In both cases, the results are as you would expect:
+
+>>> runner4_1()
+func1
+func2
+>>> runner4_2()
+func1
+func2
+
+
 Finally, runners can be cloned, providing a way to encapsulate commonly
 used base runners that can then be extended for each specific use case:
 
 .. code-block:: python
 
-  runner4 = runner3.clone()
-  runner4.add(func4)
+  runner5 = runner3.clone()
+  runner5.add(func4)
 
 The existing runner is not modified, while the new runner behaves as
 expected:
@@ -99,7 +120,7 @@ expected:
 >>> runner3()
 func1
 func2
->>> runner4()
+>>> runner5()
 func1
 func2
 func4

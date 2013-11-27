@@ -150,6 +150,41 @@ class RunnerTests(TestCase):
                 call.l_t(),
                 ], m.mock_calls)
 
+    def test_ordering_runners(self):
+        m = Mock()
+        class Type(): pass
+
+        @requires(first())
+        def f_none(): m.f_none()
+        def n_none(): m.n_none()
+        def l_none(): m.l_none()
+        def make_t(): return Type()
+
+        @requires(first(Type))
+        def f_t(t): m.f_t()
+        @requires(Type)
+        def n_t(t): m.n_t()
+        @requires(last(Type))
+        def l_t(t): m.l_t()
+
+        runner = Runner()
+        runner.add(l_none, last())
+        runner.add(f_t)
+        
+        Runner(Runner(l_t, n_t),
+               runner,
+               Runner(f_none, n_none),
+               Runner(make_t))()
+        
+        compare([
+                call.f_none(),
+                call.n_none(),
+                call.l_none(),
+                call.f_t(),
+                call.n_t(),
+                call.l_t(),
+                ], m.mock_calls)
+
     def test_when_how(self):
         m = Mock()
         class T(dict):

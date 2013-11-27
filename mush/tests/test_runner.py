@@ -426,6 +426,41 @@ class RunnerTests(TestCase):
                 call.job3(),
                 ], m.mock_calls)
 
+    def test_extend_with_runners(self):
+        m = Mock()        
+        class T1(object): pass
+        class T2(object): pass
+
+        t1 = T1()
+        t2 = T2()
+
+        def job1():
+            m.job1()
+            return t1
+
+        @requires(T1)
+        def job2(obj):
+            m.job2(obj)
+            return t2
+
+        @requires(T2)
+        def job3(obj):
+            m.job3(obj)
+
+        runner1 = Runner(job1)
+        runner2 = Runner(job2)
+        runner3 = Runner(job3)
+
+        runner = Runner(runner1)
+        runner.extend(runner2, runner3)
+        runner()
+        
+        compare([
+                call.job1(),
+                call.job2(t1),
+                call.job3(t2),
+                ], m.mock_calls)
+
     def test_debug_clone(self):
         runner1 = Runner(debug=object())
         runner2 = runner1.clone()
