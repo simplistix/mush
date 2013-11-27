@@ -36,6 +36,19 @@ class RequiresTests(TestCase):
         decorated = requires(Type1)(job)
         self.assertTrue(decorated is job)
 
+    def test_stacking(self):
+        
+        @requires(Type2, k2=Type1)
+        @requires(Type1, k1=Type2)
+        def job(obj1, obj2, k1=None, k2=None):
+            pass # pragma: nocover
+
+        args = [t for t in job.__requires__ if t[0] is None]
+        kw = set(t for t in job.__requires__ if t[0] is not None)
+        
+        compare([(None, Type1), (None, Type2)], args)
+        compare(set((('k1', Type2), ('k2', Type1))), kw)
+        
     def test_when_not_type(self):
         obj = Type1()
         w = when(obj)

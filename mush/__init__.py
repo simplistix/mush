@@ -117,7 +117,16 @@ class requires(object):
         self.__requires__ = Requirements(*args, **kw)
 
     def __call__(self, obj):
-        obj.__requires__ = self.__requires__
+        current = getattr(obj, '__requires__', None)
+        if current is None:
+            obj.__requires__ = self.__requires__
+        else:
+            kw = dict(current.kw)
+            kw.update(self.__requires__.kw)
+            obj.__requires__ = Requirements(
+                *(current.args + self.__requires__.args),
+                **kw
+                )
         return obj
 
 class when(object):
