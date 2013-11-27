@@ -461,6 +461,40 @@ class RunnerTests(TestCase):
                 call.job3(t2),
                 ], m.mock_calls)
 
+    def test_replace_for_testing(self):
+        m = Mock()        
+        class T1(object): pass
+        class T2(object): pass
+
+        t1 = T1()
+        t2 = T2()
+
+        def job1():
+            raise Exception() # pragma: nocover
+
+        @requires(T1)
+        def job2(obj):
+            raise Exception() # pragma: nocover
+
+        @requires(T2)
+        def job3(obj):
+            raise Exception() # pragma: nocover
+
+        runner = Runner(job1, job2, job3)
+        runner.replace(job1, m.job1)
+        m.job1.return_value = t1
+        runner.replace(job2, m.job2)
+        m.job2.return_value = t2
+        runner.replace(job3, m.job3)
+        runner()
+        
+        compare([
+                call.job1(),
+                call.job2(t1),
+                call.job3(t2),
+                ], m.mock_calls)
+
+
     def test_debug_clone(self):
         runner1 = Runner(debug=object())
         runner2 = runner1.clone()

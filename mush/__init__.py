@@ -261,7 +261,7 @@ class Runner(object):
         c = Runner()
         c._merge(self)
         return c
-    
+
     def __add__(self, other):
         """
         Concatenate two runners, returning a new runner.
@@ -362,6 +362,19 @@ class Runner(object):
             else:
                 self.add(obj)
 
+    def replace(self, original, replacement):
+        """
+        Replace all instances of one callable with another.
+
+        No changes in requirements or call ordering will be made.
+        """
+        for period in self.callables.values():
+            for l in period.first, period.normal, period.last:
+                for i, req_obj in enumerate(l):
+                    clean, req, obj = req_obj
+                    if obj is original:
+                        l[i] = (clean, req, replacement)
+    
     def __call__(self, context=None):
         """
         Execute the callables in this runner in the required order
