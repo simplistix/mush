@@ -3,6 +3,17 @@ Changes
 
 .. currentmodule:: mush
 
+1.1 (27 November 2013)
+----------------------
+
+- Allow runners to be instantiated using other runners.
+
+- Allow :meth:`Runner.extend` to be passed :class:`Runner` instances.
+
+- Allow :func:`requires` decorations to be stacked.
+
+- Add a :meth:`Runner.replace` method to aid with testing assembled runners.
+
 1.0 (29 October 2013)
 -----------------------
 

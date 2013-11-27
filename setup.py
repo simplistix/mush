@@ -21,7 +21,7 @@ test_requires.append('tox')
 
 setup(
     name='mush',
-    version='1.0',
+    version='1.1',
     author='Chris Withers',
     author_email='chris@simplistix.co.uk',
     license='MIT',
