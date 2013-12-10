@@ -410,7 +410,7 @@ class Runner(object):
                     o = context.get(type)
                 except KeyError as e:
                     raise KeyError('%s attempting to call %r' % (e, obj))
-                if o is not None:
+                if o is not nothing:
                     if method is not None:
                         o = method(o, key)
                     if name is None:

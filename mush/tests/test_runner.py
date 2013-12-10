@@ -15,7 +15,7 @@ from testfixtures import (
     compare
     )
 
-from mush import Periods, Runner, requires, first, last, attr, item
+from mush import Periods, Runner, requires, first, last, attr, item, nothing
 
 class RunnerTests(TestCase):
 
@@ -136,6 +136,25 @@ class RunnerTests(TestCase):
         compare([
                 call.job1(),
                 call.job2(t),
+                ], m.mock_calls)
+
+    def test_returns_type_mapping_of_none(self):
+        m = Mock()        
+        class T2(object): pass
+
+        def job1():
+            m.job1()
+            return {T2:None}
+
+        @requires(T2)
+        def job2(obj):
+            m.job2(obj)
+
+        Runner(job1, job2)()
+        
+        compare([
+                call.job1(),
+                call.job2(None),
                 ], m.mock_calls)
 
     def test_returns_tuple(self):
@@ -307,7 +326,7 @@ class RunnerTests(TestCase):
         
         def setup():
             m.setup()
-            return {Marker:None}
+            return {Marker: nothing}
 
         @requires(Marker)
         def use():

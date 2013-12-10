@@ -396,16 +396,18 @@ Returning marker types
 In some circumstances, you may need to ensure that some callables are
 used only after another callable has done its work, even though that
 work does not return a resource.
-This can be achieved using a marker type that is mapped to ``None``
+This can be achieved using a marker type that is mapped to :obj:`nothing`
 when it is returned:
 
 .. code-block:: python
+
+  from mush import nothing
 
   class SetupComplete: pass
 
   def setup():
       print('setting things up')
-      return {SetupComplete: None}
+      return {SetupComplete: nothing}
 
   @requires(SetupComplete)
   def body():
@@ -413,8 +415,8 @@ when it is returned:
 
 Note that the :func:`body` callable does not take any arguments or
 parameters; because :func:`setup` maps the :class:`SetupComplete` type
-to ``None``, it is not passed to any callables that require it and it is
-used purely to affect the order of calling:
+to :obj:`nothing`, it is not passed to any callables that require it
+and it is used purely to affect the order of calling:
 
 >>> runner = Runner(body, setup)
 >>> runner()
