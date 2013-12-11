@@ -164,11 +164,14 @@ class how(object):
     :param type: The type to be decorated.
     :param name: The part of the type required by the callable.
     """
-    def __init__(self, type, name):
+    def __init__(self, type, name=None):
         self.type = type
         self.name = name
     def __repr__(self):
-        return self.pattern % (self.type.__name__, self.name)
+        return self.pattern % dict(
+            type=self.type.__name__,
+            name=self.name
+            )
     @property
     def __name__(self):
         return repr(self)
@@ -178,7 +181,7 @@ class attr(how):
     A :class:`how` that indicates the callable requires the named
     attribute from the decorated type.
     """
-    pattern = '%s.%s'
+    pattern = '%(type)s.%(name)s'
     op = getattr
 
 class item(how):
@@ -186,9 +189,28 @@ class item(how):
     A :class:`how` that indicates the callable requires the named
     item from the decorated type.
     """
-    pattern = '%s[%r]'
+    pattern = '%(type)s[%(name)r]'
     op = __getitem__
-    
+
+class ignore(how):
+    """
+    A :class:`how` that indicates the callable should not be passed
+    an object of the decorated type.
+    """
+    pattern = 'ignore(%(type)s)'
+    @staticmethod
+    def op(o, key):
+        return nothing
+
+def after(type):
+    """
+    A type wrapper that specifies the callable marked as requiring this type
+    should not be passed an object of this type but should only be called
+    once an object of that type is available, and should be done so in the
+    ``last`` period.
+    """
+    return last(ignore(type))
+
 class Periods(object):
     """
     A collection of lists used to store the callables that require a
@@ -410,9 +432,9 @@ class Runner(object):
                     o = context.get(type)
                 except KeyError as e:
                     raise KeyError('%s attempting to call %r' % (e, obj))
+                if method is not None:
+                    o = method(o, key)
                 if o is not nothing:
-                    if method is not None:
-                        o = method(o, key)
                     if name is None:
                         args.append(o)
                     else:

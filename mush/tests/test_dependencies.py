@@ -3,7 +3,7 @@ from unittest import TestCase
 from mock import Mock, call
 from testfixtures import ShouldRaise, compare
 
-from mush import Runner, requires, first, last, attr, item
+from mush import Runner, requires, first, last, attr, item, after
 
 class RunnerTests(TestCase):
 
@@ -264,4 +264,31 @@ class RunnerTests(TestCase):
                 call.makes_t2(T1),
                 call.makes_t3(T2),
                 call.user(T3, T1),
+                ], m.mock_calls)
+        
+    def test_after(self):
+        m = Mock()
+        class Type(): pass
+
+        def make_t(): return Type()
+
+        @requires(first(Type))
+        def f_t(t): m.f_t()
+        @requires(Type)
+        def n_t(t): m.n_t()
+        @requires(last(Type))
+        def l_t_1(t): m.l_t_1()
+        @requires(after(Type))
+        def after_t1(): m.after_t1()
+        @requires(last(Type))
+        def l_t_2(t): m.l_t_2()
+        
+        Runner(make_t, l_t_1, after_t1, l_t_2, n_t, f_t)()
+        
+        compare([
+                call.f_t(),
+                call.n_t(),
+                call.l_t_1(),
+                call.after_t1(),
+                call.l_t_2(),
                 ], m.mock_calls)

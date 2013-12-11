@@ -336,6 +336,66 @@ packaging a ring
 The configuration of periods works identically with both the imperative
 and declarative forms.
 
+Waiting for a resource
+~~~~~~~~~~~~~~~~~~~~~~
+
+Sometimes, a callable needs to wait for some other callable to do its
+work but does not need or cannot accept objects of the type returned
+by that callable. For example, and miss-using the fruit types from above:
+
+.. code-block:: python
+
+  def func1():
+      return Apple()
+
+  def func2(apple):
+      print('func2 got {0}'.format(apple))
+      return Orange()
+
+  def func3(apple):
+      print('func3 got {0}'.format(apple))
+
+  def func4(orange):
+      print('func4 processed {0}'.format(orange))
+
+If we want :func:`func3` only to get called once :func:`func4` has
+processed the :class:`Orange` but, for reasons of abstraction, 
+we want to add the callables in the order defined above, the simplest
+runner will not give us what we want:
+
+>>> runner = Runner(func1)
+>>> runner.add(func2, Apple)
+>>> runner.add(func3, Apple)
+>>> runner.add(func4, Orange)
+>>> runner()
+func2 got an apple
+func3 got an apple
+func4 processed an orange
+
+The problem is that the runner hasn't been told that :func:`func3`
+has a dependency on :class:`Orange`. This can be done using the
+:func:`after` type wrapper to specify that :func:`func2` requires an
+:class:`Orange` to exist, and for any other callables added to the
+runner that need an :class:`Orange` to have been called first, but
+that it must not be passed that orange:
+
+.. code-block:: python
+
+  from mush import Runner, after
+
+  runner = Runner(func1)
+  runner.add(func2, Apple)
+  runner.add(func3, after(Orange), Apple)
+  runner.add(func4, Orange)
+
+Now, even though we've added the callables in the order we want, we
+get the order of calling that we need:
+
+>>> runner()
+func2 got an apple
+func4 processed an orange
+func3 got an apple
+
 Special return types
 ---------------------
 

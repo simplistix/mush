@@ -6,6 +6,7 @@ from mush import (
     Requirements, requires,
     first, last, when,
     item, attr, how,
+    after
     )
 
 class Type1(object): pass
@@ -105,6 +106,15 @@ class RequiresTests(TestCase):
         self.assertTrue(isinstance(w, when))
         compare(w.type, Type1)
 
+    def test_after(self):
+        w = after(Type1)
+        compare(repr(w), 'last(ignore(Type1))')
+        self.assertTrue(isinstance(w, when))
+        h = w.type
+        compare(h.type, Type1)
+        compare(h.name, None)
+        self.assertTrue(isinstance(h, how))
+    
 class RequirementsTests(TestCase):
 
     def test_repr_empty(self):
