@@ -1,4 +1,3 @@
-from .compat import win_skip; win_skip()
 from .example_with_mush_clone import DatabaseHandler, main, do, setup_logging
 from unittest import TestCase
 from testfixtures import TempDirectory

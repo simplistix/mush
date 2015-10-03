@@ -3,10 +3,6 @@ from nose import SkipTest
 import os
 import sys
 
-def win_skip():
-    if os.name=='nt':
-        raise SkipTest('Too onerous to get working on Windows')
-
 if sys.version_info[:2] > (3, 2):
     PY32 = True
 else:
