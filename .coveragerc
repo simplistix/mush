@@ -1,6 +1,5 @@
 [run]
 branch = True
-parallel = True
 
 [report]
 exclude_lines = 
@@ -11,10 +10,3 @@ exclude_lines =
   # stuff that we don't worry about
   pass
   __name__ == '__main__'
-
-[paths]
-src = 
-  ./mush/
-  C:\Jenkins\workspace\mush-buildout\*\mush\
-  /var/lib/jenkins/slave/workspace/mush-buildout/*/mush/
-  /Users/Shared/Jenkins/Home/workspace/mush-buildout/*/mush/
