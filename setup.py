@@ -2,24 +2,9 @@
 # See license.txt for license details.
 
 import os
-try:
-    from configparser import RawConfigParser
-except ImportError:
-    from ConfigParser import RawConfigParser
 from setuptools import setup, find_packages
 
 base_dir = os.path.dirname(__file__)
-
-# read test requirements from tox.ini
-config = RawConfigParser()
-config.read(os.path.join(base_dir, 'tox.ini'))
-test_requires = []
-for item in config.get('testenv', 'deps').split():
-    test_requires.append(item)
-# Tox doesn't need itself, but we need it for testing.
-test_requires.append('tox')
-# coveralls needed for travis
-test_requires.append('coveralls')
 
 setup(
     name='mush',
@@ -39,6 +24,7 @@ setup(
     zip_safe=False,
     include_package_data=True,
     extras_require=dict(
-        test=test_requires,
+        test=['nose', 'nose-cov', 'coveralls', 'mock', 'manuel', 'testfixtures',
+              'argparse'],
         build=['sphinx', 'pkginfo', 'setuptools-git', 'wheel', 'twine']
     ))
