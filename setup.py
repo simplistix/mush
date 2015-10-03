@@ -25,6 +25,6 @@ setup(
     include_package_data=True,
     extras_require=dict(
         test=['nose', 'nose-cov', 'coveralls', 'mock', 'manuel', 'testfixtures',
-              'argparse'],
+              'argparse', 'nose-fixes'],
         build=['sphinx', 'pkginfo', 'setuptools-git', 'wheel', 'twine']
     ))
