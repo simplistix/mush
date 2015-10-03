@@ -18,6 +18,8 @@ for item in config.get('testenv', 'deps').split():
     test_requires.append(item)
 # Tox doesn't need itself, but we need it for testing.
 test_requires.append('tox')
+# coveralls needed for travis
+test_requires.append('coveralls')
 
 setup(
     name='mush',
@@ -38,5 +40,5 @@ setup(
     include_package_data=True,
     extras_require=dict(
         test=test_requires,
-        )
-    )
+        build=['sphinx', 'pkginfo', 'setuptools-git', 'wheel', 'twine']
+    ))
