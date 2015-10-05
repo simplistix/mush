@@ -22,7 +22,7 @@ deploy:
   provider: pypi
   user: chrisw
   password:
-    secure: QrmUWPegJzGIYGI8XGY7ztjHTbpMgVDLNV6f9fjjAoo8efOubJh/BASjWD3ESPlIo1j5tGCcSRP2MN1+30zBxq7a7oiCnthISx42DP6Ih+wLHFCu7uBm12AH96hIOQUAtQotNSwB9dJAJIKKom7xkrV/nStjbcqC7hosTZlTy6o=
+    secure: f28D/cZT27Ejv++FA8Er1GIwD9KG6t82J/AHUlzGvbjQpP9js6TIgZ51nxhf/lhJrACNONOrd3XhjMc1QRgkCKOLHjSHpozO0qPa2lZ3+4c+BP5lZTXmI3uS8YBaidOpWFZjkxf38zK59yab7ntkl02UNibo5RWzoaYJIPcjizA=
   on:
     tags: true
     repo: Simplistix/mush
