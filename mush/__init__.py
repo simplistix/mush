@@ -163,14 +163,19 @@ class how(object):
     :param type: The type to be decorated.
     :param name: The part of the type required by the callable.
     """
-    def __init__(self, type, name=None):
+    type_pattern = '%(type)s'
+    name_pattern = ''
+
+    def __init__(self, type, *names):
         self.type = type
-        self.name = name
+        self.names = names
+
     def __repr__(self):
-        return self.pattern % dict(
-            type=self.type.__name__,
-            name=self.name
-            )
+        txt = self.type_pattern % dict(type=self.type.__name__)
+        for name in self.names:
+            txt += self.name_pattern % dict(name=name)
+        return txt
+
     @property
     def __name__(self):
         return repr(self)
@@ -180,25 +185,29 @@ class attr(how):
     A :class:`how` that indicates the callable requires the named
     attribute from the decorated type.
     """
-    pattern = '%(type)s.%(name)s'
+    name_pattern = '.%(name)s'
     def op(self, o):
-        return getattr(o, self.name)
+        for name in self.names:
+            o = getattr(o, name)
+        return o
 
 class item(how):
     """
     A :class:`how` that indicates the callable requires the named
     item from the decorated type.
     """
-    pattern = '%(type)s[%(name)r]'
+    name_pattern = '[%(name)r]'
     def op(self, o):
-        return o[self.name]
+        for name in self.names:
+            o = o[name]
+        return o
 
 class ignore(how):
     """
     A :class:`how` that indicates the callable should not be passed
     an object of the decorated type.
     """
-    pattern = 'ignore(%(type)s)'
+    type_pattern = 'ignore(%(type)s)'
     @staticmethod
     def op(o):
         return nothing

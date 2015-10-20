@@ -78,14 +78,14 @@ class RequiresTests(TestCase):
         o = item(Type1, 'the key')
         compare(repr(o), "Type1['the key']")
         compare(o.type, Type1)
-        compare(o.name, 'the key')
+        compare(o.names, ('the key', ))
         self.assertTrue(isinstance(o, how))
 
     def test_attr(self):
         o = attr(Type1, 'the secret')
         compare(repr(o), "Type1.the secret")
         compare(o.type, Type1)
-        compare(o.name, 'the secret')
+        compare(o.names, ('the secret', ))
         self.assertTrue(isinstance(o, how))
     
     def test_when_how(self):
@@ -94,13 +94,13 @@ class RequiresTests(TestCase):
         self.assertTrue(isinstance(w, when))
         h = w.type
         compare(h.type, Type1)
-        compare(h.name, 'foo')
+        compare(h.names, ('foo', ))
         self.assertTrue(isinstance(h, how))
     
     def test_how_when(self):
         h = attr(first(Type1), 'foo')
         compare(repr(h), 'first(Type1).foo')
-        compare(h.name, 'foo')
+        compare(h.names, ('foo',), )
         self.assertTrue(isinstance(h, how))
         w = h.type
         self.assertTrue(isinstance(w, when))
@@ -112,7 +112,7 @@ class RequiresTests(TestCase):
         self.assertTrue(isinstance(w, when))
         h = w.type
         compare(h.type, Type1)
-        compare(h.name, None)
+        compare(h.names, ())
         self.assertTrue(isinstance(h, how))
     
 class RequirementsTests(TestCase):

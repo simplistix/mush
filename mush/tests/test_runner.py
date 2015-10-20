@@ -237,6 +237,28 @@ class RunnerTests(TestCase):
                 call.job2('bar'),
                 ], m.mock_calls)
 
+    def test_attr_multiple(self):
+        class T2:
+            bar = 'baz'
+        class T:
+            foo = T2()
+
+        m = Mock()
+        def job1():
+            m.job1()
+            return T()
+        def job2(obj):
+            m.job2(obj)
+        runner = Runner()
+        runner.add(job1)
+        runner.add(job2, attr(T, 'foo', 'bar'))
+        runner()
+
+        compare([
+                call.job1(),
+                call.job2('baz'),
+                ], m.mock_calls)
+
     def test_item(self):
         class MyDict(dict): pass
         m = Mock()
@@ -256,6 +278,25 @@ class RunnerTests(TestCase):
                 call.job2(m.the_thing),
                 ], m.mock_calls)
         
+    def test_item_multiple(self):
+        class MyDict(dict): pass
+        m = Mock()
+        def job1():
+            m.job1()
+            obj = MyDict()
+            obj['the_thing'] = dict(other_thing=m.the_thing)
+            return obj
+        def job2(obj):
+            m.job2(obj)
+        runner = Runner()
+        runner.add(job1)
+        runner.add(job2, item(MyDict, 'the_thing', 'other_thing'))
+        runner()
+        compare([
+                call.job1(),
+                call.job2(m.the_thing),
+                ], m.mock_calls)
+
     def test_nested(self):
         class T(object):
             foo = dict(baz='bar')
