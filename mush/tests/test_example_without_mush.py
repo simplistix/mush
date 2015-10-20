@@ -1,6 +1,6 @@
 from .example_without_mush import main
 from unittest import TestCase
-from testfixtures import TempDirectory, Replacer
+from testfixtures import TempDirectory, Replacer, OutputCapture
 import sqlite3
 
 class Tests(TestCase):
@@ -46,7 +46,9 @@ log = %s
             source = d.write('test.txt', 'some text', 'ascii')
             with Replacer() as r:
                 r.replace('sys.argv', ['script.py', config, source])
-                main()
+                with OutputCapture() as output:
+                    main()
+                output.compare("Successfully added 'test.txt'")
 
     def test_main_exception(self):
         with TempDirectory() as d:

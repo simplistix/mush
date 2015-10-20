@@ -1,9 +1,9 @@
 from doctest import REPORT_NDIFF, ELLIPSIS
 from glob import glob
+from os.path import dirname, join, pardir
+
 from manuel import doctest, capture, codeblock
 from manuel.testing import TestSuite
-from nose.plugins.skip import SkipTest
-from os.path import dirname, join, pardir
 
 tests = glob(join(join(dirname(__file__), pardir, pardir), 'docs', '*.txt'))
 
