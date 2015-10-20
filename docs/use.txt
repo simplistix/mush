@@ -503,6 +503,7 @@ care of the needed wiring when configured to do so using the
 
     class Args(object):
         fruit = 'apple'
+        tree = dict(fruit='pear')
 
     def parse_args():
         return Args()
@@ -510,9 +511,11 @@ care of the needed wiring when configured to do so using the
     def read_config():
         return Config(fruit='orange')
 
-    @requires(attr(Args, 'fruit'), item(Config, 'fruit'))
-    def pick(fruit1, fruit2):
-        print('I picked {0} and {1}'.format(fruit1, fruit2))
+    @requires(attr(Args, 'fruit'),
+              item(Config, 'fruit'),
+              item(attr(Args, 'tree'), 'fruit'))
+    def pick(fruit1, fruit2, fruit3):
+        print('I picked {0}, {1} and {2}'.format(fruit1, fruit2, fruit3))
         picked = []
         for fruit in fruit1, fruit2:
             if fruit=='apple':
@@ -526,8 +529,8 @@ care of the needed wiring when configured to do so using the
 While the :func:`pick` function remains usable and testable on its
 own:
 
->>> pick('apple', 'orange')
-I picked apple and orange
+>>> pick('apple', 'orange', 'pear')
+I picked apple, orange and pear
 [an apple, an orange]
 
 It can also be added to a runner with the other necessary functions
@@ -535,7 +538,7 @@ and Mush will do the hard work:
 
 >>> runner = Runner(parse_args, read_config, pick, juicer)
 >>> runner()
-I picked apple and orange
+I picked apple, orange and pear
 I made juice out of an apple and an orange
 
 .. _context-managers:

@@ -1,5 +1,4 @@
-from collections import defaultdict
-from operator import __getitem__
+from collections import defaultdict, deque
 import sys
 
 type_func = lambda obj: obj.__class__
@@ -182,7 +181,8 @@ class attr(how):
     attribute from the decorated type.
     """
     pattern = '%(type)s.%(name)s'
-    op = getattr
+    def op(self, o):
+        return getattr(o, self.name)
 
 class item(how):
     """
@@ -190,7 +190,8 @@ class item(how):
     item from the decorated type.
     """
     pattern = '%(type)s[%(name)r]'
-    op = __getitem__
+    def op(self, o):
+        return o[self.name]
 
 class ignore(how):
     """
@@ -199,7 +200,7 @@ class ignore(how):
     """
     pattern = 'ignore(%(type)s)'
     @staticmethod
-    def op(o, key):
+    def op(o):
         return nothing
 
 def after(type):
@@ -317,15 +318,12 @@ class Runner(object):
 
         period_name = 'normal'
         type_index = 0
-        for name, type in requirements:
+        for name, wrapped_type in requirements:
             req_period = 'normal'
-            method = None
+            type = wrapped_type
             while isinstance(type, (when, how)):
                 if isinstance(type, when):
                     req_period = type.__class__.__name__
-                else:
-                    method = type.__class__
-                    key = type.name
                 type = type.type
                 
             if type not in self.types:
@@ -339,12 +337,10 @@ class Runner(object):
             if type is none_type:
                 continue
                 
-            if method is not None:
-                type = method(type, key)
             if name is None:
-                clean_args.append(type)
+                clean_args.append(wrapped_type)
             else:
-                clean_kw[name]=type
+                clean_kw[name]=wrapped_type
 
         order_type = self.types[type_index]
         period = getattr(self.callables[order_type], period_name)
@@ -422,23 +418,27 @@ class Runner(object):
             args = []
             kw = {}
             for name, type in requirements:
-                if isinstance(type, how):
-                    method = type.op
-                    key = type.name
+
+                ops = deque()
+                while isinstance(type, (when, how)):
+                    if isinstance(type, how):
+                        ops.appendleft(type.op)
                     type = type.type
-                else:
-                    method = None
+
                 try:
                     o = context.get(type)
                 except KeyError as e:
                     raise KeyError('%s attempting to call %r' % (e, obj))
-                if method is not None:
-                    o = method(o, key)
-                if o is not nothing:
-                    if name is None:
-                        args.append(o)
-                    else:
-                        kw[name] = o
+
+                for op in ops:
+                    o = op(o)
+
+                if o is nothing:
+                    pass
+                elif name is None:
+                    args.append(o)
+                else:
+                    kw[name] = o
 
             result = obj(*args, **kw)
 

@@ -256,6 +256,25 @@ class RunnerTests(TestCase):
                 call.job2(m.the_thing),
                 ], m.mock_calls)
         
+    def test_nested(self):
+        class T(object):
+            foo = dict(baz='bar')
+        m = Mock()
+        def job1():
+            m.job1()
+            return T()
+        def job2(obj):
+            m.job2(obj)
+        runner = Runner()
+        runner.add(job1)
+        runner.add(job2, item(attr(T, 'foo'), 'baz'))
+        runner()
+
+        compare([
+                call.job1(),
+                call.job2('bar'),
+                ], m.mock_calls)
+
     def test_context_manager(self):
         m = Mock()
         
