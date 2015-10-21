@@ -69,6 +69,9 @@ class Requirements(object):
     arguments or keyword parameters the callable requires.
     """
 
+    #: An override for the type that this callable will return.
+    returns = marker
+
     def __init__(self, *args, **kw):
         self.args = args
         self.kw = kw
@@ -93,7 +96,10 @@ class Requirements(object):
             bits.append(arg.__name__)
         for k, v in sorted(self.kw.items()):
             bits.append('%s=%s' % (k, v.__name__))
-        return 'Requirements(%s)' % ', '.join(bits)
+        txt = 'Requirements(%s)' % ', '.join(bits)
+        if self.returns is not marker:
+            txt += ' -> '+str(self.returns.__name__)
+        return txt
 
 #: A singleton :class:`Requirements` indicating that a callable
 #: requires no resources.
@@ -126,6 +132,19 @@ class requires(object):
                 *(current.args + self.__requires__.args),
                 **kw
                 )
+        return obj
+
+class returns(object):
+    """
+    A decorator to indicate that a callable should be treated as
+    returning the type passed to :meth:`returns` rather than the
+    type of the actual return value.
+    """
+    def __init__(self, type):
+        self.type = type
+
+    def __call__(self, obj):
+        obj.__returns__ = self.type
         return obj
 
 class when(object):
@@ -308,9 +327,11 @@ class Runner(object):
             runner._merge(r)
         return runner
 
-    def add(self, obj, *args, **kw):
+    def add_returning(self, obj, returns, *args, **kw):
         """
-        Add a callable to the runner.
+        Add a callable to the runner and specify that it should
+        be treated as returning the type specified in ``returns``,
+        regardless of the actual type returned by calling ``obj``.
 
         If either ``args`` or ``kw`` are specified, they will be used
         to create the :class:`Requirements` in this runner for the
@@ -321,6 +342,9 @@ class Runner(object):
             requirements = Requirements(*args, **kw)
         else:
             requirements = getattr(obj, '__requires__', nothing)
+
+        if returns is marker:
+            returns = getattr(obj, '__returns__', marker)
 
         clean_args = []
         clean_kw = {}
@@ -355,6 +379,8 @@ class Runner(object):
         period = getattr(self.callables[order_type], period_name)
 
         clean = Requirements(*clean_args, **clean_kw)
+        clean.returns = returns
+
         period.append((clean, requirements, obj))
         if self.debug:
             self._debug('Added %r to %r period for %r with %r',
@@ -369,7 +395,18 @@ class Runner(object):
                         self._debug('%8s: %r requires %r',
                                     period, obj, req)
             self._debug('')
-    
+
+    def add(self, obj, *args, **kw):
+        """
+        Add a callable to the runner.
+
+        If either ``args`` or ``kw`` are specified, they will be used
+        to create the :class:`Requirements` in this runner for the
+        callable added in favour of any decoration done with
+        :class:`requires`.
+        """
+        return self.add_returning(obj, marker, *args, **kw)
+
     def __iter__(self):
         for key in self.types:
             for req_obj in self.callables[key]:
@@ -452,7 +489,9 @@ class Runner(object):
             result = obj(*args, **kw)
 
             if result is not None:
-                if type_func(result) in (tuple, list):
+                if requirements.returns is not marker:
+                    context.add(result, requirements.returns)
+                elif type_func(result) in (tuple, list):
                     for obj in result:
                         context.add(obj)
                 elif type_func(result) is dict:

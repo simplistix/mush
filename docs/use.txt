@@ -450,6 +450,47 @@ I made an orange
 oh well, a pear will have to do
 I made juice out of a pear and an orange
 
+If you have no control over a callable that returns an object of the 'wrong'
+type, you have two options. You can either decorate it:
+
+.. code-block:: python
+
+  from mush import returns
+
+  @returns(Apple)
+  def make_pears():
+      print('I made a pear')
+      return Pear()
+
+Now you can use the pear maker to get juice:
+
+>>> runner = Runner(orange_tree, make_pears, juicer)
+>>> runner()
+I made an orange
+I made a pear
+I made juice out of a pear and an orange
+
+If you can't even decorate the callable, then you can also imperatively
+indicate that the return type should be overridden:
+
+.. code-block:: python
+
+  from mush import returns
+
+  def someone_elses_pears():
+      print('I made a pear')
+      return Pear()
+
+Now you can use the pear maker to get juice:
+
+>>> runner = Runner(orange_tree, juicer)
+>>> runner.add_returning(someone_elses_pears, returns=Apple)
+>>> runner()
+I made an orange
+I made a pear
+I made juice out of a pear and an orange
+
+
 Returning marker types
 ~~~~~~~~~~~~~~~~~~~~~~
 

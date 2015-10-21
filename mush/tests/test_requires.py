@@ -11,6 +11,7 @@ from mush import (
 
 class Type1(object): pass
 class Type2(object): pass
+class Type3(object): pass
 
 class RequiresTests(TestCase):
 
@@ -131,6 +132,12 @@ class RequirementsTests(TestCase):
     def test_repr_both(self):
         compare(repr(Requirements(Type1, y=Type2)),
                 'Requirements(Type1, y=Type2)')
+
+    def test_repr_all(self):
+        requirements = Requirements(Type1, y=Type2)
+        requirements.returns = Type3
+        compare(repr(requirements),
+                'Requirements(Type1, y=Type2) -> Type3')
 
     def test_iter_empty(self):
         compare((), tuple(Requirements()))

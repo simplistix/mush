@@ -15,7 +15,8 @@ from testfixtures import (
     compare
     )
 
-from mush import Periods, Runner, requires, first, last, attr, item, nothing
+from mush import Periods, Runner, requires, first, last, attr, item, nothing, returns
+
 
 class RunnerTests(TestCase):
 
@@ -116,7 +117,6 @@ class RunnerTests(TestCase):
                 call.job4(t2),
                 ], m.mock_calls)
 
-
     def test_returns_type_mapping(self):
         m = Mock()        
         class T1(object): pass
@@ -201,6 +201,52 @@ class RunnerTests(TestCase):
         compare([
                 call.job1(),
                 call.job2(t1, t2),
+                ], m.mock_calls)
+
+    def test_return_type_specified_decorator(self):
+        m = Mock()
+        class T1(object): pass
+        class T2(object): pass
+        t = T1()
+
+        @returns(T2)
+        def job1():
+            m.job1()
+            return t
+
+        @requires(T2)
+        def job2(obj):
+            m.job2(obj)
+
+        Runner(job1, job2)()
+
+        compare([
+                call.job1(),
+                call.job2(t),
+                ], m.mock_calls)
+
+    def test_return_type_specified_imperative(self):
+        m = Mock()
+        class T1(object): pass
+        class T2(object): pass
+        t = T1()
+
+        def job1():
+            m.job1()
+            return t
+
+        @requires(T2)
+        def job2(obj):
+            m.job2(obj)
+
+        runner = Runner()
+        runner.add_returning(job1, T2)
+        runner.add(job2, T2)
+        runner()
+
+        compare([
+                call.job1(),
+                call.job2(t),
                 ], m.mock_calls)
 
     def test_missing_from_context(self):
