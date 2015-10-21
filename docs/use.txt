@@ -490,6 +490,7 @@ I made an orange
 I made a pear
 I made juice out of a pear and an orange
 
+.. _marker-types:
 
 Returning marker types
 ~~~~~~~~~~~~~~~~~~~~~~

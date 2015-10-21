@@ -3,6 +3,23 @@ Changes
 
 .. currentmodule:: mush
 
+1.3 (21 October 2015)
+---------------------
+
+- Official support for Python 3.
+
+- Drop official support for Windows, although things should still work.
+
+- Move to Travis CI, Read The Docs and Coveralls for development.
+
+- 'How' decorators like :func:`attr` and :func:`item` can now be nested
+  as well as individually performing nested actions.
+
+- Add :func:`returns` and :meth:`~Runner.add_returning` as new ways to
+  override the type of a returned value.
+
+- A better pattern for :ref:`marker types<marker-types>`.
+
 1.2 (11 December 2013)
 ----------------------
 
