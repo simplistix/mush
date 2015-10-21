@@ -3,7 +3,21 @@ import sys
 
 type_func = lambda obj: obj.__class__
 none_type = type_func(None)
-marker = object()
+
+markers = {}
+
+class Marker(type):
+    "Type for Marker classes"
+    def __repr__(self):
+        return '<Marker: %s>' % self.__name__
+
+def marker(name):
+    "Return a :class:`Marker` for the given `name`, creating if needed."
+    if name not in markers:
+        markers[name] = Marker(name, (object,), {})
+    return markers[name]
+
+not_specified = marker('not_specified')
 
 class Context(dict):
     "Stores requirements, callables and resources for a particular run."
@@ -52,8 +66,8 @@ class Context(dict):
         """
         if type is none_type:
             return None
-        obj = super(Context, self).get(type, marker)
-        if obj is marker:
+        obj = super(Context, self).get(type, not_specified)
+        if obj is not_specified:
             raise KeyError('No %s in context' % type.__name__)
         return obj
 
@@ -70,7 +84,7 @@ class Requirements(object):
     """
 
     #: An override for the type that this callable will return.
-    returns = marker
+    returns = not_specified
 
     def __init__(self, *args, **kw):
         self.args = args
@@ -97,7 +111,7 @@ class Requirements(object):
         for k, v in sorted(self.kw.items()):
             bits.append('%s=%s' % (k, v.__name__))
         txt = 'Requirements(%s)' % ', '.join(bits)
-        if self.returns is not marker:
+        if self.returns is not not_specified:
             txt += ' -> '+str(self.returns.__name__)
         return txt
 
@@ -343,8 +357,8 @@ class Runner(object):
         else:
             requirements = getattr(obj, '__requires__', nothing)
 
-        if returns is marker:
-            returns = getattr(obj, '__returns__', marker)
+        if returns is not_specified:
+            returns = getattr(obj, '__returns__', not_specified)
 
         clean_args = []
         clean_kw = {}
@@ -405,7 +419,7 @@ class Runner(object):
         callable added in favour of any decoration done with
         :class:`requires`.
         """
-        return self.add_returning(obj, marker, *args, **kw)
+        return self.add_returning(obj, not_specified, *args, **kw)
 
     def __iter__(self):
         for key in self.types:
@@ -488,10 +502,10 @@ class Runner(object):
 
             result = obj(*args, **kw)
 
-            if result is not None:
-                if requirements.returns is not marker:
-                    context.add(result, requirements.returns)
-                elif type_func(result) in (tuple, list):
+            if requirements.returns is not not_specified:
+                context.add(result, requirements.returns)
+            elif result is not None:
+                if type_func(result) in (tuple, list):
                     for obj in result:
                         context.add(obj)
                 elif type_func(result) is dict:
