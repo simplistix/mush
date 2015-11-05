@@ -132,14 +132,6 @@ class TestReturns(TestCase):
         compare(repr(r), 'returns(Type1)')
         compare(dict(r.process(foo())), {Type1: 'foo'})
 
-    def test_result_type(self):
-        @returns_result_type()
-        def foo():
-            return 'foo'
-        r = foo.__mush_returns__
-        compare(repr(r), 'returns_result_type()')
-        compare(dict(r.process(foo())), {str: 'foo'})
-
     def test_mapping(self):
         @returns_mapping()
         def foo():
@@ -148,3 +140,20 @@ class TestReturns(TestCase):
         compare(repr(r), 'returns_mapping()')
         compare(dict(r.process(foo())),
                 {Type1: 'foo', 'bar': 'baz'})
+
+
+class TestReturnsResultType(TestCase):
+
+    def test_basic(self):
+        @returns_result_type()
+        def foo():
+            return 'foo'
+        r = foo.__mush_returns__
+        compare(repr(r), 'returns_result_type()')
+        compare(dict(r.process(foo())), {str: 'foo'})
+
+    def test_old_style_class(self):
+        class Type: pass
+        obj = Type()
+        r = returns_result_type()
+        compare(dict(r.process(obj)), {Type: obj})

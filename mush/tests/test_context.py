@@ -97,20 +97,6 @@ class TestContext(TestCase):
         context.add(None, TheType)
         self.assertTrue(context[TheType] is None)
 
-    def test_old_style_class(self):
-        class Type(): pass
-        obj = Type()
-        context = Context()
-        context.add(obj)
-        self.assertTrue(context[Type] is obj)
-        
-    def test_old_style_class_explicit(self):
-        class Type(): pass
-        obj = object()
-        context = Context()
-        context.add(obj, Type)
-        self.assertTrue(context[Type] is obj)
-        
     def test_get_none_type(self):
         self.assertTrue(Context()[type(None)] is None)
 
