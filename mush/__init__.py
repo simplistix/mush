@@ -19,6 +19,8 @@ def marker(name):
 
 not_specified = marker('not_specified')
 
+missing = marker('missing')
+
 class Context(dict):
     "Stores requirements, callables and resources for a particular run."
     def __init__(self):
