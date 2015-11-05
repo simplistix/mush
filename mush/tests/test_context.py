@@ -17,7 +17,7 @@ class TestContext(TestCase):
     def test_simple(self):
         obj = TheType()
         context = Context()
-        context.add(obj)
+        context.add(obj, TheType)
 
         self.assertTrue(context[TheType] is obj)
         self.assertEqual(
@@ -65,9 +65,9 @@ class TestContext(TestCase):
         obj1 = TheType()
         obj2 = TheType()
         context = Context()
-        context.add(obj1)
+        context.add(obj1, TheType)
         with ShouldRaise(ValueError('Context already contains '+repr(TheType))):
-            context.add(obj2)
+            context.add(obj2, TheType)
 
     def test_missing(self):
         context = Context()
@@ -90,7 +90,7 @@ class TestContext(TestCase):
     def test_add_none(self):
         context = Context()
         with ShouldRaise(ValueError('Cannot add None to context')):
-            context.add(None)
+            context.add(None, None.__class__)
 
     def test_add_none_with_type(self):
         context = Context()

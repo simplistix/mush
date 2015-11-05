@@ -6,7 +6,7 @@ NONE_TYPE = None.__class__
 class Context(dict):
     "Stores resources for a particular run."
 
-    def add(self, it, type=None):
+    def add(self, it, type):
         """
         Add a resource to the context.
 
@@ -14,7 +14,6 @@ class Context(dict):
         the type of the object itself.
         """
 
-        type = type or it.__class__
         if type is NONE_TYPE:
             raise ValueError('Cannot add None to context')
         if type in self:
