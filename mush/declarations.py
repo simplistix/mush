@@ -104,6 +104,15 @@ class how(object):
             txt += self.name_pattern % dict(name=name)
         return txt
 
+    def process(self, o):
+        """
+        Extract the required part of the object passed in.
+        :obj:`missing` should be returned if the required part
+        cannot be extracted.
+        :obj:`missing` may be passed in and is usually be handled
+        by returning :obj:`missing` immediately.
+        """
+        return missing
 
 class optional(how):
     """
@@ -126,6 +135,8 @@ class attr(how):
     name_pattern = '.%(name)s'
 
     def process(self, o):
+        if o is missing:
+            return o
         try:
             for name in self.names:
                 o = getattr(o, name)
@@ -143,6 +154,8 @@ class item(how):
     name_pattern = '[%(name)r]'
 
     def process(self, o):
+        if o is missing:
+            return o
         try:
             for name in self.names:
                 o = o[name]

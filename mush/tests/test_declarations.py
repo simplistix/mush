@@ -4,7 +4,7 @@ from testfixtures import compare, generator, ShouldRaise
 from mush import missing, nothing
 from mush.declarations import (
     requires, optional, returns, returns_mapping, returns_result_type,
-    item, attr
+    how, item, attr
 )
 
 
@@ -71,6 +71,16 @@ class TestItem(TestCase):
         h = item(Type1, 'foo', 'bar')
         compare(h.process({}), missing)
 
+    def test_passed_missing(self):
+        h = item(Type1, 'foo', 'bar')
+        compare(h.process(missing), missing)
+
+
+class TestHow(TestCase):
+
+    def test_proccess_on_base(self):
+        compare(how('foo').process('bar'), missing)
+
 
 class TestAttr(TestCase):
 
@@ -89,6 +99,10 @@ class TestAttr(TestCase):
     def test_missing(self):
         h = attr(Type1, 'foo', 'bar')
         compare(h.process(object()), missing)
+
+    def test_passed_missing(self):
+        h = attr(Type1, 'foo', 'bar')
+        compare(h.process(missing), missing)
 
 
 class TestOptional(TestCase):
