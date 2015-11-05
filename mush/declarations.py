@@ -1,5 +1,4 @@
 from mush import missing
-from mush import nothing
 
 
 def name_or_repr(obj):
@@ -152,3 +151,11 @@ class item(how):
         else:
             return o
 
+
+#: A singleton :class:`requires` indicating that a callable
+#: has no required arguments.
+nothing = requires()
+
+#: A singleton  indicating that a callable's return value should be
+#: stored based on the type of that return value
+result_type = returns_result_type()
