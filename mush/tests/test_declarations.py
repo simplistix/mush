@@ -157,3 +157,9 @@ class TestReturnsResultType(TestCase):
         obj = Type()
         r = returns_result_type()
         compare(dict(r.process(obj)), {Type: obj})
+
+    def test_returns_nothing(self):
+        def foo():
+            pass
+        r = returns_result_type()
+        compare(dict(r.process(foo())), {})

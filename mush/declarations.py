@@ -54,7 +54,8 @@ class returns_result_type(object):
         return obj
 
     def process(self, obj):
-        yield obj.__class__, obj
+        if obj is not None:
+            yield obj.__class__, obj
 
     def __repr__(self):
         return self.__class__.__name__ + '()'
