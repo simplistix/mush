@@ -49,6 +49,14 @@ class ContextError(Exception):
 
     __repr__ = __str__
 
+
+def type_key(type_tuple):
+    type, _ = type_tuple
+    if isinstance(type, str):
+        return type
+    return type.__name__
+
+
 class Context(dict):
     "Stores resources for a particular run."
 
@@ -69,7 +77,12 @@ class Context(dict):
         self[type] = it
 
     def __repr__(self):
-        return '<Context: %s>' % super(Context, self).__repr__()
+        bits = []
+        for type, value in sorted(self.items(), key=type_key):
+            bits.append('\n    %r: %r' % (type, value))
+        if bits:
+            bits.append('\n')
+        return '<Context: {%s}>' % ''.join(bits)
 
     def call(self, obj, requires, returns):
 

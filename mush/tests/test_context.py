@@ -23,29 +23,25 @@ class TestContext(TestCase):
         context.add(obj, TheType)
 
         self.assertTrue(context[TheType] is obj)
-        self.assertEqual(
-            repr(context),
-            "<Context: {<class 'mush.tests.test_context.TheType'>: <TheType obj>}>"
-            )
-        self.assertEqual(
-            str(context),
-            "<Context: {<class 'mush.tests.test_context.TheType'>: <TheType obj>}>"
-            )
+        expected = (
+            "<Context: {\n"
+            "    <class 'mush.tests.test_context.TheType'>: <TheType obj>\n"
+            "}>"
+        )
+        self.assertEqual(repr(context), expected)
+        self.assertEqual(str(context), expected)
 
     def test_type_as_string(self):
         obj = TheType()
         context = Context()
         context.add(obj, type='my label')
 
+        expected = ("<Context: {\n"
+                    "    'my label': <TheType obj>\n"
+                    "}>")
         self.assertTrue(context['my label'] is obj)
-        self.assertEqual(
-            repr(context),
-            "<Context: {'my label': <TheType obj>}>"
-            )
-        self.assertEqual(
-            str(context),
-            "<Context: {'my label': <TheType obj>}>"
-            )
+        self.assertEqual(repr(context), expected)
+        self.assertEqual(str(context), expected)
 
     def test_explicit_type(self):
         class T2(object): pass
@@ -54,10 +50,11 @@ class TestContext(TestCase):
         context.add(obj, T2)
         self.assertTrue(context[T2] is obj)
         if PY32:
-            expected = ("<Context: {"
-                        "<class 'mush.tests.test_context.TestContext."
+            expected = ("<Context: {\n"
+                        "    <class 'mush.tests.test_context.TestContext."
                         "test_explicit_type.<locals>.T2'>: "
-                        "<TheType obj>}>")
+                        "<TheType obj>\n"
+                        "}>")
         else:
             expected = ("<Context: {<class 'mush.tests.test_context.T2'>:"
                         " <TheType obj>}>")
