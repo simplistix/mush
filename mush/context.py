@@ -6,6 +6,49 @@ from mush import missing
 NONE_TYPE = None.__class__
 
 
+class ContextError(Exception):
+    """
+    Errors likely caused by incorrect building of a runner.
+    """
+    def __init__(self, text, point=None, context=None):
+        self.text = text
+        self.point = point
+        self.context = context
+
+    def __str__(self):
+        rows = []
+        if self.point:
+            point = self.point.previous
+            while point:
+                rows.append(repr(point))
+                point = point.previous
+            if rows:
+                rows.append('Already called:')
+                rows.append('')
+                rows.append('')
+                rows.reverse()
+                rows.append('')
+
+            rows.append('While calling: '+repr(self.point))
+        if self.context is not None:
+            rows.append('with '+repr(self.context)+':')
+            rows.append('')
+
+        rows.append(self.text)
+
+        if self.point:
+            point = self.point.next
+            if point:
+                rows.append('')
+                rows.append('Still to call:')
+            while point:
+                rows.append(repr(point))
+                point = point.next
+
+        return '\n'.join(rows)
+
+    __repr__ = __str__
+
 class Context(dict):
     "Stores resources for a particular run."
 
@@ -20,7 +63,7 @@ class Context(dict):
         if type is NONE_TYPE:
             raise ValueError('Cannot add None to context')
         if type in self:
-            raise ValueError('Context already contains %r' % (
+            raise ContextError('Context already contains %r' % (
                     type
                     ))
         self[type] = it
@@ -50,7 +93,7 @@ class Context(dict):
             if o is nothing:
                 pass
             elif o is missing:
-                raise KeyError('No %r in context' % type)
+                raise ContextError('No %r in context' % type)
             elif name is None:
                 args.append(o)
             else:

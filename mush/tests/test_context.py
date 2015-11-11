@@ -3,7 +3,7 @@ from mock import Mock
 
 from testfixtures import ShouldRaise, compare
 
-from mush.context import Context
+from mush.context import Context, ContextError
 
 from .compat import PY32
 from mush.declarations import nothing, result_type, requires, optional, item, \
@@ -69,7 +69,7 @@ class TestContext(TestCase):
         obj2 = TheType()
         context = Context()
         context.add(obj1, TheType)
-        with ShouldRaise(ValueError('Context already contains '+repr(TheType))):
+        with ShouldRaise(ContextError('Context already contains '+repr(TheType))):
             context.add(obj2, TheType)
 
     def test_clash_string_type(self):
@@ -77,7 +77,7 @@ class TestContext(TestCase):
         obj2 = TheType()
         context = Context()
         context.add(obj1, type='my label')
-        with ShouldRaise(ValueError("Context already contains 'my label'")):
+        with ShouldRaise(ContextError("Context already contains 'my label'")):
             context.add(obj2, type='my label')
 
     def test_add_none(self):
@@ -120,7 +120,7 @@ class TestContext(TestCase):
         def foo(obj):
             return obj
         context = Context()
-        with ShouldRaise(KeyError(
+        with ShouldRaise(ContextError(
                 "No <class 'mush.tests.test_context.TheType'> in context"
         )):
             context.call(foo, requires(TheType), result_type)
@@ -150,7 +150,7 @@ class TestContext(TestCase):
         compare(result, 2)
         compare({TheType: 2, int: 2}, context)
 
-    def test_call_requires_optional_missing(self):
+    def test_call_requires_optional_ContextError(self):
         def foo(x=1):
             return x
         context = Context()
@@ -204,7 +204,7 @@ class TestContext(TestCase):
                               result_type)
         compare(result, 'bob')
 
-    def test_call_requires_optional_item_missing(self):
+    def test_call_requires_optional_item_ContextError(self):
         def foo(x=1):
             return x
         context = Context()
@@ -223,7 +223,7 @@ class TestContext(TestCase):
                               result_type)
         compare(result, 'baz')
 
-    def test_call_requires_item_optional_missing(self):
+    def test_call_requires_item_optional_ContextError(self):
         def foo(x=1):
             return x
         context = Context()
