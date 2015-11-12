@@ -1,46 +1,75 @@
 from unittest import TestCase
 
-from .compat import PY3
-
-if PY3:
-    from io import StringIO
-else:
-    from StringIO import StringIO
-
 from mock import Mock, call
 from testfixtures import (
-    OutputCapture,
     ShouldRaise,
-    StringComparison as S,
     compare
     )
 
-from mush import Periods, Runner, requires, first, last, attr, item, nothing, returns
+from mush.context import ContextError
+from mush.runner import Runner
+from mush.declarations import (
+    requires, attr, item, nothing, returns, returns_mapping
+)
 
 
 class RunnerTests(TestCase):
 
+    def verify(self, runner, *expected):
+        seen_labels = set()
+
+        actual = []
+        point = runner.start
+        while point:
+            actual.append((point.obj, point.labels))
+            for label in point.labels:
+                if label in seen_labels: # pragma: no cover
+                    raise AssertionError('%s occurs more than once' % label)
+                seen_labels.add(label)
+                compare(runner.labels[label], point)
+            point = point.next
+
+        compare(expected, actual)
+
+        actual_reverse = []
+        point = runner.end
+        while point:
+            actual_reverse.append((point.obj, point.labels))
+            point = point.previous
+
+        compare(actual, reversed(actual_reverse))
+        compare(seen_labels, runner.labels.keys())
+
     def test_simple(self):
-        m = Mock()        
+        m = Mock()
         def job():
             m.job()
-            
+
         runner = Runner()
-        runner.add(job)
+        point = runner.append(job).callpoint
+
+        compare(job, point.obj)
+        compare(runner.start, point)
+        compare(runner.end, point)
         runner()
 
         compare([
                 call.job()
                 ], m.mock_calls)
 
+        self.verify(runner, (job, set()))
+
     def test_constructor(self):
-        m = Mock()        
+        m = Mock()
         def job1():
             m.job1()
         def job2():
             m.job2()
-            
+
         runner = Runner(job1, job2)
+        compare(job1, runner.start.obj)
+        compare(job2, runner.end.obj)
+
         runner()
 
         compare([
@@ -48,8 +77,104 @@ class RunnerTests(TestCase):
                 call.job2(),
                 ], m.mock_calls)
 
-    def test_context_declarative(self):
-        m = Mock()        
+        self.verify(runner,
+                    (job1, set()),
+                    (job2, set()))
+
+    def test_return_value(self):
+        def job():
+            return 42
+        runner = Runner(job)
+        compare(runner(), 42)
+
+    def test_return_value_empty(self):
+        runner = Runner()
+        compare(runner(), None)
+
+    def test_append_with_label(self):
+        def job1(): pass
+        def job2(): pass
+
+        runner = Runner()
+
+        point1 = runner.append(job1, label='1').callpoint
+        point2 = runner.append(job2, label='2').callpoint
+
+        compare(point1.obj, job1)
+        compare(point2.obj, job2)
+
+        compare(runner['1'].callpoint, point1)
+        compare(runner['2'].callpoint, point2)
+
+        compare({'1'}, point1.labels)
+        compare({'2'}, point2.labels)
+
+        self.verify(runner,
+                    (job1, {'1'}),
+                    (job2, {'2'}))
+
+    def test_modifier_append_moves_label(self):
+        def job1(): pass
+        def job2(): pass
+
+        runner = Runner()
+
+        runner.append(job1, label='the label')
+        runner['the label'].append(job2)
+
+        self.verify(runner,
+                    (job1, set()),
+                    (job2, {'the label'}))
+
+    def test_runner_append_does_not_move_label(self):
+        def job1(): pass
+        def job2(): pass
+
+        runner = Runner()
+
+        runner.append(job1, label='the label')
+        runner.append(job2)
+
+        self.verify(runner,
+                    (job1, {'the label'}),
+                    (job2, set()))
+
+    def test_modifier_moves_only_explicit_label(self):
+        def job1(): pass
+        def job2(): pass
+
+        runner = Runner()
+
+        mod = runner.append(job1)
+        mod.add_label('1')
+        mod.add_label('2')
+
+        self.verify(runner,
+                    (job1, {'1', '2'}))
+
+        runner['2'].append(job2)
+
+        self.verify(runner,
+                    (job1, {'1'}),
+                    (job2, {'2'}))
+
+    def test_modifier_append_with_label(self):
+        def job1(): pass
+        def job2(): pass
+
+        runner = Runner()
+
+        mod = runner.append(job1)
+        mod.add_label('1')
+
+        runner['1'].append(job2, label='2')
+
+        self.verify(runner,
+                    (job1, {'1'}),
+                    (job2, {'2'}))
+
+    def test_declarative(self):
+        m = Mock()
         class T1(object): pass
         class T2(object): pass
 
@@ -71,16 +196,15 @@ class RunnerTests(TestCase):
 
         runner = Runner(job1, job2, job3)
         runner()
-        
+
         compare([
                 call.job1(),
                 call.job2(t1),
                 call.job3(t2),
                 ], m.mock_calls)
 
-
-    def test_context_imperative(self):
-        m = Mock()        
+    def test_imperative(self):
+        m = Mock()
         class T1(object): pass
         class T2(object): pass
 
@@ -102,14 +226,14 @@ class RunnerTests(TestCase):
         @requires(T1)
         def job4(t2_):
             m.job4(t2_)
-            
+
         runner = Runner()
-        runner.add(job1)
-        runner.add(job2, T1)
-        runner.add(job3, t2_=T2)
-        runner.add(job4, T2)
+        runner.append(job1)
+        runner.append(job2, requires(T1))
+        runner.append(job3, requires(t2_=T2))
+        runner.append(job4, requires(T2))
         runner()
-        
+
         compare([
                 call.job1(),
                 call.job2(t1),
@@ -118,11 +242,12 @@ class RunnerTests(TestCase):
                 ], m.mock_calls)
 
     def test_returns_type_mapping(self):
-        m = Mock()        
+        m = Mock()
         class T1(object): pass
         class T2(object): pass
         t = T1()
 
+        @returns_mapping()
         def job1():
             m.job1()
             return {T2:t}
@@ -132,16 +257,17 @@ class RunnerTests(TestCase):
             m.job2(obj)
 
         Runner(job1, job2)()
-        
+
         compare([
                 call.job1(),
                 call.job2(t),
                 ], m.mock_calls)
 
     def test_returns_type_mapping_of_none(self):
-        m = Mock()        
+        m = Mock()
         class T2(object): pass
 
+        @returns_mapping()
         def job1():
             m.job1()
             return {T2:None}
@@ -151,20 +277,21 @@ class RunnerTests(TestCase):
             m.job2(obj)
 
         Runner(job1, job2)()
-        
+
         compare([
                 call.job1(),
                 call.job2(None),
                 ], m.mock_calls)
 
     def test_returns_tuple(self):
-        m = Mock()        
+        m = Mock()
         class T1(object): pass
         class T2(object): pass
 
         t1 = T1()
         t2 = T2()
 
+        @returns(T1, T2)
         def job1():
             m.job1()
             return t1, t2
@@ -174,14 +301,14 @@ class RunnerTests(TestCase):
             m.job2(obj1, obj2)
 
         Runner(job1, job2)()
-        
+
         compare([
                 call.job1(),
                 call.job2(t1, t2),
                 ], m.mock_calls)
 
     def test_returns_list(self):
-        m = Mock()        
+        m = Mock()
         class T1(object): pass
         class T2(object): pass
 
@@ -196,8 +323,11 @@ class RunnerTests(TestCase):
         def job2(obj1, obj2):
             m.job2(obj1, obj2)
 
-        Runner(job1, job2)()
-        
+        runner = Runner()
+        runner.append(job1, returns=returns(T1, T2))
+        runner.append(job2)
+        runner()
+
         compare([
                 call.job1(),
                 call.job2(t1, t2),
@@ -240,8 +370,8 @@ class RunnerTests(TestCase):
             m.job2(obj)
 
         runner = Runner()
-        runner.add_returning(job1, T2)
-        runner.add(job2, T2)
+        runner.append(job1, returns=returns(T2))
+        runner.append(job2, requires(T2))
         runner()
 
         compare([
@@ -249,8 +379,7 @@ class RunnerTests(TestCase):
                 call.job2(t),
                 ], m.mock_calls)
 
-    def test_missing_from_context(self):
-        # make sure exception is helpful
+    def test_missing_from_context_no_chain(self):
         class T(object): pass
 
         @requires(T)
@@ -258,10 +387,107 @@ class RunnerTests(TestCase):
             pass # pragma: nocover
 
         runner = Runner(job)
-        with ShouldRaise(KeyError(
-                S("'No T in context' attempting to call "
-                  "<function .*job at \w+>")
-                )):
+
+        with ShouldRaise(ContextError) as s:
+            runner()
+
+        text = '\n'.join((
+            'While calling: '+repr(job)+' requires(T) returns_result_type()',
+            'with <Context: {}>:',
+            '',
+            'No '+repr(T)+' in context',
+        ))
+        compare(text, repr(s.raised))
+        compare(text, str(s.raised))
+
+    def test_missing_from_context_with_chain(self):
+        class T(object): pass
+
+        def job1(): pass
+        def job2(): pass
+
+        @requires(T)
+        def job3(arg):
+            pass # pragma: nocover
+
+        def job4(): pass
+        def job5(): pass
+
+        runner = Runner()
+        runner.append(job1, label='1')
+        runner.append(job2)
+        runner.append(job3)
+        runner.append(job4, label='4')
+        runner.append(job5, requires('foo', bar='baz'), returns('bob'))
+
+        with ShouldRaise(ContextError) as s:
+            runner()
+
+        text = '\n'.join((
+            '',
+            '',
+            'Already called:',
+            repr(job1)+' requires() returns_result_type() <-- 1',
+            repr(job2)+' requires() returns_result_type()',
+            '',
+            'While calling: '+repr(job3)+' requires(T) returns_result_type()',
+            'with <Context: {}>:',
+            '',
+            'No '+repr(T)+' in context',
+            '',
+            'Still to call:',
+            repr(job4)+' requires() returns_result_type() <-- 4',
+            repr(job5)+" requires('foo', bar='baz') returns('bob')",
+        ))
+        compare(text, repr(s.raised))
+        compare(text, str(s.raised))
+
+    def test_job_called_badly(self):
+        def job(arg):
+            pass # pragma: nocover
+        runner = Runner(job)
+        with ShouldRaise(ContextError) as s:
+            runner()
+
+        text = '\n'.join((
+            'While calling: '+repr(job)+' requires() returns_result_type()',
+            'with <Context: {}>:',
+            '',
+            "job() missing 1 required positional argument: 'arg'",
+        ))
+        compare(text, repr(s.raised))
+        compare(text, str(s.raised))
+
+    def test_already_in_context(self):
+        class T(object): pass
+
+        t1 = T()
+
+        @returns(T, T)
+        def job():
+            return t1, T()
+
+        runner = Runner(job)
+
+        with ShouldRaise(ContextError) as s:
+            runner()
+
+        text = '\n'.join((
+            'While calling: '+repr(job)+' requires() returns(T, T)',
+            'with <Context: {\n'
+            '    '+repr(T)+': '+repr(t1)+'\n'
+            '}>:',
+            '',
+            'Context already contains '+repr(T),
+        ))
+        compare(text, repr(s.raised))
+        compare(text, str(s.raised))
+
+    def test_job_error(self):
+        def job():
+            raise Exception('huh?')
+        runner = Runner(job)
+        with ShouldRaise(Exception('huh?')):
             runner()
 
     def test_attr(self):
@@ -274,10 +500,10 @@ class RunnerTests(TestCase):
         def job2(obj):
             m.job2(obj)
         runner = Runner()
-        runner.add(job1)
-        runner.add(job2, attr(T, 'foo'))
+        runner.append(job1)
+        runner.append(job2, requires(attr(T, 'foo')))
         runner()
-        
+
         compare([
                 call.job1(),
                 call.job2('bar'),
@@ -296,8 +522,8 @@ class RunnerTests(TestCase):
         def job2(obj):
             m.job2(obj)
         runner = Runner()
-        runner.add(job1)
-        runner.add(job2, attr(T, 'foo', 'bar'))
+        runner.append(job1)
+        runner.append(job2, requires(attr(T, 'foo', 'bar')))
         runner()
 
         compare([
@@ -316,14 +542,14 @@ class RunnerTests(TestCase):
         def job2(obj):
             m.job2(obj)
         runner = Runner()
-        runner.add(job1)
-        runner.add(job2, item(MyDict, 'the_thing'))
+        runner.append(job1)
+        runner.append(job2, requires(item(MyDict, 'the_thing')))
         runner()
         compare([
                 call.job1(),
                 call.job2(m.the_thing),
                 ], m.mock_calls)
-        
+
     def test_item_multiple(self):
         class MyDict(dict): pass
         m = Mock()
@@ -335,8 +561,8 @@ class RunnerTests(TestCase):
         def job2(obj):
             m.job2(obj)
         runner = Runner()
-        runner.add(job1)
-        runner.add(job2, item(MyDict, 'the_thing', 'other_thing'))
+        runner.append(job1)
+        runner.append(job2, requires(item(MyDict, 'the_thing', 'other_thing')))
         runner()
         compare([
                 call.job1(),
@@ -353,8 +579,8 @@ class RunnerTests(TestCase):
         def job2(obj):
             m.job2(obj)
         runner = Runner()
-        runner.add(job1)
-        runner.add(job2, item(attr(T, 'foo'), 'baz'))
+        runner.append(job1)
+        runner.append(job2, requires(item(attr(T, 'foo'), 'baz')))
         runner()
 
         compare([
@@ -364,7 +590,7 @@ class RunnerTests(TestCase):
 
     def test_context_manager(self):
         m = Mock()
-        
+
         class CM1(object):
             def __enter__(self):
                 m.cm1.enter()
@@ -374,12 +600,12 @@ class RunnerTests(TestCase):
                 return True
 
         class CM2Context(object): pass
-            
+
         class CM2(object):
             def __enter__(self):
                 m.cm2.enter()
                 return CM2Context()
-            
+
             def __exit__(self, type, obj, tb):
                 m.cm2.exit(type, obj)
 
@@ -392,15 +618,18 @@ class RunnerTests(TestCase):
             m.func2(type(obj1),
                     type(obj2),
                     type(obj3))
-            
+            return '2'
+
         runner = Runner(
             CM1,
             CM2,
             func1,
             func2,
             )
-        
-        runner()
+
+        result = runner()
+        compare(result, '2')
+
         compare([
                 call.cm1.enter(),
                 call.cm2.enter(),
@@ -409,11 +638,15 @@ class RunnerTests(TestCase):
                 call.cm2.exit(None, None),
                 call.cm1.exit(None, None)
                 ], m.mock_calls)
-        
+
         # now check with an exception
         m.reset_mock()
         m.func2.side_effect = e = Exception()
-        runner()
+        result = runner()
+
+        # if something goes wrong, you get None
+        compare(None, result)
+
         compare([
                 call.cm1.enter(),
                 call.cm2.enter(),
@@ -422,14 +655,14 @@ class RunnerTests(TestCase):
                 call.cm2.exit(Exception, e),
                 call.cm1.exit(Exception, e)
                 ], m.mock_calls)
-        
+
     def test_marker_interfaces(self):
         # return {Type:None}
         # don't pass when a requirement is for a type but value is None
         class Marker(object): pass
 
         m = Mock()
-        
+
         def setup():
             m.setup()
             return {Marker: nothing}
@@ -438,8 +671,11 @@ class RunnerTests(TestCase):
         def use():
             m.use()
 
-        Runner(use, setup)()
-        
+        runner = Runner()
+        runner.append(setup, returns=returns_mapping(), label='setup')
+        runner['setup'].append(use)
+        runner()
+
         compare([
                 call.setup(),
                 call.use(),
@@ -458,24 +694,33 @@ class RunnerTests(TestCase):
         def t2(obj): m.t2()
         # original
         runner1 = Runner()
-        runner1.add(f1, first())
-        runner1.add(n1)
-        runner1.add(l1, last())
-        runner1.add(t1, T1)
-        runner1.add(t2, T2)
+        runner1.append(f1, label='first')
+        runner1.append(n1, returns=returns(T1, T2), label='normal')
+        runner1.append(l1, label='last')
+        runner1.append(t1, requires(T1))
+        runner1.append(t2, requires(T2))
         # now clone and add bits
         def f2(): m.f2()
         def n2(): m.n2()
         def l2(): m.l2()
         def tn(obj): m.tn()
         runner2 = runner1.clone()
-        runner2.add(f2, first())
-        runner2.add(n2)
-        runner2.add(l2, last())
+        runner2['first'].append(f2)
+        runner2['normal'].append(n2)
+        runner2['last'].append(l2)
         # make sure types stay in order
-        runner2.add(tn, T2)
+        runner2.append(tn, requires(T2))
+
         # now run both, and make sure we only get what we should
+
         runner1()
+        self.verify(runner1,
+                    (f1, {'first'}),
+                    (n1, {'normal'}),
+                    (l1, {'last'}),
+                    (t1, set()),
+                    (t2, set()),
+                    )
         compare([
                 call.f1(),
                 call.n1(),
@@ -483,8 +728,21 @@ class RunnerTests(TestCase):
                 call.t1(),
                 call.t2(),
                 ], m.mock_calls)
+
         m.reset_mock()
+
         runner2()
+        self.verify(runner2,
+                    (f1, set()),
+                    (f2, {'first'}),
+                    (n1, set()),
+                    (n2, {'normal'}),
+                    (l1, set()),
+                    (l2, {'last'}),
+                    (t1, set()),
+                    (t2, set()),
+                    (tn, set()),
+                    )
         compare([
                 call.f1(),
                 call.f2(),
@@ -496,9 +754,49 @@ class RunnerTests(TestCase):
                 call.t2(),
                 call.tn()
                 ], m.mock_calls)
-        
+
+    def test_clone_end_label(self):
+        m = Mock()
+        runner1 = Runner()
+        runner1.append(m.f1, label='first')
+        runner1.append(m.f2, label='second')
+        runner1.append(m.f3, label='third')
+
+        runner2 = runner1.clone(end_label='second')
+        self.verify(runner2,
+                    (m.f1, {'first'}),
+                    (m.f2, {'second'}),
+                    )
+
+    def test_clone_start_label(self):
+        m = Mock()
+        runner1 = Runner()
+        runner1.append(m.f1, label='first')
+        runner1.append(m.f2, label='second')
+        runner1.append(m.f3, label='third')
+
+        runner2 = runner1.clone(start_label='second')
+        self.verify(runner2,
+                    (m.f2, {'second'}),
+                    (m.f3, {'third'}),
+                    )
+
+    def test_clone_between(self):
+        m = Mock()
+        runner1 = Runner()
+        runner1.append(m.f1, label='first')
+        runner1.append(m.f2, label='second')
+        runner1.append(m.f3, label='third')
+        runner1.append(m.f4, label='four')
+
+        runner2 = runner1.clone(start_label='second', end_label='third')
+        self.verify(runner2,
+                    (m.f2, {'second'}),
+                    (m.f3, {'third'}),
+                    )
+
     def test_extend(self):
-        m = Mock()        
+        m = Mock()
         class T1(object): pass
         class T2(object): pass
 
@@ -521,7 +819,7 @@ class RunnerTests(TestCase):
         runner = Runner()
         runner.extend(job1, job2, job3)
         runner()
-        
+
         compare([
                 call.job1(),
                 call.job2(t1),
@@ -529,7 +827,7 @@ class RunnerTests(TestCase):
                 ], m.mock_calls)
 
     def test_addition(self):
-        m = Mock()        
+        m = Mock()
 
         def job1():
             m.job1()
@@ -544,7 +842,12 @@ class RunnerTests(TestCase):
         runner2 = Runner(job3)
         runner = runner1 + runner2
         runner()
-        
+
+        self.verify(runner,
+                    (job1, set()),
+                    (job2, set()),
+                    (job3, set()),
+                    )
         compare([
                 call.job1(),
                 call.job2(),
@@ -552,7 +855,7 @@ class RunnerTests(TestCase):
                 ], m.mock_calls)
 
     def test_extend_with_runners(self):
-        m = Mock()        
+        m = Mock()
         class T1(object): pass
         class T2(object): pass
 
@@ -579,7 +882,12 @@ class RunnerTests(TestCase):
         runner = Runner(runner1)
         runner.extend(runner2, runner3)
         runner()
-        
+
+        self.verify(runner,
+                    (job1, set()),
+                    (job2, set()),
+                    (job3, set()),
+                    )
         compare([
                 call.job1(),
                 call.job2(t1),
@@ -587,7 +895,7 @@ class RunnerTests(TestCase):
                 ], m.mock_calls)
 
     def test_replace_for_testing(self):
-        m = Mock()        
+        m = Mock()
         class T1(object): pass
         class T2(object): pass
 
@@ -612,112 +920,87 @@ class RunnerTests(TestCase):
         m.job2.return_value = t2
         runner.replace(job3, m.job3)
         runner()
-        
+
         compare([
                 call.job1(),
                 call.job2(t1),
                 call.job3(t2),
                 ], m.mock_calls)
 
+    def test_modifier_changes_endpoint(self):
+        m = Mock()
+        runner = Runner(m.job1)
+        compare(runner.end.obj, m.job1)
+        self.verify(runner,
+                    (m.job1, set()),
+                    )
 
-    def test_debug_clone(self):
-        runner1 = Runner(debug=object())
-        runner2 = runner1.clone()
-        self.assertTrue(runner2.debug is runner1.debug)
+        mod = runner.append(m.job2, label='foo')
+        compare(runner.end.obj, m.job2)
+        self.verify(runner,
+                    (m.job1, set()),
+                    (m.job2, {'foo'}),
+                    )
 
-    def test_debug(self):
-        class T1(object): pass
-        class T2(object): pass
-        class T3(object): pass
+        mod.append(m.job3)
+        compare(runner.end.obj, m.job3)
+        compare(runner.end.labels, {'foo'})
+        self.verify(runner,
+                    (m.job1, set()),
+                    (m.job2, set()),
+                    (m.job3, {'foo'}),
+                    )
 
-        def makes_t1(): pass
+        runner.append(m.job4)
+        compare(runner.end.obj, m.job4)
+        compare(runner.end.labels, set())
+        self.verify(runner,
+                    (m.job1, set()),
+                    (m.job2, set()),
+                    (m.job3, {'foo'}),
+                    (m.job4, set()),
+                    )
 
-        @requires(T1)
-        def makes_t2(obj): pass
-            
-        @requires(T2)
-        def makes_t3(obj): pass
-        
-        def user(obj1, obj2): pass
+    def test_duplicate_label_runner_append(self):
+        m = Mock()
+        runner = Runner()
+        runner.append(m.job1, label='label')
+        runner.append(m.job2)
+        with ShouldRaise(ValueError(
+            "'label' already points to "+repr(m.job1)+" requires() "
+            "returns_result_type() <-- label"
+        )):
+            runner.append(m.job3, label='label')
+        self.verify(runner,
+                    (m.job1, {'label'}),
+                    (m.job2, set()),
+                    )
 
-        expected = '''\
-Added {makes_t1} to 'normal' period for {nonetype} with Requirements()
-Current call order:
-For {nonetype}:
-  normal: {makes_t1} requires Requirements()
+    def test_duplicate_label_runner_next_append(self):
+        m = Mock()
+        runner = Runner()
+        runner.append(m.job1, label='label')
+        with ShouldRaise(ValueError(
+            "'label' already points to "+repr(m.job1)+" requires() "
+            "returns_result_type() <-- label"
+        )):
+            runner.append(m.job2, label='label')
+        self.verify(runner,
+                    (m.job1, {'label'}),
+                    )
 
-Added {makes_t2} to 'normal' period for {T1} with Requirements(T1)
-Current call order:
-For {nonetype}:
-  normal: {makes_t1} requires Requirements()
-For {T1}:
-  normal: {makes_t2} requires Requirements(T1)
-
-Added {makes_t3} to 'normal' period for {T2} with Requirements(T2)
-Current call order:
-For {nonetype}:
-  normal: {makes_t1} requires Requirements()
-For {T1}:
-  normal: {makes_t2} requires Requirements(T1)
-For {T2}:
-  normal: {makes_t3} requires Requirements(T2)
-
-Added {user} to 'normal' period for {T3} with Requirements(T3, T1)
-Current call order:
-For {nonetype}:
-  normal: {makes_t1} requires Requirements()
-For {T1}:
-  normal: {makes_t2} requires Requirements(T1)
-For {T2}:
-  normal: {makes_t3} requires Requirements(T2)
-For {T3}:
-  normal: {user} requires Requirements(T3, T1)
-
-'''.format(nonetype=repr(None.__class__),
-           makes_t1=repr(makes_t1),
-           makes_t2=repr(makes_t2),
-           makes_t3=repr(makes_t3),
-           user=repr(user),
-           T1=repr(T1),
-           T2=repr(T2),
-           T3=repr(T3))
-                           
-        with OutputCapture() as output:
-            runner1 = Runner(makes_t1, debug=True)
-            runner1.extend(makes_t2, makes_t3)
-            runner1.add(user, T3, T1)
-
-        compare(expected, output.captured)
-
-        actual = StringIO()
-        runner2 = Runner(makes_t1, debug=actual)
-        runner2.extend(makes_t2, makes_t3)
-        runner2.add(user, T3, T1)
-
-        compare(expected, actual.getvalue())
-            
-class PeriodsTests(TestCase):
-
-    def test_repr(self):
-        p = Periods()
-        compare(repr(p), '<Periods first:[] normal:[] last:[]>')
-        
-        p.first.append(1)
-        p.normal.append(2)
-        p.last.append(3)
-        p.first.append(4)
-        p.normal.append(5)
-        p.last.append(6)
-        compare(repr(p), '<Periods first:[1, 4] normal:[2, 5] last:[3, 6]>')
-
-    def test_iter(self):
-        p = Periods()
-        compare(tuple(p), ())
-        
-        p.first.append(6)
-        p.first.append(5)
-        p.normal.append(4)
-        p.normal.append(3)
-        p.last.append(2)
-        p.last.append(1)
-        compare(tuple(p), (6, 5, 4, 3, 2, 1))
+    def test_duplicate_label_modifier(self):
+        m = Mock()
+        runner = Runner()
+        runner.append(m.job1, label='label1')
+        mod = runner['label1']
+        mod.append(m.job2, label='label2')
+        with ShouldRaise(ValueError(
+            "'label1' already points to "+repr(m.job1)+" requires() "
+            "returns_result_type() <-- label1"
+        )):
+            mod.append(m.job3, label='label1')
+        self.verify(runner,
+                    (m.job1, {'label1'}),
+                    (m.job2, {'label2'}),
+                    )
