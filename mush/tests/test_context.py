@@ -6,8 +6,10 @@ from testfixtures import ShouldRaise, compare
 from mush.context import Context, ContextError
 
 from .compat import PY32
-from mush.declarations import nothing, result_type, requires, optional, item, \
+from mush.declarations import (
+    nothing, result_type, requires, optional, item,
     attr, returns, returns_mapping
+)
 
 
 class TheType(object):
