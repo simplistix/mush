@@ -1004,3 +1004,24 @@ class RunnerTests(TestCase):
                     (m.job1, {'label1'}),
                     (m.job2, {'label2'}),
                     )
+
+    def test_repr(self):
+        class T1: pass
+        class T2: pass
+        m = Mock()
+        runner = Runner()
+        runner.append(m.job1, label='label1')
+        runner.append(m.job2, requires('foo', T1), returns(T2), label='label2')
+        runner.append(m.job3)
+
+        compare('\n'.join((
+            '<Runner>',
+            '    '+repr(m.job1)+' requires() returns_result_type() <-- label1',
+            '    '+repr(m.job2)+" requires('foo', T1) returns(T2) <-- label2",
+            '    '+repr(m.job3)+' requires() returns_result_type()',
+            '</Runner>'
+
+        )), repr(runner))
+
+    def test_repr_empty(self):
+        compare('<Runner></Runner>', repr(Runner()))

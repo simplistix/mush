@@ -127,4 +127,14 @@ class Runner(object):
 
         return result
 
+    def __repr__(self):
+        bits = []
+        point = self.start
+        while point:
+            bits.append('\n    ' + repr(point))
+            point = point.next
+        if bits:
+            bits.append('\n')
+        return '<Runner>%s</Runner>' % ''.join(bits)
+
 
