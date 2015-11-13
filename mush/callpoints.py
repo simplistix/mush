@@ -1,19 +1,32 @@
-from .declarations import result_type, nothing
+from .declarations import (
+    result_type, nothing, requires as RequiresType,
+    returns as Returns, returns_result_type as ReturnsType
+)
 
 
 class CallPoint(object):
 
     next = None
     previous = None
+    requires = nothing
+    returns = result_type
 
     def __init__(self, obj, requires=None, returns=None):
         self.obj = obj
-        self.requires = (requires or
-                         getattr(obj, '__mush_requires__', None) or
-                         nothing)
-        self.returns = (returns or
-                        getattr(obj, '__mush_returns__', None) or
-                        result_type)
+
+        if requires is None:
+            self.requires = getattr(obj, '__mush_requires__', nothing)
+        else:
+            if not isinstance(requires, RequiresType):
+                requires = RequiresType(requires)
+            self.requires = requires
+
+        if returns is None:
+            self.returns = getattr(obj, '__mush_returns__', result_type)
+        else:
+            if not isinstance(returns, ReturnsType):
+                returns = Returns(returns)
+            self.returns = returns
         self.labels = set()
 
     def __call__(self, context):

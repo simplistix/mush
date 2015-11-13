@@ -20,11 +20,11 @@ class TestCallPoints(TestCase):
 
     def test_supplied_explicitly(self):
         obj = object()
-        requires  = object()
-        returns = object()
-        result = CallPoint(obj, requires, returns)(self.context)
+        rq  = requires('foo')
+        rt = returns('bar')
+        result = CallPoint(obj, rq, rt)(self.context)
         compare(result, self.context.call.return_value)
-        self.context.call.assert_called_with(obj, requires, returns)
+        self.context.call.assert_called_with(obj, rq, rt)
 
     def test_extract_from_decorations(self):
         rq = requires('foo')
@@ -45,8 +45,8 @@ class TestCallPoints(TestCase):
         def foo():
             return 'baz'
 
-        rq = object()
-        rt = object()
+        rq = requires('baz')
+        rt = returns('bob')
 
         result = CallPoint(foo, requires=rq, returns=rt)(self.context)
         compare(result, self.context.call.return_value)
@@ -65,5 +65,12 @@ class TestCallPoints(TestCase):
         compare(repr(foo)+" requires('foo') returns('bar') <-- baz, bob",
                 repr(point))
 
+    def test_convert_to_requires_and_returns(self):
+        def foo(): pass
+        point = CallPoint(foo, requires='foo', returns='bar')
+        self.assertTrue(isinstance(point.requires, requires))
+        self.assertTrue(isinstance(point.returns, returns))
+        compare(repr(foo)+" requires('foo') returns('bar')",
+                repr(point))
 
 
