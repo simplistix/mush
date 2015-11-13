@@ -66,6 +66,15 @@ class returns_mapping(returns_result_type):
         return mapping.items()
 
 
+class returns_sequence(returns_result_type):
+
+    def process(self, sequence):
+        super_process = super(returns_sequence, self).process
+        for obj in sequence:
+            for pair in super_process(obj):
+                yield pair
+
+
 class returns(returns_result_type):
 
     def __init__(self, *args):

@@ -1,10 +1,11 @@
 from unittest import TestCase
 from mock import Mock
 from testfixtures import compare, generator, ShouldRaise
-from mush import missing, nothing
+from mush.markers import missing
 from mush.declarations import (
-    requires, optional, returns, returns_mapping, returns_result_type,
-    how, item, attr
+    requires, optional, returns,
+    returns_mapping, returns_sequence, returns_result_type,
+    how, item, attr, nothing,
 )
 
 
@@ -146,7 +147,10 @@ class TestReturns(TestCase):
         compare(repr(r), 'returns(Type1)')
         compare(dict(r.process(foo())), {Type1: 'foo'})
 
-    def test_mapping(self):
+
+class TestReturnsMapping(TestCase):
+
+    def test_it(self):
         @returns_mapping()
         def foo():
             return {Type1: 'foo', 'bar': 'baz'}
@@ -154,6 +158,22 @@ class TestReturns(TestCase):
         compare(repr(r), 'returns_mapping()')
         compare(dict(r.process(foo())),
                 {Type1: 'foo', 'bar': 'baz'})
+
+
+class TestReturnsSequence(TestCase):
+
+    def test_it(self):
+        t1 = Type1()
+        t2 = Type2()
+        @returns_sequence()
+        def foo():
+            return t1, t2
+        r = foo.__mush_returns__
+        compare(repr(r), 'returns_sequence()')
+        for result in r.process(foo()):
+            print(result)
+        compare(dict(r.process(foo())),
+                {Type1: t1, Type2: t2})
 
 
 class TestReturnsResultType(TestCase):
