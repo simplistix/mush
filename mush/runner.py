@@ -1,7 +1,7 @@
+from .callpoints import CallPoint
 from .context import Context, ContextError
+from .markers import not_specified
 from .modifier import Modifier
-from mush import not_specified
-from mush.callpoints import CallPoint
 
 
 class Runner(object):

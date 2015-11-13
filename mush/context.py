@@ -1,7 +1,7 @@
 from collections import deque
 
 from .declarations import how, nothing
-from mush import missing
+from .markers import missing
 
 NONE_TYPE = None.__class__
 

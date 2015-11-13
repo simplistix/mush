@@ -1,5 +1,5 @@
-from mush import not_specified
-from mush.callpoints import CallPoint
+from .callpoints import CallPoint
+from .markers import not_specified
 
 
 class Modifier(object):

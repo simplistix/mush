@@ -18,7 +18,7 @@ Changes
 - Add :func:`returns` and :meth:`~Runner.add_returning` as new ways to
   override the type of a returned value.
 
-- A better pattern for :ref:`marker types<marker-types>`.
+- A better pattern for "marker types".
 
 1.2 (11 December 2013)
 ----------------------

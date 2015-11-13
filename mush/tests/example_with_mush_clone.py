@@ -1,6 +1,6 @@
 from argparse import ArgumentParser, Namespace
 from .configparser import RawConfigParser
-from mush import Runner, requires, first, last, attr, item
+from mush import Runner, requires, attr, item, returns
 import logging, os, sqlite3, sys
 
 log = logging.getLogger()
@@ -13,17 +13,16 @@ def base_options(parser):
     parser.add_argument('--verbose', action='store_true',
                         help='Log more to the console')
 
-@requires(last(ArgumentParser))
+@requires(ArgumentParser)
 def parse_args(parser):
     return parser.parse_args()
 
-class Config(dict): pass
-
-@requires(first(Namespace))
+@requires(Namespace)
+@returns('config')
 def parse_config(args):
-    config = RawConfigParser(dict_type=Config)
+    config = RawConfigParser()
     config.read(args.config)
-    return Config(config.items('main'))
+    return dict(config.items('main'))
 
 def setup_logging(log_path, quiet=False, verbose=False):
     handler = logging.FileHandler(log_path)
@@ -44,11 +43,14 @@ class DatabaseHandler:
             log.exception('Something went wrong')
             self.conn.rollback()
 
-base_runner = Runner(ArgumentParser, base_options, parse_args, parse_config)
-base_runner.add(setup_logging,
-                log_path = item(first(Config), 'log'),
-                quiet = attr(first(Namespace), 'quiet'),
-                verbose = attr(first(Namespace), 'verbose'))
+base_runner = Runner(ArgumentParser)
+base_runner.append(base_options, label='args')
+base_runner.extend(parse_args, parse_config)
+base_runner.append(setup_logging, requires(
+    log_path = item('config', 'log'),
+    quiet = attr(Namespace, 'quiet'),
+    verbose = attr(Namespace, 'verbose')
+))
 
 
 def args(parser):
@@ -63,11 +65,10 @@ def do(conn, path):
     log.info('Successfully added %r', filename)
     
 main = base_runner.clone()
-main.add(args, ArgumentParser)
-main.add(DatabaseHandler, item(Config, 'db'))
-main.add(do,
-         attr(DatabaseHandler, 'conn'),
-         attr(Namespace, 'path'))
+main['args'].append(args, requires=ArgumentParser)
+main.append(DatabaseHandler, requires=item('config', 'db'))
+main.append(do,
+            requires(attr(DatabaseHandler, 'conn'), attr(Namespace, 'path')))
 
 if __name__ == '__main__':
     main()

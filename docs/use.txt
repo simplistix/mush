@@ -42,7 +42,7 @@ More callables can be added to a runner:
  def func3():
      print('func3')
 
- runner.add(func3)
+ runner.append(func3)
 
 If you want to add several callables in one go, you can use the
 runner's :meth:`~Runner.extend` method:
@@ -105,14 +105,13 @@ func2
 func1
 func2
 
-
 Finally, runners can be cloned, providing a way to encapsulate commonly
 used base runners that can then be extended for each specific use case:
 
 .. code-block:: python
 
   runner5 = runner3.clone()
-  runner5.add(func4)
+  runner5.append(func4)
 
 The existing runner is not modified, while the new runner behaves as
 expected:
@@ -176,16 +175,17 @@ library:
  def juicer(fruit1, fruit2):
       print('I made juice out of {0} and {1}'.format(fruit1, fruit2))
 
-The requirements are passed to the :meth:`~Runner.add`
-method of a runner which can express requirements for both arguments
-and keyword parameters:
+The requirements are passed using the `requires` parameter when calling
+:meth:`~Runner.append`. If more complex requirements need to be specified,
+a :class:`requires` instance can be passed:
 
 .. code-block:: python
 
+  from mush import Runner, requires
   runner = Runner()
-  runner.add(apple_tree)
-  runner.add(magician, Apple)
-  runner.add(juicer, fruit1=Apple, fruit2=Orange)
+  runner.append(apple_tree)
+  runner.append(magician, requires=Apple)
+  runner.append(juicer, requires(fruit1=Apple, fruit2=Orange))
 
 Calling this runner will now manage the resources, collecting them and
 passing them in as configured:
@@ -198,7 +198,7 @@ I made juice out of an apple and an orange
 Declarative configuration
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This is done using the :func:`requires` decorator to mark the
+This is done using the :class:`requires` decorator to mark the
 callables with their requirements, which can specify the types
 required for either arguments or keyword parameters:
 
@@ -229,6 +229,7 @@ map the parameters as appropriate:
 I made an apple
 I turned an apple into an orange
 I made juice out of an apple and an orange
+a refreshing fruit beverage
 
 Hybrid configuration
 ~~~~~~~~~~~~~~~~~~~~
@@ -236,7 +237,7 @@ Hybrid configuration
 The two styles of configuration are entirely interchangeable, with
 declarative requirements being inspected whenever a callable is added
 to a runner, and imperative requirements being taken whenever they are
-passed via the :meth:`~Runner.add` method:
+passed via the :meth:`~Runner.append` method:
 
 .. code-block:: python
 
@@ -266,7 +267,7 @@ preference to declarative configuration where both are present:
 .. code-block:: python
 
   runner = trees.clone()
-  runner.add(juicer, Orange, Apple)
+  runner.append(juicer, requires(Orange, Apple))
 
 This runner will give us juice made in a different order:
 
@@ -274,19 +275,17 @@ This runner will give us juice made in a different order:
 I made an apple
 I made an orange
 I made juice out of an orange and an apple
- 
+a refreshing fruit beverage
+
 .. _usage-periods:
 
-Resource usage periods
-----------------------
+Labels
+------
 
-It can be important for a callable to have either first access or last
-access to a particular resource. For this reason, configuration can
-specify one of three periods during which a callable needs to be
-called with a particular resource; the default is `normal` and a
-decorator can be used to indicate either `first` or `last`. Within
-these periods, callables are called in the order they are added to the
-runner.
+It can be important to insert callables at the right point in a runner,
+even if subsequent callables have been added to the runner. For this reason,
+labels can be used to mark points in ther runner where more callables can
+be inserted later.
 
 As an example, consider a ring and some things that can be done to it:
 
@@ -311,18 +310,21 @@ As an example, consider a ring and some things that can be done to it:
   def package(ring):
       print('packaging {0}'.format(ring))
 
-These can now be added to a runner with configuration expressing the
-correct periods:
+These can now be added to a runner using labels so that even if the callables
+are added at different times, they will still be added in the correct order:
 
 .. code-block:: python
 
-  from mush import Runner, first, last
+  from mush import Runner
 
-  runner = Runner(forge)
-  runner.add(package, last(Ring))
-  runner.add(polish, first(Ring))
-  runner.add(more_polish, first(Ring))
-  runner.add(engrave, Ring)
+  runner = Runner()
+  point = runner.append(forge)
+  point.add_label('forged')
+  point.add_label('polished')
+  runner['polished'].append(package, requires=Ring, label='packaged')
+  runner['forged'].append(polish, requires=Ring)
+  runner['forged'].append(more_polish, requires=Ring)
+  runner['forged'].append(engrave, requires=Ring)
 
 Even though the callables were added out order, they will be executed
 correctly:
@@ -333,13 +335,7 @@ polishing a ring again
 engraving a ring
 packaging a ring
 
-The configuration of periods works identically with both the imperative
-and declarative forms.
-
-Waiting for a resource
-~~~~~~~~~~~~~~~~~~~~~~
-
-Sometimes, a callable needs to wait for some other callable to do its
+Sometimes, a callable needs to be called after other callables to do its
 work but does not need or cannot accept objects of the type returned
 by that callable. For example, and miss-using the fruit types from above:
 
@@ -364,9 +360,12 @@ we want to add the callables in the order defined above, the simplest
 runner will not give us what we want:
 
 >>> runner = Runner(func1)
->>> runner.add(func2, Apple)
->>> runner.add(func3, Apple)
->>> runner.add(func4, Orange)
+>>> runner.append(func2, Apple)
+<...>
+>>> runner.append(func3, Apple)
+<...>
+>>> runner.append(func4, Orange)
+<...>
 >>> runner()
 func2 got an apple
 func3 got an apple
@@ -381,12 +380,13 @@ that it must not be passed that orange:
 
 .. code-block:: python
 
-  from mush import Runner, after
+  from mush import Runner
 
   runner = Runner(func1)
-  runner.add(func2, Apple)
-  runner.add(func3, after(Orange), Apple)
-  runner.add(func4, Orange)
+  point = runner.append(func2, Apple)
+  point.add_label('make_orange')
+  runner.append(func3, Apple)
+  runner['make_orange'].append(func4, Orange)
 
 Now, even though we've added the callables in the order we want, we
 get the order of calling that we need:
@@ -396,41 +396,62 @@ func2 got an apple
 func4 processed an orange
 func3 got an apple
 
-Special return types
----------------------
+Specifying return types
+-----------------------
 
-There are certain types that can be returned from a callable that have
-special meaning. While these are provided in case of their specific
-need, you should think twice when you find yourself wanting to use
-them as it is often a sign that your code can be better structured
-differently.
+As seen above, by default, Mush uses the type of the returned object to
+decide the type of resource that has been returned. It can be useful
+to configure different behaviour by specifying the return type of a callable.
+There are several options for doing this, each covered below.
 
 For the examples below, we'll use the fruit classes from above.
 
 Returning multiple resources
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-A callable can return multiple resources by returning either a list or
-a tuple:
-
+A callable can return a sequence of resources:
 
 .. code-block:: python
+
+  from mush import Runner, returns_sequence
 
   def orchard():
       return Apple(), Orange()
 
 This can be used to provide both types of fruit:
 
+>>> runner = Runner()
+>>> runner.append(orchard, returns=returns_sequence())
+<...>
+>>> runner.append(juicer)
+<...>
+>>> runner()
+I made juice out of an apple and an orange
+a refreshing fruit beverage
+
+This configuration can also be done using a decorator:
+
+.. code-block:: python
+
+  from mush import Runner, returns_sequence
+
+  @returns_sequence()
+  def orchard():
+      return Apple(), Orange()
+
+This means you don't have to explicitly append:
+
 >>> runner = Runner(orchard, juicer)
 >>> runner()
 I made juice out of an apple and an orange
+a refreshing fruit beverage
 
 Overriding the type of a resource
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Sometimes you may need to force a returned resource to be of a
-particular type. When this is the case, a callable can return a
-dictionary mapping the forced type to the required type:
+particular type. Say we want to make juice but only have pears and oranges,
+but no apples:
 
 .. code-block:: python
 
@@ -438,6 +459,26 @@ dictionary mapping the forced type to the required type:
       def __str__(self):
           return 'a pear'
 
+We can tell the runner to pretend the pear is an apple:
+
+>>> runner = Runner(orange_tree)
+>>> runner.append(Pear, returns=Apple)
+<...>
+>>> runner.append(juicer)
+<...>
+>>> runner()
+I made an orange
+I made juice out of a pear and an orange
+a refreshing fruit beverage
+
+We can also use a helper that returns a mapping and tell the runner to use
+the keys of that mapping as the types for the values:
+
+.. code-block:: python
+
+  from mush import returns_mapping
+
+  @returns_mapping()
   def desperation():
       print('oh well, a pear will have to do')
       return {Apple: Pear()}
@@ -449,6 +490,7 @@ We can now make juice even though we don't have apples:
 I made an orange
 oh well, a pear will have to do
 I made juice out of a pear and an orange
+a refreshing fruit beverage
 
 If you have no control over a callable that returns an object of the 'wrong'
 type, you have two options. You can either decorate it:
@@ -469,57 +511,7 @@ Now you can use the pear maker to get juice:
 I made an orange
 I made a pear
 I made juice out of a pear and an orange
-
-If you can't even decorate the callable, then you can also imperatively
-indicate that the return type should be overridden:
-
-.. code-block:: python
-
-  from mush import returns
-
-  def someone_elses_pears():
-      print('I made a pear')
-      return Pear()
-
-Now you can use the pear maker to get juice:
-
->>> runner = Runner(orange_tree, juicer)
->>> runner.add_returning(someone_elses_pears, returns=Apple)
->>> runner()
-I made an orange
-I made a pear
-I made juice out of a pear and an orange
-
-.. _marker-types:
-
-Returning marker types
-~~~~~~~~~~~~~~~~~~~~~~
-
-In some circumstances, you may need to ensure that some callables are
-used only after another callable has done its work, even though that
-work does not return a resource.
-This can be achieved using a marker type as follows:
-
-.. code-block:: python
-
-  from mush import nothing, marker
-
-  @returns(marker('SetupComplete'))
-  def setup():
-      print('setting things up')
-
-  @requires(after(marker('SetupComplete')))
-  def body():
-      print('doing stuff')
-
-Note that the :func:`body` callable does not take any arguments or
-parameters; because :func:`after` is used, it is not passed and is used
-purely to affect the order of calling:
-
->>> runner = Runner(body, setup)
->>> runner()
-setting things up
-doing stuff
+a refreshing fruit beverage
 
 .. _resource-parts:
 
@@ -552,6 +544,7 @@ care of the needed wiring when configured to do so using the
     @requires(attr(Args, 'fruit'),
               item(Config, 'fruit'),
               item(attr(Args, 'tree'), 'fruit'))
+    @returns_sequence()
     def pick(fruit1, fruit2, fruit3):
         print('I picked {0}, {1} and {2}'.format(fruit1, fruit2, fruit3))
         picked = []
@@ -578,6 +571,7 @@ and Mush will do the hard work:
 >>> runner()
 I picked apple, orange and pear
 I made juice out of an apple and an orange
+a refreshing fruit beverage
 
 .. _context-managers:
 
@@ -633,84 +627,3 @@ starting transaction
 doing my thing
 I don't want to do my thing
 aborting transaction
-
-.. _debugging-runners:
-
-Debugging
----------
-
-Mush makes some heuristic decisions about the order in which to call
-objects added to a runner. If your expectations of the call order
-don't match that used by Mush, it can be confusing to figure out where
-the difference comes from.
-
-For this reason, when constructing a :class:`Runner` you can pass an
-optional debug parameter which can be either a boolean ``True`` or a
-file-like object. If passed, debug information will be generated
-whenever an object is added to the runner.
-
-If ``True``, this information will be written to
-:obj:`~sys.stderr`. If a file-like object is passed instead, the
-information will be written to that object.
-
-As an example, consider this code:
-
-.. code-block:: python
-
-    from mush import Runner, requires
-    
-    class T1(object): pass
-    class T2(object): pass
-    class T3(object): pass
-    
-    def makes_t1():
-        return T1()
-    
-    @requires(T1)
-    def makes_t2(obj):
-        return T2()
-    
-    @requires(T2)
-    def makes_t3(obj): 
-        return T3()
-    
-    @requires(T3, T1)
-    def user(obj1, obj2):
-        m.user(type(obj1), type(obj2))
-   
-The debug information that would be written looks like this:
-
->>> import sys
->>> runner = Runner(makes_t1, makes_t2, makes_t3, user, debug=sys.stdout)
-Added <function makes_t1 ...> to 'normal' period for <... 'NoneType'> with Requirements()
-Current call order:
-For <... 'NoneType'>:
-  normal: <function makes_t1 ...> requires Requirements()
-<BLANKLINE>
-Added <function makes_t2 ...> to 'normal' period for <class 'T1'> with Requirements(T1)
-Current call order:
-For <... 'NoneType'>:
-  normal: <function makes_t1 ...> requires Requirements()
-For <class 'T1'>:
-  normal: <function makes_t2 ...> requires Requirements(T1)
-<BLANKLINE>
-Added <function makes_t3 ...> to 'normal' period for <class 'T2'> with Requirements(T2)
-Current call order:
-For <... 'NoneType'>:
-  normal: <function makes_t1 ...> requires Requirements()
-For <class 'T1'>:
-  normal: <function makes_t2 ...> requires Requirements(T1)
-For <class 'T2'>:
-  normal: <function makes_t3 ...> requires Requirements(T2)
-<BLANKLINE>
-Added <function user ...> to 'normal' period for <class 'T3'> with Requirements(T3, T1)
-Current call order:
-For <... 'NoneType'>:
-  normal: <function makes_t1 ...> requires Requirements()
-For <class 'T1'>:
-  normal: <function makes_t2 ...> requires Requirements(T1)
-For <class 'T2'>:
-  normal: <function makes_t3 ...> requires Requirements(T2)
-For <class 'T3'>:
-  normal: <function user ...> requires Requirements(T3, T1)
-<BLANKLINE>

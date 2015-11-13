@@ -1,8 +1,8 @@
-from mush import Runner, first, last, attr, item
+from mush import Runner, attr, item, requires
 from argparse import ArgumentParser, Namespace
 
 from .example_with_mush_clone import (
-    DatabaseHandler, Config, parse_args, parse_config, do,
+    DatabaseHandler, parse_args, parse_config, do,
     setup_logging
     )
 
@@ -17,17 +17,19 @@ def options(parser):
 
 def make_runner(do):
     runner = Runner(ArgumentParser)
-    runner.add(options, ArgumentParser)
-    runner.add(parse_args, last(ArgumentParser))
-    runner.add(parse_config, first(Namespace))
-    runner.add(setup_logging,
-               log_path = item(first(Config), 'log'),
-               quiet = attr(first(Namespace), 'quiet'),
-               verbose = attr(first(Namespace), 'verbose'))
-    runner.add(DatabaseHandler, item(Config, 'db'))
-    runner.add(do,
-               attr(DatabaseHandler, 'conn'),
-               attr(Namespace, 'path'))
+    runner.append(options, requires=ArgumentParser)
+    runner.append(parse_args, requires=ArgumentParser)
+    runner.append(parse_config, requires=Namespace)
+    runner.append(setup_logging, requires(
+        log_path = item('config', 'log'),
+        quiet = attr(Namespace, 'quiet'),
+        verbose = attr(Namespace, 'verbose')
+    ))
+    runner.append(DatabaseHandler, requires=item('config', 'db'))
+    runner.append(
+        do,
+        requires(attr(DatabaseHandler, 'conn'), attr(Namespace, 'path'))
+    )
     return runner
 
 main = make_runner(do)

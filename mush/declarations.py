@@ -1,4 +1,4 @@
-from mush import missing
+from .markers import missing
 
 
 def name_or_repr(obj):
