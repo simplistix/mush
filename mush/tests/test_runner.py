@@ -762,7 +762,20 @@ class RunnerTests(TestCase):
         runner1.append(m.f2, label='second')
         runner1.append(m.f3, label='third')
 
-        runner2 = runner1.clone(end_label='second')
+        runner2 = runner1.clone(end_label='third')
+        self.verify(runner2,
+                    (m.f1, {'first'}),
+                    (m.f2, {'second'}),
+                    )
+
+    def test_clone_end_label_include(self):
+        m = Mock()
+        runner1 = Runner()
+        runner1.append(m.f1, label='first')
+        runner1.append(m.f2, label='second')
+        runner1.append(m.f3, label='third')
+
+        runner2 = runner1.clone(end_label='second', include_end=True)
         self.verify(runner2,
                     (m.f1, {'first'}),
                     (m.f2, {'second'}),
@@ -775,7 +788,20 @@ class RunnerTests(TestCase):
         runner1.append(m.f2, label='second')
         runner1.append(m.f3, label='third')
 
-        runner2 = runner1.clone(start_label='second')
+        runner2 = runner1.clone(start_label='first')
+        self.verify(runner2,
+                    (m.f2, {'second'}),
+                    (m.f3, {'third'}),
+                    )
+
+    def test_clone_start_label_include(self):
+        m = Mock()
+        runner1 = Runner()
+        runner1.append(m.f1, label='first')
+        runner1.append(m.f2, label='second')
+        runner1.append(m.f3, label='third')
+
+        runner2 = runner1.clone(start_label='second', include_start=True)
         self.verify(runner2,
                     (m.f2, {'second'}),
                     (m.f3, {'third'}),
@@ -787,13 +813,22 @@ class RunnerTests(TestCase):
         runner1.append(m.f1, label='first')
         runner1.append(m.f2, label='second')
         runner1.append(m.f3, label='third')
-        runner1.append(m.f4, label='four')
+        runner1.append(m.f4, label='fourth')
 
-        runner2 = runner1.clone(start_label='second', end_label='third')
+        runner2 = runner1.clone(start_label='first', end_label='fourth')
         self.verify(runner2,
                     (m.f2, {'second'}),
                     (m.f3, {'third'}),
                     )
+
+    def test_clone_between_empty(self):
+        m = Mock()
+        runner1 = Runner()
+        runner1.append(m.f1, label='first')
+        runner1.append(m.f2, label='second')
+
+        runner2 = runner1.clone(start_label='first', end_label='second')
+        self.verify(runner2)
 
     def test_extend(self):
         m = Mock()

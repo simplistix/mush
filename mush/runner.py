@@ -58,12 +58,33 @@ class Runner(object):
             else:
                 self.append(obj)
 
-    def clone(self, start_label=None, end_label=None):
+    def clone(self,
+              start_label=None, end_label=None,
+              include_start=False, include_end=False):
         runner = Runner()
-        runner._copy_from(
-            self.labels[start_label] if start_label else self.start,
-            self.labels[end_label] if end_label else self.end
-        )
+
+        if start_label:
+            start = self.labels[start_label]
+            if not include_start:
+                start = start.next
+        else:
+            start = self.start
+
+        if end_label:
+            end = self.labels[end_label]
+            if not include_end:
+                end = end.previous
+        else:
+            end = self.end
+
+        # check start point is before end_point
+        point = start
+        while point:
+            if point is end:
+                return runner
+            point = point.previous
+
+        runner._copy_from(start, end)
         return runner
 
     def replace(self, original, replacement):
