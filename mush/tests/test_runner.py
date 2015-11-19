@@ -821,6 +821,18 @@ class RunnerTests(TestCase):
                     (m.f3, {'third'}),
                     )
 
+    def test_clone_between_one_item(self):
+        m = Mock()
+        runner1 = Runner()
+        runner1.append(m.f1, label='first')
+        runner1.append(m.f2, label='second')
+        runner1.append(m.f3, label='third')
+
+        runner2 = runner1.clone(start_label='first', end_label='third')
+        self.verify(runner2,
+                    (m.f2, {'second'}),
+                    )
+
     def test_clone_between_empty(self):
         m = Mock()
         runner1 = Runner()
