@@ -3,7 +3,10 @@ from .markers import not_specified
 
 
 class Modifier(object):
-
+    """
+    Used to make changes at a particular point in a runner.
+    These are returned by :meth:`Runner.append` and :meth:`Runner.__getitem__`.
+    """
     def __init__(self, runner, callpoint, label=None):
         self.runner = runner
         self.callpoint = callpoint
@@ -17,6 +20,27 @@ class Modifier(object):
             self.labels = set()
 
     def append(self, obj, requires=None, returns=None, label=None):
+        """
+        :param obj: The callable to be added.
+
+        :param requires: The resources to required as parameters when calling
+                         `obj`. These can be specified by passing a single
+                         type, a string name or a :class:`requires` object.
+
+        :param returns: The resources that `obj` will return.
+                        These can be specified as a single
+                        type, a string name or a :class:`returns`,
+                        :class:`returns_mapping`, :class:`returns_sequence`
+                        object.
+
+        :param label: If specified, this is a string that adds a label to the
+                      point where `obj` is added that can later be retrieved
+                      with :meth:`Runner.__getitem__`.
+
+        If no label is specified but the point which this
+        :class:`~.modifier.Modifier` represents has any labels, those labels
+        will be moved to the newly inserted point.
+        """
         if label in self.runner.labels:
             raise ValueError('%r already points to %r' % (
                 label, self.runner.labels[label]
@@ -47,6 +71,12 @@ class Modifier(object):
         self.callpoint = callpoint
 
     def add_label(self, label, callpoint=None):
+        """
+        Add a label to the point represented by this
+        :class:`~.modifier.Modifier`.
+
+        :param callpoint: For internal use only.
+        """
         callpoint = callpoint or self.callpoint
         callpoint.labels.add(label)
         old_callpoint = self.runner.labels.get(label)

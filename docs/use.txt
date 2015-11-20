@@ -801,5 +801,5 @@ To see how the configuration panned out, we would look at the :func:`repr`:
 
 As you can see, there is a problem with this configuration that will be exposed
 when it is run. To help make sense of these kinds of problems, Mush will add
-more context when a :class:`TypeError` or :class:`~mush.context.ContextError`
+more context when a :class:`TypeError` or :class:`~.context.ContextError`
 is raised.

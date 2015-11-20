@@ -5,6 +5,11 @@ from .modifier import Modifier
 
 
 class Runner(object):
+    """
+    A chain of callables along with declarations of their required and
+    returned resources along with tools to manage the order in which they
+    will be called.
+    """
 
     start = end = None
 
@@ -15,6 +20,22 @@ class Runner(object):
     def append(self, obj, requires=None, returns=None, label=None):
         """
         Add a callable to the runner.
+
+        :param obj: The callable to be added.
+
+        :param requires: The resources to required as parameters when calling
+                         `obj`. These can be specified by passing a single
+                         type, a string name or a :class:`requires` object.
+
+        :param returns: The resources that `obj` will return.
+                        These can be specified as a single
+                        type, a string name or a :class:`returns`,
+                        :class:`returns_mapping`, :class:`returns_sequence`
+                        object.
+
+        :param label: If specified, this is a string that adds a label to the
+                      point where `obj` is added that can later be retrieved
+                      with :meth:`Runner.__getitem__`.
         """
         m = Modifier(self, self.end, not_specified)
         m.append(obj, requires, returns, label)
@@ -61,6 +82,23 @@ class Runner(object):
     def clone(self,
               start_label=None, end_label=None,
               include_start=False, include_end=False):
+        """
+        Return a copy of this :class:`Runner`.
+
+        :param start_label:
+            An optional string specifying the point at which to start cloning.
+
+        :param end_label:
+            An optional string specifying the point at which to stop cloning.
+
+        :param include_start:
+            If ``True``, the point specified in ``start_label`` will be included
+            in the cloned runner.
+
+        :param include_end:
+            If ``True``, the point specified in ``end_label`` will be included
+            in the cloned runner.
+        """
         runner = Runner()
 
         if start_label:
@@ -100,9 +138,17 @@ class Runner(object):
             point = point.next
 
     def __getitem__(self, label):
+        """
+        Retrieve a :class:`~.modifier.Modifier` for a previous labelled point in
+        the runner.
+        """
         return Modifier(self, self.labels[label], label)
 
     def __add__(self, other):
+        """
+        Return a new :class:`Runner` containing the contents of the two
+        :class:`Runner` instances being added together.
+        """
         runner = Runner()
         for r in self, other:
             runner._copy_from(r.start, r.end)
@@ -115,7 +161,7 @@ class Runner(object):
         arguments or keyword parameters when required.
 
         A runner may be called multiple times. Each time a new
-        :class:`Context` will be created meaning that no required
+        :class:`~.context.Context` will be created meaning that no required
         objects are kept between calls and all callables will be
         called each time.
 
