@@ -8,8 +8,8 @@ if sys.version_info[:2] > (3, 2):
 else:
     PY32 = False
 
-if sys.version_info[:2] > (3, 0):
-    PY3 = True
+if sys.version_info[:2] < (3, 0):
+    PY2 = True
 else:
-    PY3 = False
+    PY2 = False
 

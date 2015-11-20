@@ -11,6 +11,7 @@ from mush.runner import Runner
 from mush.declarations import (
     requires, attr, item, nothing, returns, returns_mapping
 )
+from .compat import PY2
 
 
 class RunnerTests(TestCase):
@@ -449,11 +450,16 @@ class RunnerTests(TestCase):
         with ShouldRaise(ContextError) as s:
             runner()
 
+        if PY2:
+            message = "job() takes exactly 1 argument (0 given)"
+        else:
+            message = "job() missing 1 required positional argument: 'arg'"
+
         text = '\n'.join((
             'While calling: '+repr(job)+' requires() returns_result_type()',
             'with <Context: {}>:',
             '',
-            "job() missing 1 required positional argument: 'arg'",
+            message,
         ))
         compare(text, repr(s.raised))
         compare(text, str(s.raised))

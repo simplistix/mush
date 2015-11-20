@@ -60,8 +60,8 @@ class TestContext(TestCase):
         else:
             expected = ("<Context: {<class 'mush.tests.test_context.T2'>:"
                         " <TheType obj>}>")
-        self.assertEqual(repr(context), expected)
-        self.assertEqual(str(context), expected)
+        compare(repr(context), expected, trailing_whitespace=False)
+        compare(str(context), expected, trailing_whitespace=False)
 
     def test_clash(self):
         obj1 = TheType()
