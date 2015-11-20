@@ -11,7 +11,7 @@ extensions = [
 
 intersphinx_mapping = dict(
     python = ('http://docs.python.org/dev', None),
-    testfixtures = ('http://pythonhosted.org/testfixtures', None),
+    testfixtures = ('http://testfixtures.readthedocs.org/en/latest/', None),
     )
 
 # General
