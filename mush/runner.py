@@ -17,7 +17,7 @@ class Runner(object):
         self.labels = {}
         self.extend(*objects)
 
-    def append(self, obj, requires=None, returns=None, label=None):
+    def add(self, obj, requires=None, returns=None, label=None):
         """
         Add a callable to the runner.
 
@@ -38,7 +38,7 @@ class Runner(object):
                       with :meth:`Runner.__getitem__`.
         """
         m = Modifier(self, self.end, not_specified)
-        m.append(obj, requires, returns, label)
+        m.add(obj, requires, returns, label)
         return m
 
     def _copy_from(self, start_point, end_point):
@@ -77,7 +77,7 @@ class Runner(object):
             if isinstance(obj, Runner):
                 self._copy_from(obj.start, obj.end)
             else:
-                self.append(obj)
+                self.add(obj)
 
     def clone(self,
               start_label=None, end_label=None,

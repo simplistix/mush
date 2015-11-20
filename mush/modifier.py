@@ -5,7 +5,7 @@ from .markers import not_specified
 class Modifier(object):
     """
     Used to make changes at a particular point in a runner.
-    These are returned by :meth:`Runner.append` and :meth:`Runner.__getitem__`.
+    These are returned by :meth:`Runner.add` and :meth:`Runner.__getitem__`.
     """
     def __init__(self, runner, callpoint, label=None):
         self.runner = runner
@@ -19,7 +19,7 @@ class Modifier(object):
         else:
             self.labels = set()
 
-    def append(self, obj, requires=None, returns=None, label=None):
+    def add(self, obj, requires=None, returns=None, label=None):
         """
         :param obj: The callable to be added.
 

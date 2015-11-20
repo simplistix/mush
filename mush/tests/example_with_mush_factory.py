@@ -17,16 +17,16 @@ def options(parser):
 
 def make_runner(do):
     runner = Runner(ArgumentParser)
-    runner.append(options, requires=ArgumentParser)
-    runner.append(parse_args, requires=ArgumentParser)
-    runner.append(parse_config, requires=Namespace)
-    runner.append(setup_logging, requires(
+    runner.add(options, requires=ArgumentParser)
+    runner.add(parse_args, requires=ArgumentParser)
+    runner.add(parse_config, requires=Namespace)
+    runner.add(setup_logging, requires(
         log_path = item('config', 'log'),
         quiet = attr(Namespace, 'quiet'),
         verbose = attr(Namespace, 'verbose')
     ))
-    runner.append(DatabaseHandler, requires=item('config', 'db'))
-    runner.append(
+    runner.add(DatabaseHandler, requires=item('config', 'db'))
+    runner.add(
         do,
         requires(attr(DatabaseHandler, 'conn'), attr(Namespace, 'path'))
     )

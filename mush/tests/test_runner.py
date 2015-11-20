@@ -46,7 +46,7 @@ class RunnerTests(TestCase):
             m.job()
 
         runner = Runner()
-        point = runner.append(job).callpoint
+        point = runner.add(job).callpoint
 
         compare(job, point.obj)
         compare(runner.start, point)
@@ -91,14 +91,14 @@ class RunnerTests(TestCase):
         runner = Runner()
         compare(runner(), None)
 
-    def test_append_with_label(self):
+    def test_add_with_label(self):
         def job1(): pass
         def job2(): pass
 
         runner = Runner()
 
-        point1 = runner.append(job1, label='1').callpoint
-        point2 = runner.append(job2, label='2').callpoint
+        point1 = runner.add(job1, label='1').callpoint
+        point2 = runner.add(job2, label='2').callpoint
 
         compare(point1.obj, job1)
         compare(point2.obj, job2)
@@ -113,27 +113,27 @@ class RunnerTests(TestCase):
                     (job1, {'1'}),
                     (job2, {'2'}))
 
-    def test_modifier_append_moves_label(self):
+    def test_modifier_add_moves_label(self):
         def job1(): pass
         def job2(): pass
 
         runner = Runner()
 
-        runner.append(job1, label='the label')
-        runner['the label'].append(job2)
+        runner.add(job1, label='the label')
+        runner['the label'].add(job2)
 
         self.verify(runner,
                     (job1, set()),
                     (job2, {'the label'}))
 
-    def test_runner_append_does_not_move_label(self):
+    def test_runner_add_does_not_move_label(self):
         def job1(): pass
         def job2(): pass
 
         runner = Runner()
 
-        runner.append(job1, label='the label')
-        runner.append(job2)
+        runner.add(job1, label='the label')
+        runner.add(job2)
 
         self.verify(runner,
                     (job1, {'the label'}),
@@ -145,29 +145,29 @@ class RunnerTests(TestCase):
 
         runner = Runner()
 
-        mod = runner.append(job1)
+        mod = runner.add(job1)
         mod.add_label('1')
         mod.add_label('2')
 
         self.verify(runner,
                     (job1, {'1', '2'}))
 
-        runner['2'].append(job2)
+        runner['2'].add(job2)
 
         self.verify(runner,
                     (job1, {'1'}),
                     (job2, {'2'}))
 
-    def test_modifier_append_with_label(self):
+    def test_modifier_add_with_label(self):
         def job1(): pass
         def job2(): pass
 
         runner = Runner()
 
-        mod = runner.append(job1)
+        mod = runner.add(job1)
         mod.add_label('1')
 
-        runner['1'].append(job2, label='2')
+        runner['1'].add(job2, label='2')
 
         self.verify(runner,
                     (job1, {'1'}),
@@ -228,10 +228,10 @@ class RunnerTests(TestCase):
             m.job4(t2_)
 
         runner = Runner()
-        runner.append(job1)
-        runner.append(job2, requires(T1))
-        runner.append(job3, requires(t2_=T2))
-        runner.append(job4, requires(T2))
+        runner.add(job1)
+        runner.add(job2, requires(T1))
+        runner.add(job3, requires(t2_=T2))
+        runner.add(job4, requires(T2))
         runner()
 
         compare([
@@ -324,8 +324,8 @@ class RunnerTests(TestCase):
             m.job2(obj1, obj2)
 
         runner = Runner()
-        runner.append(job1, returns=returns(T1, T2))
-        runner.append(job2)
+        runner.add(job1, returns=returns(T1, T2))
+        runner.add(job2)
         runner()
 
         compare([
@@ -370,8 +370,8 @@ class RunnerTests(TestCase):
             m.job2(obj)
 
         runner = Runner()
-        runner.append(job1, returns=returns(T2))
-        runner.append(job2, requires(T2))
+        runner.add(job1, returns=returns(T2))
+        runner.add(job2, requires(T2))
         runner()
 
         compare([
@@ -414,11 +414,11 @@ class RunnerTests(TestCase):
         def job5(): pass
 
         runner = Runner()
-        runner.append(job1, label='1')
-        runner.append(job2)
-        runner.append(job3)
-        runner.append(job4, label='4')
-        runner.append(job5, requires('foo', bar='baz'), returns('bob'))
+        runner.add(job1, label='1')
+        runner.add(job2)
+        runner.add(job3)
+        runner.add(job4, label='4')
+        runner.add(job5, requires('foo', bar='baz'), returns('bob'))
 
         with ShouldRaise(ContextError) as s:
             runner()
@@ -500,8 +500,8 @@ class RunnerTests(TestCase):
         def job2(obj):
             m.job2(obj)
         runner = Runner()
-        runner.append(job1)
-        runner.append(job2, requires(attr(T, 'foo')))
+        runner.add(job1)
+        runner.add(job2, requires(attr(T, 'foo')))
         runner()
 
         compare([
@@ -522,8 +522,8 @@ class RunnerTests(TestCase):
         def job2(obj):
             m.job2(obj)
         runner = Runner()
-        runner.append(job1)
-        runner.append(job2, requires(attr(T, 'foo', 'bar')))
+        runner.add(job1)
+        runner.add(job2, requires(attr(T, 'foo', 'bar')))
         runner()
 
         compare([
@@ -542,8 +542,8 @@ class RunnerTests(TestCase):
         def job2(obj):
             m.job2(obj)
         runner = Runner()
-        runner.append(job1)
-        runner.append(job2, requires(item(MyDict, 'the_thing')))
+        runner.add(job1)
+        runner.add(job2, requires(item(MyDict, 'the_thing')))
         runner()
         compare([
                 call.job1(),
@@ -561,8 +561,8 @@ class RunnerTests(TestCase):
         def job2(obj):
             m.job2(obj)
         runner = Runner()
-        runner.append(job1)
-        runner.append(job2, requires(item(MyDict, 'the_thing', 'other_thing')))
+        runner.add(job1)
+        runner.add(job2, requires(item(MyDict, 'the_thing', 'other_thing')))
         runner()
         compare([
                 call.job1(),
@@ -579,8 +579,8 @@ class RunnerTests(TestCase):
         def job2(obj):
             m.job2(obj)
         runner = Runner()
-        runner.append(job1)
-        runner.append(job2, requires(item(attr(T, 'foo'), 'baz')))
+        runner.add(job1)
+        runner.add(job2, requires(item(attr(T, 'foo'), 'baz')))
         runner()
 
         compare([
@@ -672,8 +672,8 @@ class RunnerTests(TestCase):
             m.use()
 
         runner = Runner()
-        runner.append(setup, returns=returns_mapping(), label='setup')
-        runner['setup'].append(use)
+        runner.add(setup, returns=returns_mapping(), label='setup')
+        runner['setup'].add(use)
         runner()
 
         compare([
@@ -694,22 +694,22 @@ class RunnerTests(TestCase):
         def t2(obj): m.t2()
         # original
         runner1 = Runner()
-        runner1.append(f1, label='first')
-        runner1.append(n1, returns=returns(T1, T2), label='normal')
-        runner1.append(l1, label='last')
-        runner1.append(t1, requires(T1))
-        runner1.append(t2, requires(T2))
+        runner1.add(f1, label='first')
+        runner1.add(n1, returns=returns(T1, T2), label='normal')
+        runner1.add(l1, label='last')
+        runner1.add(t1, requires(T1))
+        runner1.add(t2, requires(T2))
         # now clone and add bits
         def f2(): m.f2()
         def n2(): m.n2()
         def l2(): m.l2()
         def tn(obj): m.tn()
         runner2 = runner1.clone()
-        runner2['first'].append(f2)
-        runner2['normal'].append(n2)
-        runner2['last'].append(l2)
+        runner2['first'].add(f2)
+        runner2['normal'].add(n2)
+        runner2['last'].add(l2)
         # make sure types stay in order
-        runner2.append(tn, requires(T2))
+        runner2.add(tn, requires(T2))
 
         # now run both, and make sure we only get what we should
 
@@ -758,9 +758,9 @@ class RunnerTests(TestCase):
     def test_clone_end_label(self):
         m = Mock()
         runner1 = Runner()
-        runner1.append(m.f1, label='first')
-        runner1.append(m.f2, label='second')
-        runner1.append(m.f3, label='third')
+        runner1.add(m.f1, label='first')
+        runner1.add(m.f2, label='second')
+        runner1.add(m.f3, label='third')
 
         runner2 = runner1.clone(end_label='third')
         self.verify(runner2,
@@ -771,9 +771,9 @@ class RunnerTests(TestCase):
     def test_clone_end_label_include(self):
         m = Mock()
         runner1 = Runner()
-        runner1.append(m.f1, label='first')
-        runner1.append(m.f2, label='second')
-        runner1.append(m.f3, label='third')
+        runner1.add(m.f1, label='first')
+        runner1.add(m.f2, label='second')
+        runner1.add(m.f3, label='third')
 
         runner2 = runner1.clone(end_label='second', include_end=True)
         self.verify(runner2,
@@ -784,9 +784,9 @@ class RunnerTests(TestCase):
     def test_clone_start_label(self):
         m = Mock()
         runner1 = Runner()
-        runner1.append(m.f1, label='first')
-        runner1.append(m.f2, label='second')
-        runner1.append(m.f3, label='third')
+        runner1.add(m.f1, label='first')
+        runner1.add(m.f2, label='second')
+        runner1.add(m.f3, label='third')
 
         runner2 = runner1.clone(start_label='first')
         self.verify(runner2,
@@ -797,9 +797,9 @@ class RunnerTests(TestCase):
     def test_clone_start_label_include(self):
         m = Mock()
         runner1 = Runner()
-        runner1.append(m.f1, label='first')
-        runner1.append(m.f2, label='second')
-        runner1.append(m.f3, label='third')
+        runner1.add(m.f1, label='first')
+        runner1.add(m.f2, label='second')
+        runner1.add(m.f3, label='third')
 
         runner2 = runner1.clone(start_label='second', include_start=True)
         self.verify(runner2,
@@ -810,10 +810,10 @@ class RunnerTests(TestCase):
     def test_clone_between(self):
         m = Mock()
         runner1 = Runner()
-        runner1.append(m.f1, label='first')
-        runner1.append(m.f2, label='second')
-        runner1.append(m.f3, label='third')
-        runner1.append(m.f4, label='fourth')
+        runner1.add(m.f1, label='first')
+        runner1.add(m.f2, label='second')
+        runner1.add(m.f3, label='third')
+        runner1.add(m.f4, label='fourth')
 
         runner2 = runner1.clone(start_label='first', end_label='fourth')
         self.verify(runner2,
@@ -824,9 +824,9 @@ class RunnerTests(TestCase):
     def test_clone_between_one_item(self):
         m = Mock()
         runner1 = Runner()
-        runner1.append(m.f1, label='first')
-        runner1.append(m.f2, label='second')
-        runner1.append(m.f3, label='third')
+        runner1.add(m.f1, label='first')
+        runner1.add(m.f2, label='second')
+        runner1.add(m.f3, label='third')
 
         runner2 = runner1.clone(start_label='first', end_label='third')
         self.verify(runner2,
@@ -836,8 +836,8 @@ class RunnerTests(TestCase):
     def test_clone_between_empty(self):
         m = Mock()
         runner1 = Runner()
-        runner1.append(m.f1, label='first')
-        runner1.append(m.f2, label='second')
+        runner1.add(m.f1, label='first')
+        runner1.add(m.f2, label='second')
 
         runner2 = runner1.clone(start_label='first', end_label='second')
         self.verify(runner2)
@@ -982,14 +982,14 @@ class RunnerTests(TestCase):
                     (m.job1, set()),
                     )
 
-        mod = runner.append(m.job2, label='foo')
+        mod = runner.add(m.job2, label='foo')
         compare(runner.end.obj, m.job2)
         self.verify(runner,
                     (m.job1, set()),
                     (m.job2, {'foo'}),
                     )
 
-        mod.append(m.job3)
+        mod.add(m.job3)
         compare(runner.end.obj, m.job3)
         compare(runner.end.labels, {'foo'})
         self.verify(runner,
@@ -998,7 +998,7 @@ class RunnerTests(TestCase):
                     (m.job3, {'foo'}),
                     )
 
-        runner.append(m.job4)
+        runner.add(m.job4)
         compare(runner.end.obj, m.job4)
         compare(runner.end.labels, set())
         self.verify(runner,
@@ -1008,30 +1008,30 @@ class RunnerTests(TestCase):
                     (m.job4, set()),
                     )
 
-    def test_duplicate_label_runner_append(self):
+    def test_duplicate_label_runner_add(self):
         m = Mock()
         runner = Runner()
-        runner.append(m.job1, label='label')
-        runner.append(m.job2)
+        runner.add(m.job1, label='label')
+        runner.add(m.job2)
         with ShouldRaise(ValueError(
             "'label' already points to "+repr(m.job1)+" requires() "
             "returns_result_type() <-- label"
         )):
-            runner.append(m.job3, label='label')
+            runner.add(m.job3, label='label')
         self.verify(runner,
                     (m.job1, {'label'}),
                     (m.job2, set()),
                     )
 
-    def test_duplicate_label_runner_next_append(self):
+    def test_duplicate_label_runner_next_add(self):
         m = Mock()
         runner = Runner()
-        runner.append(m.job1, label='label')
+        runner.add(m.job1, label='label')
         with ShouldRaise(ValueError(
             "'label' already points to "+repr(m.job1)+" requires() "
             "returns_result_type() <-- label"
         )):
-            runner.append(m.job2, label='label')
+            runner.add(m.job2, label='label')
         self.verify(runner,
                     (m.job1, {'label'}),
                     )
@@ -1039,14 +1039,14 @@ class RunnerTests(TestCase):
     def test_duplicate_label_modifier(self):
         m = Mock()
         runner = Runner()
-        runner.append(m.job1, label='label1')
+        runner.add(m.job1, label='label1')
         mod = runner['label1']
-        mod.append(m.job2, label='label2')
+        mod.add(m.job2, label='label2')
         with ShouldRaise(ValueError(
             "'label1' already points to "+repr(m.job1)+" requires() "
             "returns_result_type() <-- label1"
         )):
-            mod.append(m.job3, label='label1')
+            mod.add(m.job3, label='label1')
         self.verify(runner,
                     (m.job1, {'label1'}),
                     (m.job2, {'label2'}),
@@ -1057,9 +1057,9 @@ class RunnerTests(TestCase):
         class T2: pass
         m = Mock()
         runner = Runner()
-        runner.append(m.job1, label='label1')
-        runner.append(m.job2, requires('foo', T1), returns(T2), label='label2')
-        runner.append(m.job3)
+        runner.add(m.job1, label='label1')
+        runner.add(m.job2, requires('foo', T1), returns(T2), label='label2')
+        runner.add(m.job3)
 
         compare('\n'.join((
             '<Runner>',

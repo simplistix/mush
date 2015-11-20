@@ -42,7 +42,7 @@ More callables can be added to a runner:
  def func3():
      print('func3')
 
- runner.append(func3)
+ runner.add(func3)
 
 If you want to add several callables in one go, you can use the
 runner's :meth:`~Runner.extend` method:
@@ -111,7 +111,7 @@ used base runners that can then be extended for each specific use case:
 .. code-block:: python
 
   runner5 = runner3.clone()
-  runner5.append(func4)
+  runner5.add(func4)
 
 The existing runner is not modified, while the new runner behaves as
 expected:
@@ -176,7 +176,7 @@ For example, consider the following functions:
       print('I made juice out of {0} and {1}'.format(fruit1, fruit2))
 
 The requirements are specified by passing the required type in the `requires`
-parameter when adding the callable to the runner using :meth:`~Runner.append`.
+parameter when adding the callable to the runner using :meth:`~Runner.add`.
 If more complex requirements need to be specified, a :class:`requires` instance
 can be passed which accepts both positional and keyword parameters that
 specify the types required by the callable being added:
@@ -186,9 +186,9 @@ specify the types required by the callable being added:
   from mush import Runner, requires
 
   runner = Runner()
-  runner.append(apple_tree)
-  runner.append(magician, requires=Apple)
-  runner.append(juicer, requires(Apple, fruit2=Orange))
+  runner.add(apple_tree)
+  runner.add(magician, requires=Apple)
+  runner.add(juicer, requires(Apple, fruit2=Orange))
 
 Calling this runner will now manage the resources, collecting them and
 passing them in as configured:
@@ -217,7 +217,7 @@ If a name is not always be available, it can be added to a runner as follows:
   from mush import Runner, optional
 
   runner = Runner()
-  runner.append(greet, requires=optional(str))
+  runner.add(greet, requires=optional(str))
 
 Now, when this runner is called, the default will be used:
 
@@ -235,7 +235,7 @@ available:
      return 'Slim Shady'
 
   runner = Runner(my_name_is)
-  runner.append(greet, requires=optional(str))
+  runner.add(greet, requires=optional(str))
 
 In this case, the string returned will be used:
 
@@ -277,9 +277,9 @@ of the returns resources through to the :func:`pick` function:
     from mush import Runner, attr, item, requires
 
     runner = Runner(some_attributes, some_items)
-    runner.append(pick, requires(fruit1=attr(Stuff, 'fruit'),
-                                 fruit2=item(dict, 'fruit'),
-                                 fruit3=item(attr(Stuff, 'tree'), 'fruit')))
+    runner.add(pick, requires(fruit1=attr(Stuff, 'fruit'),
+                              fruit2=item(dict, 'fruit'),
+                              fruit3=item(attr(Stuff, 'tree'), 'fruit')))
 
 So now we can pick fruit from some interesting places:
 
@@ -310,8 +310,8 @@ would be added to a runner as follows:
 
 
   runner = Runner()
-  runner.append(all_fruit, returns=returns_sequence())
-  runner.append(juicer, requires(Apple, Orange))
+  runner.add(all_fruit, returns=returns_sequence())
+  runner.add(juicer, requires(Apple, Orange))
 
 Now, the juicer will use all the fruit returned:
 
@@ -339,8 +339,8 @@ callable. This can be done as follows:
       return Tomato(), Cucumber()
 
   runner = Runner()
-  runner.append(vegetables, returns=returns(Apple, Orange))
-  runner.append(juicer, requires(Apple, Orange))
+  runner.add(vegetables, returns=returns(Apple, Orange))
+  runner.add(juicer, requires(Apple, Orange))
 
 Now, even when a callable requires fruit, we can force it to be happy with
 vegetables:
@@ -364,8 +364,8 @@ configured to use the types from that mapping:
       return {Apple: Tomato(), Orange: Cucumber()}
 
   runner = Runner()
-  runner.append(desperation, returns=returns_mapping())
-  runner.append(juicer, requires(Apple, Orange))
+  runner.add(desperation, returns=returns_mapping())
+  runner.add(juicer, requires(Apple, Orange))
 
 One again, we can happily make juice out of vegetables:
 
@@ -405,9 +405,9 @@ string:
 .. code-block:: python
 
   runner = Runner()
-  runner.append(age, returns='age')
-  runner.append(meaning, returns='meaning')
-  runner.append(profound, requires('age', it='meaning'))
+  runner.add(age, returns='age')
+  runner.add(meaning, returns='meaning')
+  runner.add(profound, requires('age', it='meaning'))
 
 Anywhere that a type can be used, a string name can be used instead:
 
@@ -457,7 +457,7 @@ Hybrid configuration
 The two styles of configuration are entirely interchangeable, with
 declarative requirements being inspected whenever a callable is added
 to a runner, and imperative requirements being taken whenever they are
-passed via the :meth:`~Runner.append` method:
+passed via the :meth:`~Runner.add` method:
 
 .. code-block:: python
 
@@ -470,7 +470,7 @@ passed via the :meth:`~Runner.append` method:
       return Orange()
 
   trees = Runner(apple_tree)
-  trees.append(orange_tree, returns='citrus')
+  trees.add(orange_tree, returns='citrus')
   runner = trees.clone()
   runner.extend(juicer, packager)
   
@@ -488,7 +488,7 @@ preference to declarative configuration where both are present:
 .. code-block:: python
 
   runner = trees.clone()
-  runner.append(juicer, requires('citrus', Apple))
+  runner.add(juicer, requires('citrus', Apple))
 
 This runner will give us juice made in a different order:
 
@@ -532,8 +532,8 @@ These might be added to a runner as follows:
   from mush import Runner
 
   runner = Runner()
-  runner.append(forge, label='forged')
-  runner.append(engrave, label='engraved', requires=Ring)
+  runner.add(forge, label='forged')
+  runner.add(engrave, label='engraved', requires=Ring)
 
 Now, suppose we want to polish the ring before it's engraved and then
 package it up when we're done:
@@ -550,8 +550,8 @@ We can insert these callables into the runner at the right points as follows:
 
 .. code-block:: python
 
-  runner['forged'].append(polish, requires=Ring)
-  runner.append(package, requires=Ring)
+  runner['forged'].add(polish, requires=Ring)
+  runner.add(package, requires=Ring)
 
 This results in the desired call order:
 
@@ -568,7 +568,7 @@ insert another callable at the appropriate point:
   def more_polish(ring):
       print('polishing {0} again'.format(ring))
 
-  runner['engraved'].append(more_polish, requires=Ring)
+  runner['engraved'].add(more_polish, requires=Ring)
 
 Mush wish do the right thing when this runner is called:
 
@@ -596,7 +596,7 @@ moves to that callable. You may wish to keep track of the initial point that
 was labelled, so Mush supports multiple labels at each point:
 
 >>> runner = Runner()
->>> point = runner.append(forge)
+>>> point = runner.add(forge)
 >>> point.add_label('before_polish')
 >>> point.add_label('after_polish')
 >>> runner
@@ -604,19 +604,19 @@ was labelled, so Mush supports multiple labels at each point:
     <function forge ...> requires() returns_result_type() <-- after_polish, before_polish
 </Runner>
 
-Now, when you append to a specific label, only that label is moved:
+Now, when you add to a specific label, only that label is moved:
 
 >>> point = runner['after_polish']
->>> point.append(polish)
+>>> point.add(polish)
 >>> runner
 <Runner>
     <function forge ...> requires() returns_result_type() <-- before_polish
     <function polish ...> requires() returns_result_type() <-- after_polish
 </Runner>
 
-Of course, you can still append to the end of the runner:
+Of course, you can still add to the end of the runner:
 
->>> runner.append(package)
+>>> runner.add(package)
 <mush.modifier.Modifier...>
 >>> runner
 <Runner>
@@ -626,9 +626,9 @@ Of course, you can still append to the end of the runner:
 </Runner>
 
 However, the point modifier returned by getting a label from a runner will
-keep on moving the label as more callables are appended using it:
+keep on moving the label as more callables are added using it:
 
->>> point.append(more_polish)
+>>> point.add(more_polish)
 >>> runner
 <Runner>
     <function forge ...> requires() returns_result_type() <-- before_polish
@@ -735,9 +735,9 @@ If you have a base runner such as this:
       print('all done')
 
   base_runner = Runner()
-  point = base_runner.append(load_config, returns='config', label='config')
+  point = base_runner.add(load_config, returns='config', label='config')
   point.add_label('body')
-  base_runner.append(finalise_things, label='ending')
+  base_runner.add(finalise_things, label='ending')
 
 That runner might be used for a specific script as follows:
 
@@ -748,13 +748,13 @@ That runner might be used for a specific script as follows:
       print('doing stuff as ' + username + ' with '+ password)
 
   runner = base_runner.clone()
-  runner['body'].append(do_stuff)
+  runner['body'].add(do_stuff)
 
 To test this runner, we want to use a dummy configuration and not have any
 finalisation take place. This can be achieved as follows:
 
 >>> test_runner = Runner()
->>> test_runner.append(test_config, returns='config')
+>>> test_runner.add(test_config, returns='config')
 <mush.modifier.Modifier ...>
 >>> test_runner += runner.clone(start_label='config', end_label='ending')
 >>> test_runner()
@@ -786,9 +786,9 @@ For example, consider this runner:
       print('using ' + repr(connection))
 
   runner = Runner()
-  point = runner.append(make_config, label='config')
-  point.append(connect)
-  runner.append(process)
+  point = runner.add(make_config, label='config')
+  point.add(connect)
+  runner.add(process)
 
 To see how the configuration panned out, we would look at the :func:`repr`:
 
