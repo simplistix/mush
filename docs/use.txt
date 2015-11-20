@@ -155,12 +155,12 @@ For the examples, we'll assume we have three types of resources:
           return 'a refreshing fruit beverage' 
       __repr__ = __str__
 
-Imperative configuration
-~~~~~~~~~~~~~~~~~~~~~~~~
+Specifying requirements
+~~~~~~~~~~~~~~~~~~~~~~~
 
-Imperative configuration requires no decorators and is great when
-working with callables that come from another package or the standard
-library:
+When callables take parameters, Mush can be configured to pass objects of the
+correct type that have been returned from previous callables in the runner.
+For example, consider the following functions:
 
 .. code-block:: python
 
@@ -175,17 +175,20 @@ library:
  def juicer(fruit1, fruit2):
       print('I made juice out of {0} and {1}'.format(fruit1, fruit2))
 
-The requirements are passed using the `requires` parameter when calling
-:meth:`~Runner.append`. If more complex requirements need to be specified,
-a :class:`requires` instance can be passed:
+The requirements are specified by passing the required type in the `requires`
+parameter when adding the callable to the runner using :meth:`~Runner.append`.
+If more complex requirements need to be specified, a :class:`requires` instance
+can be passed which accepts both positional and keyword parameters that
+specify the types required by the callable being added:
 
 .. code-block:: python
 
   from mush import Runner, requires
+
   runner = Runner()
   runner.append(apple_tree)
   runner.append(magician, requires=Apple)
-  runner.append(juicer, requires(fruit1=Apple, fruit2=Orange))
+  runner.append(juicer, requires(Apple, fruit2=Orange))
 
 Calling this runner will now manage the resources, collecting them and
 passing them in as configured:
@@ -195,12 +198,228 @@ I made an apple
 I turned an apple into an orange
 I made juice out of an apple and an orange
 
+Optional requirements
+~~~~~~~~~~~~~~~~~~~~~
+
+It may be that, while a callable needs an object of a particular type, a default
+can be used if no such object is present. Runners can be configured to
+take this into account. Take the following function:
+
+.. code-block:: python
+
+  def greet(name='stranger'):
+      print('Hello ' + name + '!')
+
+If a name is not always be available, it can be added to a runner as follows:
+
+.. code-block:: python
+
+  from mush import Runner, optional
+
+  runner = Runner()
+  runner.append(greet, requires=optional(str))
+
+Now, when this runner is called, the default will be used:
+
+>>> runner()
+Hello stranger!
+
+The same callable can be added to a runner where the required strings is
+available:
+
+.. code-block:: python
+
+  from mush import Runner, optional
+
+  def my_name_is():
+     return 'Slim Shady'
+
+  runner = Runner(my_name_is)
+  runner.append(greet, requires=optional(str))
+
+In this case, the string returned will be used:
+
+>>> runner()
+Hello Slim Shady!
+
+.. _resource-parts:
+
+Using parts of a resource
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Resources can have attributes or items that are directly required by callables.
+For example, consider these two functions that return such resources:
+
+.. code-block:: python
+
+    class Stuff(object):
+        fruit = 'apple'
+        tree = dict(fruit='pear')
+
+    def some_attributes():
+        return Stuff()
+
+    def some_items():
+        return dict(fruit='orange')
+
+Also consider this function:
+
+.. code-block:: python
+
+    def pick(fruit1, fruit2, fruit3):
+        print('I picked {0}, {1} and {2}'.format(fruit1, fruit2, fruit3))
+
+All three can be added to a runner such that mush will pass the correct parts
+of the returns resources through to the :func:`pick` function:
+
+.. code-block:: python
+
+    from mush import Runner, attr, item, requires
+
+    runner = Runner(some_attributes, some_items)
+    runner.append(pick, requires(fruit1=attr(Stuff, 'fruit'),
+                                 fruit2=item(dict, 'fruit'),
+                                 fruit3=item(attr(Stuff, 'tree'), 'fruit')))
+
+So now we can pick fruit from some interesting places:
+
+>>> runner()
+I picked apple, orange and pear
+
+The :func:`pick` function, however, remains usable and testable on its own:
+
+>>> pick('apple', 'orange', 'pear')
+I picked apple, orange and pear
+
+Specifying returned resources
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+As seen above, Mush will track resources returned by callables based on the type
+of any object returned. This is usually what you want, but in some cases you
+may want to specify something different.
+For example, if you have a callable that returns a sequence of resources, this
+would be added to a runner as follows:
+
+.. code-block:: python
+
+  from mush import Runner, returns_sequence
+
+  def all_fruit():
+      print('I made fruit')
+      return Apple(), Orange()
+
+
+  runner = Runner()
+  runner.append(all_fruit, returns=returns_sequence())
+  runner.append(juicer, requires(Apple, Orange))
+
+Now, the juicer will use all the fruit returned:
+
+>>> runner()
+I made fruit
+I made juice out of an apple and an orange
+
+In rarer circumstances, you may need to override the types returned by a
+callable. This can be done as follows:
+
+.. code-block:: python
+
+  from mush import Runner, returns
+
+  class Tomato:
+      def __str__(self):
+          return 'a tomato'
+
+  class Cucumber:
+      def __str__(self):
+          return 'a cucumber'
+
+  def vegetables():
+      print('I made vegetables')
+      return Tomato(), Cucumber()
+
+  runner = Runner()
+  runner.append(vegetables, returns=returns(Apple, Orange))
+  runner.append(juicer, requires(Apple, Orange))
+
+Now, even when a callable requires fruit, we can force it to be happy with
+vegetables:
+
+>>> runner()
+I made vegetables
+I made juice out of a tomato and a cucumber
+
+The :class:`returns` indicator can be used even if a single object is returned.
+
+Another way that the type used to track the resource can be different from the
+type of the resource itself is if a callable returns a mapping and Mush is
+configured to use the types from that mapping:
+
+.. code-block:: python
+
+  from mush import Runner, returns_mapping
+
+  def desperation():
+      print('I sold vegetables as fruit')
+      return {Apple: Tomato(), Orange: Cucumber()}
+
+  runner = Runner()
+  runner.append(desperation, returns=returns_mapping())
+  runner.append(juicer, requires(Apple, Orange))
+
+One again, we can happily make juice out of vegetables:
+
+>>> runner()
+I sold vegetables as fruit
+I made juice out of a tomato and a cucumber
+
+.. _named-resources:
+
+Named resources
+~~~~~~~~~~~~~~~
+
+Sometimes the types of resources are too common for them to uniquely identify
+a resource:
+
+.. code-block:: python
+
+  def age():
+      return 37
+
+  def meaning():
+      return 42
+
+A callable such as the following cannot be configured to require the correct
+resource from these two functions by type alone:
+
+.. code-block:: python
+
+  def profound(age, it):
+      print('by the age of %s I realised the meaning of life was %s' % (
+          age, it
+      ))
+
+For these situations, Mush supports the ability to name a resource using a
+string:
+
+.. code-block:: python
+
+  runner = Runner()
+  runner.append(age, returns='age')
+  runner.append(meaning, returns='meaning')
+  runner.append(profound, requires('age', it='meaning'))
+
+Anywhere that a type can be used, a string name can be used instead:
+
+>>> runner()
+by the age of 37 I realised the meaning of life was 42
+
 Declarative configuration
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This is done using the :class:`requires` decorator to mark the
-callables with their requirements, which can specify the types
-required for either arguments or keyword parameters:
+While the imperative configuration used so far means that callables do not
+need to be modified, the helpers for specifying requirements and return types
+can also be used as decorators:
 
 .. code-block:: python
 
@@ -211,11 +430,12 @@ required for either arguments or keyword parameters:
       return Apple()
 
   @requires(Apple)
+  @returns('citrus')
   def magician(fruit):
       print('I turned {0} into an orange'.format(fruit))
       return Orange()
 
-  @requires(fruit1=Apple, fruit2=Orange)
+  @requires(fruit1=Apple, fruit2='citrus')
   def juicer(fruit1, fruit2):
       print('I made juice out of {0} and {1}'.format(fruit1, fruit2))
       return Juice()
@@ -249,7 +469,8 @@ passed via the :meth:`~Runner.append` method:
       print('I made an orange')
       return Orange()
 
-  trees = Runner(apple_tree, orange_tree)
+  trees = Runner(apple_tree)
+  trees.append(orange_tree, returns='citrus')
   runner = trees.clone()
   runner.extend(juicer, packager)
   
@@ -267,7 +488,7 @@ preference to declarative configuration where both are present:
 .. code-block:: python
 
   runner = trees.clone()
-  runner.append(juicer, requires(Orange, Apple))
+  runner.append(juicer, requires('citrus', Apple))
 
 This runner will give us juice made in a different order:
 
@@ -277,17 +498,20 @@ I made an orange
 I made juice out of an orange and an apple
 a refreshing fruit beverage
 
-.. _usage-periods:
+.. _labels:
 
 Labels
 ------
 
-It can be important to insert callables at the right point in a runner,
-even if subsequent callables have been added to the runner. For this reason,
-labels can be used to mark points in ther runner where more callables can
-be inserted later.
+One of the motivating reasons for Mush to be created was the ability to insert
+callables at a point in a runner other than the end. This allows abstraction
+of common sequences of calls without the risks of extracting them into a base
+class.
 
-As an example, consider a ring and some things that can be done to it:
+The points at which more callables can be inserted are created by specifying a
+label when adding a callable to the runner. This marks the point at which that
+callable is included so that it can be retrieved and appended to later. As an
+example, consider a ring and some things that can be done to it:
 
 .. code-block:: python
 
@@ -298,280 +522,120 @@ As an example, consider a ring and some things that can be done to it:
   def forge():
       return Ring()
 
-  def polish(ring):
-      print('polishing {0}'.format(ring))
-
-  def more_polish(ring):
-      print('polishing {0} again'.format(ring))
-
   def engrave(ring):
       print('engraving {0}'.format(ring))
 
-  def package(ring):
-      print('packaging {0}'.format(ring))
-
-These can now be added to a runner using labels so that even if the callables
-are added at different times, they will still be added in the correct order:
+These might be added to a runner as follows:
 
 .. code-block:: python
 
   from mush import Runner
 
   runner = Runner()
-  point = runner.append(forge)
-  point.add_label('forged')
-  point.add_label('polished')
-  runner['polished'].append(package, requires=Ring, label='packaged')
-  runner['forged'].append(polish, requires=Ring)
-  runner['forged'].append(more_polish, requires=Ring)
-  runner['forged'].append(engrave, requires=Ring)
+  runner.append(forge, label='forged')
+  runner.append(engrave, label='engraved', requires=Ring)
 
-Even though the callables were added out order, they will be executed
-correctly:
+Now, suppose we want to polish the ring before it's engraved and then
+package it up when we're done:
+
+.. code-block:: python
+
+  def polish(ring):
+      print('polishing {0}'.format(ring))
+
+  def package(ring):
+      print('packaging {0}'.format(ring))
+
+We can insert these callables into the runner at the right points as follows:
+
+.. code-block:: python
+
+  runner['forged'].append(polish, requires=Ring)
+  runner.append(package, requires=Ring)
+
+This results in the desired call order:
 
 >>> runner()
 polishing a ring
-polishing a ring again
 engraving a ring
 packaging a ring
 
-Sometimes, a callable needs to be called after other callables to do its
-work but does not need or cannot accept objects of the type returned
-by that callable. For example, and miss-using the fruit types from above:
+Now, suppose we want to polish the ring again after it's been engraved. We can
+insert another callable at the appropriate point:
 
 .. code-block:: python
 
-  def func1():
-      return Apple()
+  def more_polish(ring):
+      print('polishing {0} again'.format(ring))
 
-  def func2(apple):
-      print('func2 got {0}'.format(apple))
-      return Orange()
+  runner['engraved'].append(more_polish, requires=Ring)
 
-  def func3(apple):
-      print('func3 got {0}'.format(apple))
-
-  def func4(orange):
-      print('func4 processed {0}'.format(orange))
-
-If we want :func:`func3` only to get called once :func:`func4` has
-processed the :class:`Orange` but, for reasons of abstraction, 
-we want to add the callables in the order defined above, the simplest
-runner will not give us what we want:
-
->>> runner = Runner(func1)
->>> runner.append(func2, Apple)
-<...>
->>> runner.append(func3, Apple)
-<...>
->>> runner.append(func4, Orange)
-<...>
->>> runner()
-func2 got an apple
-func3 got an apple
-func4 processed an orange
-
-The problem is that the runner hasn't been told that :func:`func3`
-has a dependency on :class:`Orange`. This can be done using the
-:func:`after` type wrapper to specify that :func:`func2` requires an
-:class:`Orange` to exist, and for any other callables added to the
-runner that need an :class:`Orange` to have been called first, but
-that it must not be passed that orange:
-
-.. code-block:: python
-
-  from mush import Runner
-
-  runner = Runner(func1)
-  point = runner.append(func2, Apple)
-  point.add_label('make_orange')
-  runner.append(func3, Apple)
-  runner['make_orange'].append(func4, Orange)
-
-Now, even though we've added the callables in the order we want, we
-get the order of calling that we need:
+Mush wish do the right thing when this runner is called:
 
 >>> runner()
-func2 got an apple
-func4 processed an orange
-func3 got an apple
+polishing a ring
+engraving a ring
+polishing a ring again
+packaging a ring
 
-Specifying return types
------------------------
+When using labels, it's often good to be able to see exactly what is in a
+runner, what order it is in and where any labels point. For this reason,
+the representation of a runner gives all this information:
 
-As seen above, by default, Mush uses the type of the returned object to
-decide the type of resource that has been returned. It can be useful
-to configure different behaviour by specifying the return type of a callable.
-There are several options for doing this, each covered below.
+>>> runner
+<Runner>
+    <function forge ...> requires() returns_result_type()
+    <function polish ...> requires(Ring) returns_result_type() <-- forged
+    <function engrave ...> requires(Ring) returns_result_type()
+    <function more_polish ...> requires(Ring) returns_result_type() <-- engraved
+    <function package at ...> requires(Ring) returns_result_type()
+</Runner>
 
-For the examples below, we'll use the fruit classes from above.
-
-Returning multiple resources
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-A callable can return a sequence of resources:
-
-.. code-block:: python
-
-  from mush import Runner, returns_sequence
-
-  def orchard():
-      return Apple(), Orange()
-
-This can be used to provide both types of fruit:
+As you can see above, when a callable is inserted at a label, the label
+moves to that callable. You may wish to keep track of the initial point that
+was labelled, so Mush supports multiple labels at each point:
 
 >>> runner = Runner()
->>> runner.append(orchard, returns=returns_sequence())
-<...>
->>> runner.append(juicer)
-<...>
->>> runner()
-I made juice out of an apple and an orange
-a refreshing fruit beverage
+>>> point = runner.append(forge)
+>>> point.add_label('before_polish')
+>>> point.add_label('after_polish')
+>>> runner
+<Runner>
+    <function forge ...> requires() returns_result_type() <-- after_polish, before_polish
+</Runner>
 
-This configuration can also be done using a decorator:
+Now, when you append to a specific label, only that label is moved:
 
-.. code-block:: python
+>>> point = runner['after_polish']
+>>> point.append(polish)
+>>> runner
+<Runner>
+    <function forge ...> requires() returns_result_type() <-- before_polish
+    <function polish ...> requires() returns_result_type() <-- after_polish
+</Runner>
 
-  from mush import Runner, returns_sequence
+Of course, you can still append to the end of the runner:
 
-  @returns_sequence()
-  def orchard():
-      return Apple(), Orange()
+>>> runner.append(package)
+<mush.modifier.Modifier...>
+>>> runner
+<Runner>
+    <function forge ...> requires() returns_result_type() <-- before_polish
+    <function polish ...> requires() returns_result_type() <-- after_polish
+    <function package ...> requires() returns_result_type()
+</Runner>
 
-This means you don't have to explicitly append:
+However, the point modifier returned by getting a label from a runner will
+keep on moving the label as more callables are appended using it:
 
->>> runner = Runner(orchard, juicer)
->>> runner()
-I made juice out of an apple and an orange
-a refreshing fruit beverage
-
-Overriding the type of a resource
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Sometimes you may need to force a returned resource to be of a
-particular type. Say we want to make juice but only have pears and oranges,
-but no apples:
-
-.. code-block:: python
-
-  class Pear: 
-      def __str__(self):
-          return 'a pear'
-
-We can tell the runner to pretend the pear is an apple:
-
->>> runner = Runner(orange_tree)
->>> runner.append(Pear, returns=Apple)
-<...>
->>> runner.append(juicer)
-<...>
->>> runner()
-I made an orange
-I made juice out of a pear and an orange
-a refreshing fruit beverage
-
-We can also use a helper that returns a mapping and tell the runner to use
-the keys of that mapping as the types for the values:
-
-.. code-block:: python
-
-  from mush import returns_mapping
-
-  @returns_mapping()
-  def desperation():
-      print('oh well, a pear will have to do')
-      return {Apple: Pear()}
-
-We can now make juice even though we don't have apples:
-
->>> runner = Runner(orange_tree, desperation, juicer)
->>> runner()
-I made an orange
-oh well, a pear will have to do
-I made juice out of a pear and an orange
-a refreshing fruit beverage
-
-If you have no control over a callable that returns an object of the 'wrong'
-type, you have two options. You can either decorate it:
-
-.. code-block:: python
-
-  from mush import returns
-
-  @returns(Apple)
-  def make_pears():
-      print('I made a pear')
-      return Pear()
-
-Now you can use the pear maker to get juice:
-
->>> runner = Runner(orange_tree, make_pears, juicer)
->>> runner()
-I made an orange
-I made a pear
-I made juice out of a pear and an orange
-a refreshing fruit beverage
-
-.. _resource-parts:
-
-Using parts of a resource
--------------------------
-
-When pieces of functionality use settings provided either by command
-line arguments or from configuration files, it's often cleaner to
-structure that code to recieve the specific setting value rather than
-the setting's container. It's certainly easier to test. Mush can take
-care of the needed wiring when configured to do so using the
-:class:`attr` and :class:`item` helpers:
-
-.. code-block:: python
-
-    from mush import Runner, attr, item, requires
-
-    class Config(dict): pass
-
-    class Args(object):
-        fruit = 'apple'
-        tree = dict(fruit='pear')
-
-    def parse_args():
-        return Args()
-
-    def read_config():
-        return Config(fruit='orange')
-
-    @requires(attr(Args, 'fruit'),
-              item(Config, 'fruit'),
-              item(attr(Args, 'tree'), 'fruit'))
-    @returns_sequence()
-    def pick(fruit1, fruit2, fruit3):
-        print('I picked {0}, {1} and {2}'.format(fruit1, fruit2, fruit3))
-        picked = []
-        for fruit in fruit1, fruit2:
-            if fruit=='apple':
-                picked.append(Apple())
-            elif fruit=='orange':
-                picked.append(Orange())
-            else:
-                raise TypeError('You have made a poor fruit choice')
-        return picked
-
-While the :func:`pick` function remains usable and testable on its
-own:
-
->>> pick('apple', 'orange', 'pear')
-I picked apple, orange and pear
-[an apple, an orange]
-
-It can also be added to a runner with the other necessary functions
-and Mush will do the hard work:
-
->>> runner = Runner(parse_args, read_config, pick, juicer)
->>> runner()
-I picked apple, orange and pear
-I made juice out of an apple and an orange
-a refreshing fruit beverage
+>>> point.append(more_polish)
+>>> runner
+<Runner>
+    <function forge ...> requires() returns_result_type() <-- before_polish
+    <function polish ...> requires() returns_result_type()
+    <function more_polish ...> requires() returns_result_type() <-- after_polish
+    <function package ...> requires() returns_result_type()
+</Runner>
 
 .. _context-managers:
 
@@ -627,3 +691,115 @@ starting transaction
 doing my thing
 I don't want to do my thing
 aborting transaction
+
+.. _testing:
+
+Testing
+-------
+
+Mush has a couple of features to help with automated testing of runners.
+For example, if you wanted to test a runner that got configuration by calling
+a remove web service:
+
+.. code-block:: python
+
+  @returns('config')
+  def load_config():
+      return json.loads(urllib2.urlopen('...').read())
+
+  @requires(item('config', 'username'), item('config', 'password'))
+  def do_stuff(username, password):
+      print('doing stuff as ' + username + ' with '+ password)
+
+  runner = Runner(load_config, do_stuff)
+
+When testing this runner, we may want to inject a hard-coded config. This can
+be done by cloning the original runner and replacing the :func:`load_config`
+callable:
+
+>>> def test_config():
+...     return dict(username='test', password='pw')
+>>> test_runner = runner.clone()
+>>> test_runner.replace(load_config, test_config)
+>>> test_runner()
+doing stuff as test with pw
+
+If you have a base runner such as this:
+
+.. code-block:: python
+
+  def load_config():
+      return json.loads(urllib2.urlopen('...').read())
+
+  def finalise_things():
+      print('all done')
+
+  base_runner = Runner()
+  point = base_runner.append(load_config, returns='config', label='config')
+  point.add_label('body')
+  base_runner.append(finalise_things, label='ending')
+
+That runner might be used for a specific script as follows:
+
+.. code-block:: python
+
+  @requires(item('config', 'username'), item('config', 'password'))
+  def do_stuff(username, password):
+      print('doing stuff as ' + username + ' with '+ password)
+
+  runner = base_runner.clone()
+  runner['body'].append(do_stuff)
+
+To test this runner, we want to use a dummy configuration and not have any
+finalisation take place. This can be achieved as follows:
+
+>>> test_runner = Runner()
+>>> test_runner.append(test_config, returns='config')
+<mush.modifier.Modifier ...>
+>>> test_runner += runner.clone(start_label='config', end_label='ending')
+>>> test_runner()
+doing stuff as test with pw
+
+Debugging
+---------
+
+Mush has a couple of features to aid debugging of runners. The first of which
+is that the representation of a runner will show everything in it, in the order
+it will be called and what each callable has been declared as requiring and
+returning along with where any labels currently point.
+
+For example, consider this runner:
+
+.. code-block:: python
+
+  from mush import Runner
+
+  @returns('config')
+  def make_config():
+      return {'foo': 'bar'}
+
+  @requires(item('config', 'foo'))
+  def connect(foo):
+      return 'connection'
+
+  def process(connection):
+      print('using ' + repr(connection))
+
+  runner = Runner()
+  point = runner.append(make_config, label='config')
+  point.append(connect)
+  runner.append(process)
+
+To see how the configuration panned out, we would look at the :func:`repr`:
+
+>>> runner
+<Runner>
+    <function make_config ...> requires() returns('config')
+    <function connect ...> requires('config'['foo']) returns_result_type() <-- config
+    <function process ...> requires() returns_result_type()
+</Runner>
+
+As you can see, there is a problem with this configuration that will be exposed
+when it is run. To help make sense of these kinds of problems, Mush will add
+more context when a :class:`TypeError` or :class:`~mush.context.ContextError`
+is raised.

@@ -42,24 +42,18 @@ scripts:
    :lines: 1-45
 
 We start with a function that adds the options needed by all our
-scripts to an :mod:`argparse` parser. This uses the :func:`requires`
+scripts to an :mod:`argparse` parser. This uses the :class:`requires`
 decorator to tell Mush that it must be called with an
 :class:`~argparse.ArgumentParser` instance. See
 :ref:`configuring-resources` for more details.
 
 Next, we have a function that calls
 :meth:`~argparse.ArgumentParser.parse_args` on the parser and returns
-the resulting :class:`~argparse.Namespace`. It uses the :func:`last`
-decorator to indicate that it should be the last callable to use the
-:class:`~argparse.ArgumentParser` instance. See :ref:`usage-periods`
-for more details.
-
-The :func:`parse_config` function uses the :func:`first` decorator to
-indicate that it needs first use of the command line arguments. It
-uses those to read the specified configuration and return the
-configuration as a dictionary. A sub-class of :class:`dict` is used so
-that other callables can easily indicate that they require the
-configuration to be passed in.
+the resulting :class:`~argparse.Namespace`.
+The :func:`parse_config` function reads configuration from a file specified
+as a command line argument and so requires the :class:`~argparse.Namespace`.
+Since the config is a :class:`dict`, we configure it as a named rather than
+typed resource. See :ref:`named-resources` for more details.
 
 Finally, there is a function that configures log handling and a
 context manager that provides a database connection and handles
@@ -76,13 +70,13 @@ convenient. As an example, the following tests use a
 context manager:
 
 .. literalinclude:: ../mush/tests/test_example_with_mush_clone.py
-   :lines: 61-99
+   :lines: 60-96
 
 Writing the specific parts of your script
 -----------------------------------------
 
 Now that all the re-usable parts of the script have been abstracted,
-writing a specific script becomes a case of just writing two
+writing a specific script becomes a case of writing just two
 functions:
 
 
@@ -108,9 +102,12 @@ With this pattern, a "base runner" is created, usually in the same
 place that other re-usable parts of the original script are located:
 
 .. literalinclude:: ../mush/tests/example_with_mush_clone.py
-   :lines: 3,46-52
+   :lines: 3,46-53
 
-The code above shows some different ways of getting Mush to pass parts
+The code above shows how to label a point, `args` in this case, enabling
+callables to be inserted at that point at a later time. See :ref:`labels`
+for full details.
+It also shows some different ways of getting Mush to pass parts
 of an object returned from a previous callable to the parameters of
 another callable. See :ref:`resource-parts` for full details.
 
@@ -119,12 +116,12 @@ script-specific parts added to the clone leaving a callable that can
 be put in the usual block at the bottom of the script:
 
 .. literalinclude:: ../mush/tests/example_with_mush_clone.py
-   :lines: 65-
+   :lines: 67-
 
 Using a factory 
 ~~~~~~~~~~~~~~~
 
-This pattern is most useful when you have several or more scripts that
+This pattern is most useful when you have lots of scripts that
 all follow a similar pattern when it comes to assembling the runner
 from the common parts and the specific parts.  For example, if all
 your scripts take a path to a config file and a path to a file that
@@ -132,16 +129,16 @@ needs processing, you can write a factory function that returns a
 runner based on the callable that does the work as follows:
 
 .. literalinclude:: ../mush/tests/example_with_mush_factory.py
-   :lines: 10-31
+   :lines: 10-33
 
 With this in place, the specific script becomes the :func:`do`
 function we abstracted above and a very short call to the factory:
 
 .. literalinclude:: ../mush/tests/example_with_mush_factory.py
-   :lines: 33
+   :lines: 35
 
 A combination of the clone and factory patterns can also be used to
-get the best of both worlds. Setting up several base runners and are
+get the best of both worlds. Setting up several base runners that are
 clones of a parent runner and having factories that take common
 callable patterns and return complete runners can be very powerful.
 
@@ -162,3 +159,6 @@ connections, while maybe doing some things differently such as not
 reading a configuration file from disk or using a
 :class:`~testfixtures.LogCapture` instead of file or stream log
 handlers.
+
+Some specific tools that Mush provides to aid automated testing are covered in
+:ref:`testing`.

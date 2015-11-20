@@ -5,3 +5,9 @@ from .declarations import (
     optional, attr, item
 )
 
+__all__ = [
+    'Runner',
+    'requires', 'optional',
+    'returns_result_type', 'returns_mapping', 'returns_sequence', 'returns',
+    'attr', 'item'
+]

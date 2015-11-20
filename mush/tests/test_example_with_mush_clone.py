@@ -61,17 +61,15 @@ class DatabaseHandlerTests(TestCase):
 
     def setUp(self):
         self.dir = TempDirectory()
+        self.addCleanup(self.dir.cleanup)
         self.db_path = self.dir.getpath('test.db')
         self.conn = sqlite3.connect(self.db_path)
         self.conn.execute('create table notes '
                           '(filename varchar, text varchar)')
         self.conn.commit()
         self.log = LogCapture()
-        
-    def tearDown(self):
-        self.log.uninstall()
-        self.dir.cleanup()
-        
+        self.addCleanup(self.log.uninstall)
+
     def test_normal(self):
         with DatabaseHandler(self.db_path) as handler:
             handler.conn.execute('insert into notes values (?, ?)',
@@ -96,4 +94,3 @@ class DatabaseHandlerTests(TestCase):
         self.assertEqual(curs.fetchall(), [])
         # check the error was logged
         self.log.check(('root', 'ERROR', 'Something went wrong'))
-    
