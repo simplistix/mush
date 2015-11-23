@@ -21,6 +21,7 @@ def main():
     handler = logging.FileHandler(config.get('main', 'log'))
     handler.setLevel(logging.DEBUG)
     log.addHandler(handler)
+    log.setLevel(logging.DEBUG)
 
     if not args.quiet:
         handler = logging.StreamHandler(sys.stderr)

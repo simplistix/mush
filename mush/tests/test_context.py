@@ -5,7 +5,6 @@ from testfixtures import ShouldRaise, compare
 
 from mush.context import Context, ContextError
 
-from .compat import PY32
 from mush.declarations import (
     nothing, result_type, requires, optional, item,
     attr, returns, returns_mapping
@@ -51,17 +50,11 @@ class TestContext(TestCase):
         context = Context()
         context.add(obj, T2)
         self.assertTrue(context[T2] is obj)
-        if PY32:
-            expected = ("<Context: {\n"
-                        "    <class 'mush.tests.test_context.TestContext."
-                        "test_explicit_type.<locals>.T2'>: "
-                        "<TheType obj>\n"
-                        "}>")
-        else:
-            expected = ("<Context: {<class 'mush.tests.test_context.T2'>:"
-                        " <TheType obj>}>")
-        compare(repr(context), expected, trailing_whitespace=False)
-        compare(str(context), expected, trailing_whitespace=False)
+        expected = ("<Context: {\n"
+                    "    " + repr(T2) + ": <TheType obj>\n"
+                    "}>")
+        compare(repr(context), expected)
+        compare(str(context), expected)
 
     def test_clash(self):
         obj1 = TheType()
