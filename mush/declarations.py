@@ -71,7 +71,7 @@ class returns_result_type(object):
 
 class returns_mapping(returns_result_type):
     """
-    Declaration that indicates a callable returns a mapping of type or named
+    Declaration that indicates a callable returns a mapping of type or name
     to resource.
     """
 
