@@ -170,8 +170,6 @@ class TestReturnsSequence(TestCase):
             return t1, t2
         r = foo.__mush_returns__
         compare(repr(r), 'returns_sequence()')
-        for result in r.process(foo()):
-            print(result)
         compare(dict(r.process(foo())),
                 {Type1: t1, Type2: t2})
 
