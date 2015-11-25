@@ -699,7 +699,7 @@ Testing
 
 Mush has a couple of features to help with automated testing of runners.
 For example, if you wanted to test a runner that got configuration by calling
-a remove web service:
+a remote web service:
 
 .. code-block:: python
 
