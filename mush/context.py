@@ -89,8 +89,9 @@ class Context(dict):
         args = []
         kw = {}
 
-        for name, type in requires:
+        for name, required in requires:
 
+            type = required
             ops = deque()
             while isinstance(type, how):
                 ops.appendleft(type.process)
@@ -106,7 +107,7 @@ class Context(dict):
             if o is nothing:
                 pass
             elif o is missing:
-                raise ContextError('No %s in context' % repr(type))
+                raise ContextError('No %s in context' % repr(required))
             elif name is None:
                 args.append(o)
             else:

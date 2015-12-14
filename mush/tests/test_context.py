@@ -117,6 +117,16 @@ class TestContext(TestCase):
         )):
             context.call(foo, requires(TheType), result_type)
 
+    def test_call_requires_item_missing(self):
+        def foo(obj):
+            return obj
+        context = Context()
+        context.add({}, TheType)
+        with ShouldRaise(ContextError(
+                "No TheType['foo'] in context"
+        )):
+            context.call(foo, requires(item(TheType, 'foo')), result_type)
+
     def test_call_requires_accidental_tuple(self):
         def foo(obj):
             return obj
