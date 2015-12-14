@@ -42,6 +42,14 @@ class TestRequires(TestCase):
             ('y', '4'),
         }, set(r))
 
+    def test_tuple_arg(self):
+        with ShouldRaise(TypeError("('1', '2') is not a type or label")):
+            requires(('1', '2'))
+
+    def test_tuple_kw(self):
+        with ShouldRaise(TypeError("('1', '2') is not a type or label")):
+            requires(foo=('1', '2'))
+
     def test_decorator_paranoid(self):
         @requires(Type1)
         def foo():
@@ -75,6 +83,10 @@ class TestItem(TestCase):
     def test_passed_missing(self):
         h = item(Type1, 'foo', 'bar')
         compare(h.process(missing), missing)
+
+    def test_bad_type(self):
+        with ShouldRaise(TypeError):
+            item([], 'foo', 'bar')
 
 
 class TestHow(TestCase):
@@ -147,6 +159,12 @@ class TestReturns(TestCase):
         compare(repr(r), 'returns(Type1)')
         compare(dict(r.process(foo())), {Type1: 'foo'})
 
+    def test_bad_type(self):
+        with ShouldRaise(TypeError(
+            '[] is not a type or label'
+        )):
+            @returns([])
+            def foo(): pass
 
 class TestReturnsMapping(TestCase):
 

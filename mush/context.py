@@ -106,7 +106,7 @@ class Context(dict):
             if o is nothing:
                 pass
             elif o is missing:
-                raise ContextError('No %r in context' % type)
+                raise ContextError('No %s in context' % repr(type))
             elif name is None:
                 args.append(o)
             else:

@@ -5,6 +5,14 @@ def name_or_repr(obj):
     return getattr(obj, '__name__', None) or repr(obj)
 
 
+def check_type(*objs):
+    for obj in objs:
+        if not isinstance(obj, (type, str, how)):
+            raise TypeError(
+                repr(obj)+" is not a type or label"
+            )
+
+
 class requires(object):
     """
     Represents requirements for a particular callable.
@@ -18,6 +26,8 @@ class requires(object):
     """
 
     def __init__(self, *args, **kw):
+        check_type(*args)
+        check_type(*kw.values())
         self.args = args
         self.kw = kw
 
@@ -106,6 +116,7 @@ class returns(returns_result_type):
     """
 
     def __init__(self, *args):
+        check_type(*args)
         self.args = args
 
     def process(self, obj):
@@ -132,6 +143,7 @@ class how(object):
     name_pattern = ''
 
     def __init__(self, type, *names):
+        check_type(type)
         self.type = type
         self.names = names
 

@@ -117,6 +117,17 @@ class TestContext(TestCase):
         )):
             context.call(foo, requires(TheType), result_type)
 
+    def test_call_requires_accidental_tuple(self):
+        def foo(obj):
+            return obj
+        context = Context()
+        with ShouldRaise(TypeError(
+                "(<class 'mush.tests.test_context.TheType'>, "
+                "<class 'mush.tests.test_context.TheType'>) "
+                "is not a type or label"
+        )):
+            context.call(foo, requires((TheType, TheType)), result_type)
+
     def test_call_requires_named_parameter(self):
         def foo(x, y):
             return x, y
