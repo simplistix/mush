@@ -1,16 +1,10 @@
+import sys
+import types
 from .markers import missing
 
 
 def name_or_repr(obj):
     return getattr(obj, '__name__', None) or repr(obj)
-
-
-def check_type(*objs):
-    for obj in objs:
-        if not isinstance(obj, (type, str, how)):
-            raise TypeError(
-                repr(obj)+" is not a type or label"
-            )
 
 
 class requires(object):
@@ -212,6 +206,20 @@ class item(how):
             return missing
         else:
             return o
+
+
+if sys.version_info[0] == 2:
+    ok_types = (type, types.ClassType, str, how)
+else:
+    ok_types = (type, str, how)
+
+
+def check_type(*objs):
+    for obj in objs:
+        if not isinstance(obj, ok_types):
+            raise TypeError(
+                repr(obj)+" is not a type or label"
+            )
 
 
 #: A singleton :class:`requires` indicating that a callable
