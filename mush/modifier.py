@@ -1,3 +1,7 @@
+"""
+.. currentmodule:: mush
+"""
+
 from .callpoints import CallPoint
 from .markers import not_specified
 
