@@ -3,6 +3,23 @@ Changes
 
 .. currentmodule:: mush
 
+2.1 (14 December 2015)
+----------------------
+
+- Typo fixes in documentation.
+
+- Indicate that Python 2.6 is no longer supported.
+
+- Raise exceptions when arguments to :func:`requires` and :func:`returns` are
+  not either types or labels.
+
+- Allow tuples are lists to be passed to :meth:`~Modifier.add`, they will
+  automatically be turned into a :func:`requires` or :func:`returns`.
+
+- Better error messages when a requirement is not found in the :class:`Context`.
+
+Thanks to Dani Fortunov for the documentation review.
+
 2.0 (11 December 2015)
 ----------------------
 
