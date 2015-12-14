@@ -17,14 +17,18 @@ class CallPoint(object):
         if requires is None:
             self.requires = getattr(obj, '__mush_requires__', nothing)
         else:
-            if not isinstance(requires, RequiresType):
+            if isinstance(requires, (list, tuple)):
+                requires = RequiresType(*requires)
+            elif not isinstance(requires, RequiresType):
                 requires = RequiresType(requires)
             self.requires = requires
 
         if returns is None:
             self.returns = getattr(obj, '__mush_returns__', result_type)
         else:
-            if not isinstance(returns, ReturnsType):
+            if isinstance(returns, (list, tuple)):
+                returns = Returns(*returns)
+            elif not isinstance(returns, ReturnsType):
                 returns = Returns(returns)
             self.returns = returns
         self.labels = set()

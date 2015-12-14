@@ -73,4 +73,23 @@ class TestCallPoints(TestCase):
         compare(repr(foo)+" requires('foo') returns('bar')",
                 repr(point))
 
+    def test_convert_to_requires_and_returns_tuple(self):
+        def foo(): pass
+        point = CallPoint(foo,
+                          requires=('foo', 'bar'),
+                          returns=('baz', 'bob'))
+        self.assertTrue(isinstance(point.requires, requires))
+        self.assertTrue(isinstance(point.returns, returns))
+        compare(repr(foo)+" requires('foo', 'bar') returns('baz', 'bob')",
+                repr(point))
+
+    def test_convert_to_requires_and_returns_list(self):
+        def foo(): pass
+        point = CallPoint(foo,
+                          requires=['foo', 'bar'],
+                          returns=['baz', 'bob'])
+        self.assertTrue(isinstance(point.requires, requires))
+        self.assertTrue(isinstance(point.returns, returns))
+        compare(repr(foo)+" requires('foo', 'bar') returns('baz', 'bob')",
+                repr(point))
 
