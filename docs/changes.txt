@@ -13,10 +13,11 @@ Changes
 - Raise exceptions when arguments to :func:`requires` and :func:`returns` are
   not either types or labels.
 
-- Allow tuples are lists to be passed to :meth:`~Modifier.add`, they will
-  automatically be turned into a :func:`requires` or :func:`returns`.
+- Allow tuples are lists to be passed to :meth:`~modifier.Modifier.add`,
+  they will automatically be turned into a :func:`requires` or :func:`returns`.
 
-- Better error messages when a requirement is not found in the :class:`Context`.
+- Better error messages when a requirement is not found in the
+  :class:`~context.Context`.
 
 Thanks to Dani Fortunov for the documentation review.
 
