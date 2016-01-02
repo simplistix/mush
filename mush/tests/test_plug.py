@@ -3,8 +3,7 @@ from unittest import TestCase
 from mock import Mock, call
 from testfixtures import compare, ShouldRaise
 
-from mush import Runner, returns, requires
-from mush.plug import Plug
+from mush import Plug, Runner, returns, requires
 from mush.tests.test_runner import verify
 
 

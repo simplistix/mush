@@ -3,6 +3,11 @@ Changes
 
 .. currentmodule:: mush
 
+2.2 (2 January 2016)
+--------------------
+
+- Add :class:`Plug` base class.
+
 2.1 (14 December 2015)
 ----------------------
 

@@ -1,4 +1,4 @@
-# Copyright (c) 2013 Simplistix Ltd, 2015 Chris Withers
+# Copyright (c) 2013 Simplistix Ltd, 2015-2016 Chris Withers
 # See license.txt for license details.
 
 import os
@@ -8,12 +8,14 @@ base_dir = os.path.dirname(__file__)
 
 setup(
     name='mush',
-    version='2.1',
+    version='2.2',
     author='Chris Withers',
     author_email='chris@simplistix.co.uk',
     license='MIT',
     description="Type-based dependency injection for scripts.",
-    long_description=open(os.path.join(base_dir,'docs','description.txt')).read(),
+    long_description=open(
+            os.path.join(base_dir, 'docs', 'description.txt')
+    ).read(),
     url='http://pypi.python.org/pypi/mush',
     classifiers=[
         'Development Status :: 5 - Production/Stable',
