@@ -14,32 +14,33 @@ from mush.declarations import (
 from .compat import PY2
 
 
+def verify(runner, *expected):
+    seen_labels = set()
+
+    actual = []
+    point = runner.start
+    while point:
+        actual.append((point.obj, point.labels))
+        for label in point.labels:
+            if label in seen_labels: # pragma: no cover
+                raise AssertionError('%s occurs more than once' % label)
+            seen_labels.add(label)
+            compare(runner.labels[label], point)
+        point = point.next
+
+    compare(expected, actual)
+
+    actual_reverse = []
+    point = runner.end
+    while point:
+        actual_reverse.append((point.obj, point.labels))
+        point = point.previous
+
+    compare(actual, reversed(actual_reverse))
+    compare(seen_labels, runner.labels.keys())
+
+
 class RunnerTests(TestCase):
-
-    def verify(self, runner, *expected):
-        seen_labels = set()
-
-        actual = []
-        point = runner.start
-        while point:
-            actual.append((point.obj, point.labels))
-            for label in point.labels:
-                if label in seen_labels: # pragma: no cover
-                    raise AssertionError('%s occurs more than once' % label)
-                seen_labels.add(label)
-                compare(runner.labels[label], point)
-            point = point.next
-
-        compare(expected, actual)
-
-        actual_reverse = []
-        point = runner.end
-        while point:
-            actual_reverse.append((point.obj, point.labels))
-            point = point.previous
-
-        compare(actual, reversed(actual_reverse))
-        compare(seen_labels, runner.labels.keys())
 
     def test_simple(self):
         m = Mock()
@@ -58,7 +59,7 @@ class RunnerTests(TestCase):
                 call.job()
                 ], m.mock_calls)
 
-        self.verify(runner, (job, set()))
+        verify(runner, (job, set()))
 
     def test_constructor(self):
         m = Mock()
@@ -78,7 +79,7 @@ class RunnerTests(TestCase):
                 call.job2(),
                 ], m.mock_calls)
 
-        self.verify(runner,
+        verify(runner,
                     (job1, set()),
                     (job2, set()))
 
@@ -110,7 +111,7 @@ class RunnerTests(TestCase):
         compare({'1'}, point1.labels)
         compare({'2'}, point2.labels)
 
-        self.verify(runner,
+        verify(runner,
                     (job1, {'1'}),
                     (job2, {'2'}))
 
@@ -123,7 +124,7 @@ class RunnerTests(TestCase):
         runner.add(job1, label='the label')
         runner['the label'].add(job2)
 
-        self.verify(runner,
+        verify(runner,
                     (job1, set()),
                     (job2, {'the label'}))
 
@@ -136,7 +137,7 @@ class RunnerTests(TestCase):
         runner.add(job1, label='the label')
         runner.add(job2)
 
-        self.verify(runner,
+        verify(runner,
                     (job1, {'the label'}),
                     (job2, set()))
 
@@ -150,12 +151,12 @@ class RunnerTests(TestCase):
         mod.add_label('1')
         mod.add_label('2')
 
-        self.verify(runner,
+        verify(runner,
                     (job1, {'1', '2'}))
 
         runner['2'].add(job2)
 
-        self.verify(runner,
+        verify(runner,
                     (job1, {'1'}),
                     (job2, {'2'}))
 
@@ -170,7 +171,7 @@ class RunnerTests(TestCase):
 
         runner['1'].add(job2, label='2')
 
-        self.verify(runner,
+        verify(runner,
                     (job1, {'1'}),
                     (job2, {'2'}))
 
@@ -720,7 +721,7 @@ class RunnerTests(TestCase):
         # now run both, and make sure we only get what we should
 
         runner1()
-        self.verify(runner1,
+        verify(runner1,
                     (f1, {'first'}),
                     (n1, {'normal'}),
                     (l1, {'last'}),
@@ -738,7 +739,7 @@ class RunnerTests(TestCase):
         m.reset_mock()
 
         runner2()
-        self.verify(runner2,
+        verify(runner2,
                     (f1, set()),
                     (f2, {'first'}),
                     (n1, set()),
@@ -769,7 +770,7 @@ class RunnerTests(TestCase):
         runner1.add(m.f3, label='third')
 
         runner2 = runner1.clone(end_label='third')
-        self.verify(runner2,
+        verify(runner2,
                     (m.f1, {'first'}),
                     (m.f2, {'second'}),
                     )
@@ -782,7 +783,7 @@ class RunnerTests(TestCase):
         runner1.add(m.f3, label='third')
 
         runner2 = runner1.clone(end_label='second', include_end=True)
-        self.verify(runner2,
+        verify(runner2,
                     (m.f1, {'first'}),
                     (m.f2, {'second'}),
                     )
@@ -795,7 +796,7 @@ class RunnerTests(TestCase):
         runner1.add(m.f3, label='third')
 
         runner2 = runner1.clone(start_label='first')
-        self.verify(runner2,
+        verify(runner2,
                     (m.f2, {'second'}),
                     (m.f3, {'third'}),
                     )
@@ -808,7 +809,7 @@ class RunnerTests(TestCase):
         runner1.add(m.f3, label='third')
 
         runner2 = runner1.clone(start_label='second', include_start=True)
-        self.verify(runner2,
+        verify(runner2,
                     (m.f2, {'second'}),
                     (m.f3, {'third'}),
                     )
@@ -822,7 +823,7 @@ class RunnerTests(TestCase):
         runner1.add(m.f4, label='fourth')
 
         runner2 = runner1.clone(start_label='first', end_label='fourth')
-        self.verify(runner2,
+        verify(runner2,
                     (m.f2, {'second'}),
                     (m.f3, {'third'}),
                     )
@@ -835,7 +836,7 @@ class RunnerTests(TestCase):
         runner1.add(m.f3, label='third')
 
         runner2 = runner1.clone(start_label='first', end_label='third')
-        self.verify(runner2,
+        verify(runner2,
                     (m.f2, {'second'}),
                     )
 
@@ -846,7 +847,7 @@ class RunnerTests(TestCase):
         runner1.add(m.f2, label='second')
 
         runner2 = runner1.clone(start_label='first', end_label='second')
-        self.verify(runner2)
+        verify(runner2)
 
     def test_extend(self):
         m = Mock()
@@ -896,7 +897,7 @@ class RunnerTests(TestCase):
         runner = runner1 + runner2
         runner()
 
-        self.verify(runner,
+        verify(runner,
                     (job1, set()),
                     (job2, set()),
                     (job3, set()),
@@ -936,7 +937,7 @@ class RunnerTests(TestCase):
         runner.extend(runner2, runner3)
         runner()
 
-        self.verify(runner,
+        verify(runner,
                     (job1, set()),
                     (job2, set()),
                     (job3, set()),
@@ -984,13 +985,13 @@ class RunnerTests(TestCase):
         m = Mock()
         runner = Runner(m.job1)
         compare(runner.end.obj, m.job1)
-        self.verify(runner,
+        verify(runner,
                     (m.job1, set()),
                     )
 
         mod = runner.add(m.job2, label='foo')
         compare(runner.end.obj, m.job2)
-        self.verify(runner,
+        verify(runner,
                     (m.job1, set()),
                     (m.job2, {'foo'}),
                     )
@@ -998,7 +999,7 @@ class RunnerTests(TestCase):
         mod.add(m.job3)
         compare(runner.end.obj, m.job3)
         compare(runner.end.labels, {'foo'})
-        self.verify(runner,
+        verify(runner,
                     (m.job1, set()),
                     (m.job2, set()),
                     (m.job3, {'foo'}),
@@ -1007,7 +1008,7 @@ class RunnerTests(TestCase):
         runner.add(m.job4)
         compare(runner.end.obj, m.job4)
         compare(runner.end.labels, set())
-        self.verify(runner,
+        verify(runner,
                     (m.job1, set()),
                     (m.job2, set()),
                     (m.job3, {'foo'}),
@@ -1024,7 +1025,7 @@ class RunnerTests(TestCase):
             "returns_result_type() <-- label"
         )):
             runner.add(m.job3, label='label')
-        self.verify(runner,
+        verify(runner,
                     (m.job1, {'label'}),
                     (m.job2, set()),
                     )
@@ -1038,7 +1039,7 @@ class RunnerTests(TestCase):
             "returns_result_type() <-- label"
         )):
             runner.add(m.job2, label='label')
-        self.verify(runner,
+        verify(runner,
                     (m.job1, {'label'}),
                     )
 
@@ -1053,7 +1054,7 @@ class RunnerTests(TestCase):
             "returns_result_type() <-- label1"
         )):
             mod.add(m.job3, label='label1')
-        self.verify(runner,
+        verify(runner,
                     (m.job1, {'label1'}),
                     (m.job2, {'label2'}),
                     )
