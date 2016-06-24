@@ -3,6 +3,13 @@ Changes
 
 .. currentmodule:: mush
 
+2.3 (24 June 2016)
+------------------
+
+- Stop catching :class:`TypeError` and turning it into a
+  :class:`~context.ContextError` when calling a :class:`Runner`. This turns out
+  to be massively unhelpful, especially when using Python 2.
+
 2.2 (2 January 2016)
 --------------------
 
