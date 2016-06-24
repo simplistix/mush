@@ -182,7 +182,7 @@ class Runner(object):
 
             try:
                 result = point(context)
-            except (ContextError, TypeError) as e:
+            except ContextError as e:
                 raise ContextError(str(e), point, context)
 
             if getattr(result, '__enter__', None):

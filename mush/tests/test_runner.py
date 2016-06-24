@@ -448,7 +448,7 @@ class RunnerTests(TestCase):
         def job(arg):
             pass # pragma: nocover
         runner = Runner(job)
-        with ShouldRaise(ContextError) as s:
+        with ShouldRaise(TypeError) as s:
             runner()
 
         if PY2:
@@ -456,14 +456,7 @@ class RunnerTests(TestCase):
         else:
             message = "job() missing 1 required positional argument: 'arg'"
 
-        text = '\n'.join((
-            'While calling: '+repr(job)+' requires() returns_result_type()',
-            'with <Context: {}>:',
-            '',
-            message,
-        ))
-        compare(text, repr(s.raised))
-        compare(text, str(s.raised))
+        compare(message, actual=str(s.raised))
 
     def test_already_in_context(self):
         class T(object): pass
