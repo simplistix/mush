@@ -570,7 +570,7 @@ insert another callable at the appropriate point:
 
   runner['engraved'].add(more_polish, requires=Ring)
 
-Mush wish do the right thing when this runner is called:
+Mush will do the right thing when this runner is called:
 
 >>> runner()
 polishing a ring

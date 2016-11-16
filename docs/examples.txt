@@ -148,7 +148,7 @@ Testing
 The examples above have shown how using Mush can make it easier to
 have smaller components that are easier to re-use and test, however
 care should still be taken with testing. In particular, it's a good
-idea to have some intergration tests that excercise the whole runner
+idea to have some integration tests that exercise the whole runner
 checking that it behaves as expected when all command line options are
 specified and when just the defaults are used.
 
