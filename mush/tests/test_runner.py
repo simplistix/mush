@@ -28,7 +28,7 @@ def verify(runner, *expected):
             compare(runner.labels[label], point)
         point = point.next
 
-    compare(expected, actual)
+    compare(expected=expected, actual=actual)
 
     actual_reverse = []
     point = runner.end
@@ -841,6 +841,22 @@ class RunnerTests(TestCase):
 
         runner2 = runner1.clone(start_label='first', end_label='second')
         verify(runner2)
+
+    def test_clone_added_using(self):
+        runner1 = Runner()
+        m = Mock()
+        runner1.add(m.f1)
+        runner1.add(m.f2, label='the_label')
+        runner1.add(m.f3)
+
+        runner1['the_label'].add(m.f6)
+        runner1['the_label'].add(m.f7)
+
+        runner2 = runner1.clone(added_using='the_label')
+        verify(runner2,
+               (m.f6, set()),
+               (m.f7, {'the_label'}),
+               )
 
     def test_extend(self):
         m = Mock()

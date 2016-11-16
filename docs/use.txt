@@ -728,14 +728,25 @@ If you have a base runner such as this:
 
 .. code-block:: python
 
+  from argparse import ArgumentParser, Namespace
+
+  def base_args(parser):
+      parser.add_argument('config_url')
+
+  def parse_args(parser):
+      return parser.parse_args()
+
   def load_config():
       return json.loads(urllib2.urlopen('...').read())
 
   def finalise_things():
       print('all done')
 
-  base_runner = Runner()
-  point = base_runner.add(load_config, returns='config', label='config')
+  base_runner = Runner(ArgumentParser)
+  base_runner.add(base_args, requires=ArgumentParser, label='args')
+  base_runner.add(parse_args, requires=ArgumentParser)
+  point = base_runner.add(load_config, requires=attr(Namespace, 'config_url'),
+                          returns='config')
   point.add_label('body')
   base_runner.add(finalise_things, label='ending')
 
@@ -743,22 +754,39 @@ That runner might be used for a specific script as follows:
 
 .. code-block:: python
 
-  @requires(item('config', 'username'), item('config', 'password'))
-  def do_stuff(username, password):
-      print('doing stuff as ' + username + ' with '+ password)
+  @requires(ArgumentParser)
+  def job_args(parser):
+      parser.add_argument('--colour')
+
+  @requires(item('config', 'username'), attr(Namespace, 'colour'))
+  def do_stuff(username, colour):
+      print(username + ' is '+ colour)
 
   runner = base_runner.clone()
+  runner['args'].add(job_args)
   runner['body'].add(do_stuff)
 
-To test this runner, we want to use a dummy configuration and not have any
-finalisation take place. This can be achieved as follows:
+To test this runner, we want to use a dummy configuration and command line
+and not have any finalisation take place. This can be achieved with a helper
+function such as the following:
 
->>> test_runner = Runner()
->>> test_runner.add(test_config, returns='config')
-<mush.modifier.Modifier ...>
->>> test_runner += runner.clone(start_label='config', end_label='ending')
->>> test_runner()
-doing stuff as test with pw
+.. code-block:: python
+
+  def run_with(source_runner, config, argv):
+      runner = Runner(ArgumentParser)
+      runner.extend(source_runner.clone(added_using='args'))
+      runner.add(lambda parser: parser.parse_args(argv),
+                 requires=ArgumentParser)
+      runner.add(lambda: config, returns='config')
+      runner.extend(source_runner.clone(added_using='body'))
+      runner()
+
+The helper can then be used as follows:
+
+>>> run_with(runner,
+...          config=dict(username='test', password='pw'),
+...          argv=['--colour', 'red'])
+test is red
 
 Debugging
 ---------

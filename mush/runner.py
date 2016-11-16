@@ -41,26 +41,27 @@ class Runner(object):
         m.add(obj, requires, returns, label)
         return m
 
-    def _copy_from(self, start_point, end_point):
+    def _copy_from(self, start_point, end_point, added_using=None):
         previous_cloned_point = self.end
         point = start_point
 
         while point:
-            cloned_point = CallPoint(point.obj, point.requires, point.returns)
-            cloned_point.labels = set(point.labels)
-            for label in cloned_point.labels:
-                self.labels[label] = cloned_point
+            if added_using is None or added_using in point.added_using:
+                cloned_point = CallPoint(point.obj, point.requires, point.returns)
+                cloned_point.labels = set(point.labels)
+                for label in cloned_point.labels:
+                    self.labels[label] = cloned_point
 
-            if self.start is None:
-                self.start = cloned_point
+                if self.start is None:
+                    self.start = cloned_point
 
-            if previous_cloned_point:
-                previous_cloned_point.next = cloned_point
-            cloned_point.previous = previous_cloned_point
+                if previous_cloned_point:
+                    previous_cloned_point.next = cloned_point
+                cloned_point.previous = previous_cloned_point
+
+                previous_cloned_point = cloned_point
 
             point = point.next
-            previous_cloned_point = cloned_point
-
             if point and point.previous is end_point:
                 break
 
@@ -81,7 +82,8 @@ class Runner(object):
 
     def clone(self,
               start_label=None, end_label=None,
-              include_start=False, include_end=False):
+              include_start=False, include_end=False,
+              added_using=None):
         """
         Return a copy of this :class:`Runner`.
 
@@ -122,7 +124,7 @@ class Runner(object):
                 return runner
             point = point.previous
 
-        runner._copy_from(start, end)
+        runner._copy_from(start, end, added_using)
         return runner
 
     def replace(self, original, replacement):

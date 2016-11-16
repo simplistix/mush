@@ -66,6 +66,7 @@ class Modifier(object):
             if not label:
                 for label in self.labels:
                     self.add_label(label, callpoint)
+                    callpoint.added_using.add(label)
         else:
             self.runner.start = callpoint
 

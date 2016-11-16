@@ -31,7 +31,9 @@ class CallPoint(object):
             elif not isinstance(returns, ReturnsType):
                 returns = Returns(returns)
             self.returns = returns
+
         self.labels = set()
+        self.added_using = set()
 
     def __call__(self, context):
         return context.call(self.obj, self.requires, self.returns)
