@@ -3,6 +3,20 @@ Changes
 
 .. currentmodule:: mush
 
+2.4.0 (17 November 2016)
+------------------------
+
+- Add support for cloning depending on what label was used to add callables.
+
+- Add :meth:`Runner.add_label` helper to just add a label at the end of the
+  runner.
+
+- Document and flesh out :ref:`plugs`.
+
+- Switch to full `Semantic Versioning`__.
+
+  __ http://semver.org/
+
 2.3 (24 June 2016)
 ------------------
 

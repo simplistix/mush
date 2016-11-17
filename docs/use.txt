@@ -639,7 +639,7 @@ keep on moving the label as more callables are added using it:
     <function package ...> requires() returns_result_type()
 </Runner>
 
-.. _context-managers:
+.. _plugs:
 
 Plugs
 -----
@@ -799,6 +799,8 @@ washing an apple
 juicing an apple
 service please!
 ...and relax
+
+.. _context-managers:
 
 Context manager resources
 -------------------------
