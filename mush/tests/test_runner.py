@@ -175,6 +175,29 @@ class RunnerTests(TestCase):
                     (job1, {'1'}),
                     (job2, {'2'}))
 
+    def test_runner_add_label(self):
+        m = Mock()
+
+        runner = Runner()
+        runner.add(m.job1)
+        runner.add_label('label')
+        runner.add(m.job3)
+
+        runner['label'].add(m.job2)
+
+        verify(
+            runner,
+            (m.job1, set()),
+            (m.job2, {'label'}),
+            (m.job3, set())
+        )
+
+        cloned = runner.clone(added_using='label')
+        verify(
+            cloned,
+            (m.job2, {'label'}),
+        )
+
     def test_declarative(self):
         m = Mock()
         class T1(object): pass

@@ -532,8 +532,10 @@ These might be added to a runner as follows:
   from mush import Runner
 
   runner = Runner()
-  runner.add(forge, label='forged')
-  runner.add(engrave, label='engraved', requires=Ring)
+  runner.add(forge)
+  runner.add_label('forged')
+  runner.add(engrave, requires=Ring)
+  runner.add_label('engraved')
 
 Now, suppose we want to polish the ring before it's engraved and then
 package it up when we're done:

@@ -41,6 +41,14 @@ class Runner(object):
         m.add(obj, requires, returns, label)
         return m
 
+    def add_label(self, label):
+        """
+        Add a label to the the point currently at the end of the runner.
+        """
+        m = Modifier(self, self.end, not_specified)
+        m.add_label(label)
+        return m
+
     def _copy_from(self, start_point, end_point, added_using=None):
         previous_cloned_point = self.end
         point = start_point
