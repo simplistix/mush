@@ -23,7 +23,7 @@ current_year = datetime.datetime.now().year
 copyright = (str(current_year) if current_year==first_year else ('%s-%s'%(first_year,current_year)))+' Chris Withers'
 version = release = pkg_info.version
 exclude_trees = ['_build']
-unused_docs = ['description']
+exclude_patterns = ['description.txt']
 pygments_style = 'sphinx'
 
 # Options for HTML output
