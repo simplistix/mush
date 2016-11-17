@@ -4,6 +4,7 @@ from mock import Mock, call
 from testfixtures import compare, ShouldRaise
 
 from mush import Plug, Runner, returns, requires
+from mush.plug import insert, ignore, append
 from mush.tests.test_runner import verify
 
 
@@ -91,4 +92,120 @@ class TestPlug(TestCase):
                (job1, set()),
                (plug.point, {'point'}),
                (job3, set()),
+               )
+
+    def test_explict(self):
+        m = Mock()
+
+        runner = Runner()
+        runner.add(m.job1, label='one')
+
+        class MyPlug(Plug):
+
+            explicit = True
+
+            def helper(self):
+                m.plug_one()
+
+            @insert()
+            def one(self):
+                self.helper()
+
+        plug = MyPlug()
+        plug.add_to(runner)
+
+        runner()
+
+        compare([
+            call.job1(),
+            call.plug_one()
+        ], actual=m.mock_calls)
+
+        verify(runner,
+               (m.job1, set()),
+               (plug.one, {'one'}),
+               )
+
+    def test_ignore(self):
+        m = Mock()
+
+        runner = Runner()
+        runner.add(m.job1, label='one')
+
+        class MyPlug(Plug):
+
+            @ignore()
+            def helper(self):
+                m.plug_bad()
+
+            def one(self):
+                m.plug_good()
+
+        plug = MyPlug()
+        plug.add_to(runner)
+
+        runner()
+
+        compare([
+            call.job1(),
+            call.plug_good()
+        ], actual=m.mock_calls)
+
+        verify(runner,
+               (m.job1, set()),
+               (plug.one, {'one'}),
+               )
+
+    def test_remap_name(self):
+        m = Mock()
+
+        runner = Runner()
+        runner.add(m.job1, label='one')
+
+        class MyPlug(Plug):
+
+            @insert(label='one')
+            def run_plug(self):
+                m.plug_one()
+
+        plug = MyPlug()
+        plug.add_to(runner)
+
+        runner()
+
+        compare([
+            call.job1(),
+            call.plug_one()
+        ], m.mock_calls)
+
+        verify(runner,
+               (m.job1, set()),
+               (plug.run_plug, {'one'}),
+               )
+
+    def test_append(self):
+        m = Mock()
+
+        runner = Runner()
+        runner.add(m.job1, label='one')
+
+        class MyPlug(Plug):
+
+            @append()
+            def run_plug(self):
+                m.do_it()
+
+        plug = MyPlug()
+        plug.add_to(runner)
+
+        runner()
+
+        compare([
+            call.job1(),
+            call.do_it()
+        ], actual=m.mock_calls)
+
+        verify(runner,
+               (m.job1, {'one'}),
+               (plug.run_plug, set()),
                )

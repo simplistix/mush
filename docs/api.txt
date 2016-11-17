@@ -13,3 +13,6 @@ API Reference
 
 .. automodule:: mush.declarations
   :members: how, nothing, result_type
+
+.. automodule:: mush.plug
+  :members: insert, ignore, append, Plug

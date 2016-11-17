@@ -641,6 +641,165 @@ keep on moving the label as more callables are added using it:
 
 .. _context-managers:
 
+Plugs
+-----
+
+You may run into situations where you wish to group callables together and
+add them in one go. Indeed, it might only make sense to add all callables in
+a group and would cause problems to add them individually.
+
+For example, suppose we have this runner:
+
+.. code-block:: python
+
+  def prepare():
+      print('cleaning kitchen table')
+
+  def wash(produce):
+      print('washing '+str(produce))
+
+  def finished():
+      print('service please!')
+
+  kitchen_runner = Runner()
+  kitchen_runner.add(prepare)
+  kitchen_runner.add_label('what')
+  kitchen_runner.add(wash, requires='produce')
+  kitchen_runner.add_label('how')
+  kitchen_runner.add(finished)
+
+For any use of the kitchen, we need to specify both what to use and how we want
+to use it once it's washed. This can neatly be done as follows:
+
+.. code-block:: python
+
+  from mush import Plug
+
+  class JuicePlug(Plug):
+
+      @returns('produce')
+      def what(self):
+          return Apple()
+
+      @requires('produce')
+      def how(self, produce):
+          print('juicing '+str(produce))
+
+  runner = kitchen_runner.clone()
+  JuicePlug().add_to(runner)
+
+The runner behaves as we require:
+
+>>> runner()
+cleaning kitchen table
+washing an apple
+juicing an apple
+service please!
+
+It may be that we want our plug to have helper methods, in which case they can
+either be named with a leading underscore, or the plug can be set up to only
+add explicitly marked methods, for example:
+
+.. code-block:: python
+
+  from mush.plug import Plug, insert
+
+  class JuicePlug(Plug):
+
+      explicit = True
+
+      def juice(self, produce):
+          print('juicing '+str(produce))
+
+      @insert()
+      @returns('produce')
+      def what(self):
+          return Apple()
+
+      @insert()
+      @requires('produce')
+      def how(self, produce):
+          self.juice(produce)
+
+  runner = kitchen_runner.clone()
+  JuicePlug().add_to(runner)
+
+The runner behaves as before:
+
+>>> runner()
+cleaning kitchen table
+washing an apple
+juicing an apple
+service please!
+
+As you can see, this might make for a lot of decorating if you only have one
+helper method. If that's the case, you can just tell the plug to ignore the
+helper:
+
+.. code-block:: python
+
+  from mush.plug import Plug, ignore
+
+  class JuicePlug(Plug):
+
+      @ignore()
+      def juice(self, produce):
+          print('juicing '+str(produce))
+
+      @returns('produce')
+      def what(self):
+          return Apple()
+
+      @requires('produce')
+      def how(self, produce):
+          self.juice(produce)
+
+  runner = kitchen_runner.clone()
+  JuicePlug().add_to(runner)
+
+The runner still behaves as before:
+
+>>> runner()
+cleaning kitchen table
+washing an apple
+juicing an apple
+service please!
+
+It may be that it makes sense to give your method a name different to
+the label you wish to add it at. You may also wish to have a plug add a method
+to the end of the runner where there is no label. Both of these are supported:
+
+.. code-block:: python
+
+  from mush.plug import Plug, insert, append
+
+  class JuicePlug(Plug):
+
+      @insert(label='what')
+      @returns('produce')
+      def pick_fruit(self):
+          return Apple()
+
+      @requires('produce')
+      def how(self, produce):
+          print('juicing '+str(produce))
+
+      @append()
+      def relax(self):
+          print('...and relax')
+
+  runner = kitchen_runner.clone()
+  JuicePlug().add_to(runner)
+
+The runner now behaves as required:
+
+>>> runner()
+cleaning kitchen table
+washing an apple
+juicing an apple
+service please!
+...and relax
+
 Context manager resources
 -------------------------
 
