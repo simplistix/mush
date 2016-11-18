@@ -1,9 +1,9 @@
 |Travis|_ |Coveralls|_ |Docs|_
 
-.. |Travis| image:: https://api.travis-ci.org/Simplistix/mush.png?branch=master
+.. |Travis| image:: https://api.travis-ci.org/Simplistix/mush.svg?branch=master
 .. _Travis: https://travis-ci.org/Simplistix/mush
 
-.. |Coveralls| image:: https://coveralls.io/repos/Simplistix/mush/badge.png?branch=master
+.. |Coveralls| image:: https://coveralls.io/repos/Simplistix/mush/badge.svg?branch=master
 .. _Coveralls: https://coveralls.io/r/Simplistix/mush?branch=master
 
 .. |Docs| image:: https://readthedocs.org/projects/mush/badge/?version=latest
