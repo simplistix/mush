@@ -19,11 +19,12 @@ scripts.
 This is done by combining several callables into a re-usable
 runner. Those callables may produce or require resource objects which
 mush passes between them based on the type of the object. The
-callables are called roughly in the order they are added to the
-runner, but adjusted for the resources required or procuced by it.
+callables are called in the order they are added to the
+runner, while labels may be used to insert callables at specific points 
+in the runner.
 
 Licensing
 =========
 
-Copyright (c) 2013 Simplistix Ltd, 2015 Chris Withers
+Copyright (c) 2013 Simplistix Ltd, 2015-2016 Chris Withers.
 See docs/license.txt for details.
