@@ -111,8 +111,8 @@ class Runner(object):
 
         :param added_using:
             An optional string specifying that only points added using the
-            specified label should be added. This filtering is appied in
-            addition to the above options.
+            label specified in this option should be cloned.
+            This filtering is applied in addition to the above options.
         """
         runner = Runner()
 
