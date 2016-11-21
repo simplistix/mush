@@ -108,6 +108,11 @@ class Runner(object):
         :param include_end:
             If ``True``, the point specified in ``end_label`` will be included
             in the cloned runner.
+
+        :param added_using:
+            An optional string specifying that only points added using the
+            specified label should be added. This filtering is appied in
+            addition to the above options.
         """
         runner = Runner()
 

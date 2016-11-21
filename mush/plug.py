@@ -39,6 +39,8 @@ class Plug(object):
     Base class for a 'plug' that can add to several points in a runner.
     """
 
+    #: Control whether methods need to be decorated with :class:`insert`
+    #: in order to be added by this :class:`~mush.Plug`.
     explicit = False
 
     @ignore()
@@ -53,8 +55,6 @@ class Plug(object):
         :class:`~mush.plug.insert` will be added.
         """
 
-        #: Control whether methods need to be decorated with :class:`insert`
-        #: in order to be added by this :class:`~mush.Plug`.
         if self.explicit:
             default_action = ignore()
         else:
