@@ -2,6 +2,7 @@ from .callpoints import CallPoint
 from .context import Context, ContextError
 from .markers import not_specified
 from .modifier import Modifier
+from .plug import Plug
 
 
 class Runner(object):
@@ -37,9 +38,12 @@ class Runner(object):
                       point where `obj` is added that can later be retrieved
                       with :meth:`Runner.__getitem__`.
         """
-        m = Modifier(self, self.end, not_specified)
-        m.add(obj, requires, returns, label)
-        return m
+        if isinstance(obj, Plug):
+            obj.add_to(self)
+        else:
+            m = Modifier(self, self.end, not_specified)
+            m.add(obj, requires, returns, label)
+            return m
 
     def add_label(self, label):
         """

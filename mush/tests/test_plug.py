@@ -209,3 +209,28 @@ class TestPlug(TestCase):
                (m.job1, {'one'}),
                (plug.run_plug, set()),
                )
+
+    def test_add_plug(self):
+        m = Mock()
+
+        runner = Runner()
+        runner.add(m.job1, label='one')
+
+        class MyPlug(Plug):
+            def one(self):
+                m.plug_one()
+
+        plug = MyPlug()
+        runner.add(plug)
+
+        runner()
+
+        compare([
+            call.job1(), call.plug_one()
+        ], m.mock_calls)
+
+        verify(runner,
+               (m.job1, set()),
+               (plug.one, {'one'}),
+               )
+
