@@ -3,6 +3,13 @@ Changes
 
 .. currentmodule:: mush
 
+2.6.0 (6 February 2016)
+-----------------------
+
+- Allow replacement of a callable to also supply new requirements.
+
+- Officially support Python 3.6.
+
 2.5.0 (23 November 2016)
 ------------------------
 

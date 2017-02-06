@@ -1,4 +1,4 @@
-# Copyright (c) 2013 Simplistix Ltd, 2015-2016 Chris Withers
+# Copyright (c) 2013 Simplistix Ltd, 2015-2017 Chris Withers
 # See license.txt for license details.
 
 import os
@@ -8,7 +8,7 @@ base_dir = os.path.dirname(__file__)
 
 setup(
     name='mush',
-    version='2.5.0',
+    version='2.6.0',
     author='Chris Withers',
     author_email='chris@simplistix.co.uk',
     license='MIT',
@@ -27,6 +27,7 @@ setup(
         'Programming Language :: Python :: 3.3',
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
     ],
     packages=find_packages(),
     zip_safe=False,
