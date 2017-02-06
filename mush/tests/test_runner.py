@@ -7,10 +7,9 @@ from testfixtures import (
     )
 
 from mush.context import ContextError
-from mush.runner import Runner
 from mush.declarations import (
-    requires, attr, item, nothing, returns, returns_mapping
-)
+    requires, attr, item, nothing, returns, returns_mapping)
+from mush.runner import Runner
 from .compat import PY2
 
 
@@ -1012,6 +1011,126 @@ class RunnerTests(TestCase):
                 call.job2(t1),
                 call.job3(t2),
                 ], m.mock_calls)
+
+    def test_replace_for_behaviour(self):
+        m = Mock()
+        class T1(object): pass
+        class T2(object): pass
+        class T3(object): pass
+        class T4(object): pass
+
+        t2 = T2()
+        def job0():
+            return t2
+
+        @requires(T1)
+        @returns(T3)
+        def job1(obj):
+            raise Exception() # pragma: nocover
+
+        job2 = requires(T4)(m.job2)
+        runner = Runner(job0, job1, job2)
+
+        runner.replace(job1, requires(T2)(returns(T4)(m.job1)))
+        runner()
+
+        compare([
+            call.job1(t2),
+            call.job2(m.job1.return_value),
+        ], actual=m.mock_calls)
+
+    def test_replace_explicit_requires_returns(self):
+        m = Mock()
+        class T1(object): pass
+        class T2(object): pass
+        class T3(object): pass
+        class T4(object): pass
+
+        t2 = T2()
+        def job0():
+            return t2
+
+        @requires(T1)
+        @returns(T3)
+        def job1(obj):
+            raise Exception() # pragma: nocover
+
+        job2 = requires(T4)(m.job2)
+        runner = Runner(job0, job1, job2)
+
+        runner.replace(job1, m.job1, requires=T2, returns=T4)
+        runner()
+
+        compare([
+            call.job1(t2),
+            call.job2(m.job1.return_value),
+        ], actual=m.mock_calls)
+
+    def test_replace_explicit_with_labels(self):
+        m = Mock()
+
+        runner = Runner(m.job0)
+        runner.add_label('foo')
+        runner['foo'].add(m.job1)
+        runner['foo'].add(m.job2)
+
+        runner.replace(m.job2, m.jobnew, returns='mock')
+
+        runner()
+
+        compare([
+            call.job0(),
+            call.job1(),
+            call.jobnew()
+        ], m.mock_calls)
+
+        # check added_using is handled correctly
+        m.reset_mock()
+        runner2 = runner.clone(added_using='foo')
+        runner2()
+
+        compare([
+            call.job1(),
+            call.jobnew()
+        ], actual=m.mock_calls)
+
+        # check runner's label pointer is sane
+        m.reset_mock()
+        runner['foo'].add(m.job3)
+        runner()
+
+        compare([
+            call.job0(),
+            call.job1(),
+            call.jobnew(),
+            call.job3()
+        ], actual=m.mock_calls)
+
+    def test_replace_explicit_at_start(self):
+        m = Mock()
+        runner = Runner(m.job1, m.job2)
+
+        runner.replace(m.job1, m.jobnew, returns='mock')
+        runner()
+
+        compare([
+            call.jobnew(),
+            call.job2(),
+        ], actual=m.mock_calls)
+
+    def test_replace_explicit_at_end(self):
+        m = Mock()
+        runner = Runner(m.job1, m.job2)
+
+        runner.replace(m.job2, m.jobnew, returns='mock')
+        runner.add(m.jobnew2)
+        runner()
+
+        compare([
+            call.job1(),
+            call.jobnew(),
+            call.jobnew2(),
+        ], actual=m.mock_calls)
 
     def test_modifier_changes_endpoint(self):
         m = Mock()

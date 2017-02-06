@@ -144,16 +144,55 @@ class Runner(object):
         runner._copy_from(start, end, added_using)
         return runner
 
-    def replace(self, original, replacement):
+    def replace(self, original, replacement, requires=None, returns=None):
         """
         Replace all instances of one callable with another.
 
-        No changes in requirements or call ordering will be made.
+        No changes in requirements or call ordering will be made unless the
+        replacements has been decorated with and requirements, or either
+        ``requires`` or ``returns`` have been specified.
+
+        :param requires: The resources to required as parameters when calling
+                         `obj`. These can be specified by passing a single
+                         type, a string name or a :class:`requires` object.
+
+        :param returns: The resources that `obj` will return.
+                        These can be specified as a single
+                        type, a string name or a :class:`returns`,
+                        :class:`returns_mapping`, :class:`returns_sequence`
+                        object.
         """
         point = self.start
         while point:
             if point.obj is original:
-                point.obj = replacement
+
+                new_requirements = (
+                    getattr(replacement, '__mush_requires__', None) or
+                    getattr(replacement, '__mush_returns__', None) or
+                    requires is not None or
+                    returns is not None
+                )
+
+                if new_requirements:
+                    new_point = CallPoint(replacement, requires, returns)
+                    if point.previous is None:
+                        self.start = new_point
+                    else:
+                        point.previous.next = new_point
+                    if point.next is None:
+                        self.end = new_point
+                    else:
+                        point.next.previous = new_point
+                    new_point.next = point.next
+                    for label in point.labels:
+                        self.labels[label] = new_point
+                        new_point.labels.add(label)
+                    new_point.added_using = set(point.added_using)
+
+                else:
+
+                    point.obj = replacement
+
             point = point.next
 
     def __getitem__(self, label):
