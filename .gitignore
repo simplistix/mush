@@ -5,5 +5,6 @@
 /*.egg-info/
 *.pyc
 /*.xml
-/.coverage*
+/.coverage
+/.coverage.*
 /.noseids
