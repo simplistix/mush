@@ -39,6 +39,30 @@ class TestCallPoints(TestCase):
         compare(result, self.context.call.return_value)
         self.context.call.assert_called_with(foo, rq, rt)
 
+    def test_extract_from_decorated_class(self):
+
+        rq = requires('foo')
+        rt = returns('bar')
+
+        class Wrapper(object):
+            def __init__(self, func):
+                self.func = func()
+            def __call__(self):
+                return self.func()
+
+        def my_dec(func):
+            return Wrapper(func)
+
+        @rq
+        @rt
+        @my_dec
+        def foo():
+            return 'baz'
+
+        result = CallPoint(foo)(self.context)
+        compare(result, self.context.call.return_value)
+        self.context.call.assert_called_with(foo, rq, rt)
+
     def test_explicit_trumps_decorators(self):
         @requires('foo')
         @returns('bar')
@@ -92,4 +116,3 @@ class TestCallPoints(TestCase):
         self.assertTrue(isinstance(point.returns, returns))
         compare(repr(foo)+" requires('foo', 'bar') returns('baz', 'bob')",
                 repr(point))
-
