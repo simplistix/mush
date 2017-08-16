@@ -33,7 +33,7 @@ setup(
     zip_safe=False,
     include_package_data=True,
     extras_require=dict(
-        test=['nose', 'nose-cov', 'coveralls', 'mock', 'manuel', 'testfixtures',
-              'argparse', 'nose-fixes'],
+        test=['pytest', 'coverage', 'coveralls', 'mock', 'sybil',
+              'testfixtures', 'argparse'],
         build=['sphinx', 'pkginfo', 'setuptools-git', 'wheel', 'twine']
     ))
