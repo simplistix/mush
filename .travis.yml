@@ -10,9 +10,9 @@ python:
   - "2.7"
 
 # command to install dependencies
-install: 
-  - "pip install -U setuptools"
-  - "pip install -Ue .[test,build]"
+install:
+- "pip install --upgrade pip setuptools"
+- "pip install -Ue .[test,build]"
 
 # command to run tests, e.g. python setup.py test
 script: coverage run -m pytest
