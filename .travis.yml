@@ -9,25 +9,40 @@ python:
   - "3.4"
   - "2.7"
 
-# command to install dependencies
 install:
 - "pip install --upgrade pip setuptools"
-- "pip install -Ue .[test,build]"
+- "pip install -Ue .[test]"
 
-# command to run tests, e.g. python setup.py test
 script: coverage run -m pytest
 
 after_success:
   - coveralls
 
-deploy:
-  provider: pypi
-  user: chrisw
-  password:
-    secure: f28D/cZT27Ejv++FA8Er1GIwD9KG6t82J/AHUlzGvbjQpP9js6TIgZ51nxhf/lhJrACNONOrd3XhjMc1QRgkCKOLHjSHpozO0qPa2lZ3+4c+BP5lZTXmI3uS8YBaidOpWFZjkxf38zK59yab7ntkl02UNibo5RWzoaYJIPcjizA=
-  on:
-    tags: true
-    repo: Simplistix/mush
-    python: "3.4"
-  skip_cleanup: true
-  distributions: "sdist bdist_wheel"
+
+jobs:
+  include:
+
+    - stage: coverage
+      python: 3.5
+      after_success: skip
+
+      install: "pip install -U coveralls-check"
+      script: "coveralls-check $TRAVIS_COMMIT"
+
+    - stage: release
+      python: 3.5
+      script: skip
+      after_success: skip
+
+      install: "pip install -Ue .[build]"
+      deploy:
+        provider: pypi
+        user: chrisw
+        password:
+          secure: f28D/cZT27Ejv++FA8Er1GIwD9KG6t82J/AHUlzGvbjQpP9js6TIgZ51nxhf/lhJrACNONOrd3XhjMc1QRgkCKOLHjSHpozO0qPa2lZ3+4c+BP5lZTXmI3uS8YBaidOpWFZjkxf38zK59yab7ntkl02UNibo5RWzoaYJIPcjizA=
+        on:
+          tags: true
+          repo: Simplistix/mush
+          python: "3.5"
+        skip_cleanup: true
+        distributions: "sdist bdist_wheel"
