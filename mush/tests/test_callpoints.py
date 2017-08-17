@@ -45,7 +45,7 @@ class TestCallPoints(TestCase):
 
         class Wrapper(object):
             def __init__(self, func):
-                self.func = func()
+                self.func = func
             def __call__(self):
                 return self.func()
 
@@ -55,11 +55,12 @@ class TestCallPoints(TestCase):
         @rq
         @rt
         @my_dec
-        def foo(): pass
+        def foo():
+            return 'the answer'
 
+        self.context.call.side_effect = lambda func, rq, rt: (func(), rq, rt)
         result = CallPoint(foo)(self.context)
-        compare(result, self.context.call.return_value)
-        self.context.call.assert_called_with(foo, rq, rt)
+        compare(result, expected=('the answer', rq, rt))
 
     def test_explicit_trumps_decorators(self):
         @requires('foo')
