@@ -109,8 +109,7 @@ class TestContext(TestCase):
         compare({TheType: 'bar', str: 'bar'}, context)
 
     def test_call_requires_missing(self):
-        def foo(obj):
-            return obj
+        def foo(obj): return obj
         context = Context()
         with ShouldRaise(ContextError(
                 "No <class 'mush.tests.test_context.TheType'> in context"
@@ -118,8 +117,7 @@ class TestContext(TestCase):
             context.call(foo, requires(TheType), result_type)
 
     def test_call_requires_item_missing(self):
-        def foo(obj):
-            return obj
+        def foo(obj): return obj
         context = Context()
         context.add({}, TheType)
         with ShouldRaise(ContextError(
@@ -128,8 +126,7 @@ class TestContext(TestCase):
             context.call(foo, requires(item(TheType, 'foo')), result_type)
 
     def test_call_requires_accidental_tuple(self):
-        def foo(obj):
-            return obj
+        def foo(obj): return obj
         context = Context()
         with ShouldRaise(TypeError(
                 "(<class 'mush.tests.test_context.TheType'>, "

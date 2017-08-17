@@ -135,7 +135,7 @@ class TestPlug(TestCase):
         class MyPlug(Plug):
 
             @ignore()
-            def helper(self):
+            def helper(self):  # pragma: no cover
                 m.plug_bad()
 
             def one(self):

@@ -32,8 +32,7 @@ class TestCallPoints(TestCase):
 
         @rq
         @rt
-        def foo():
-            return 'baz'
+        def foo(): pass
 
         result = CallPoint(foo)(self.context)
         compare(result, self.context.call.return_value)
@@ -56,8 +55,7 @@ class TestCallPoints(TestCase):
         @rq
         @rt
         @my_dec
-        def foo():
-            return 'baz'
+        def foo(): pass
 
         result = CallPoint(foo)(self.context)
         compare(result, self.context.call.return_value)
@@ -66,8 +64,7 @@ class TestCallPoints(TestCase):
     def test_explicit_trumps_decorators(self):
         @requires('foo')
         @returns('bar')
-        def foo():
-            return 'baz'
+        def foo(): pass
 
         rq = requires('baz')
         rt = returns('bob')
