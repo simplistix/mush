@@ -11,17 +11,13 @@ class Modifier(object):
     Used to make changes at a particular point in a runner.
     These are returned by :meth:`Runner.add` and :meth:`Runner.__getitem__`.
     """
-    def __init__(self, runner, callpoint, label=None):
+    def __init__(self, runner, callpoint, label):
         self.runner = runner
         self.callpoint = callpoint
         if label is not_specified:
             self.labels = set()
-        elif label:
-            self.labels = {label}
-        elif self.callpoint:
-            self.labels = set(self.callpoint.labels)
         else:
-            self.labels = set()
+            self.labels = {label}
 
     def add(self, obj, requires=None, returns=None, label=None):
         """
