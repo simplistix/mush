@@ -53,7 +53,17 @@ class requires(object):
         return obj
 
 
-class returns_result_type(object):
+class ReturnsType(object):
+
+    def __call__(self, obj):
+        obj.__mush_returns__ = self
+        return obj
+
+    def __repr__(self):
+        return self.__class__.__name__ + '()'
+
+
+class returns_result_type(ReturnsType):
     """
     Default declaration that indicates a callable's return value
     should be used as a resource based on the type of the object returned.
@@ -61,19 +71,12 @@ class returns_result_type(object):
     ``None`` is ignored as a return value.
     """
 
-    def __call__(self, obj):
-        obj.__mush_returns__ = self
-        return obj
-
     def process(self, obj):
         if obj is not None:
             yield obj.__class__, obj
 
-    def __repr__(self):
-        return self.__class__.__name__ + '()'
 
-
-class returns_mapping(returns_result_type):
+class returns_mapping(ReturnsType):
     """
     Declaration that indicates a callable returns a mapping of type or name
     to resource.
