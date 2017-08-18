@@ -1,7 +1,4 @@
-from .declarations import (
-    result_type, nothing, requires as RequiresType,
-    returns as Returns, returns_result_type as ReturnsType
-)
+from .declarations import result_type, nothing, extract_declarations
 
 
 class CallPoint(object):
@@ -13,25 +10,9 @@ class CallPoint(object):
 
     def __init__(self, obj, requires=None, returns=None):
         self.obj = obj
-
-        if requires is None:
-            self.requires = getattr(obj, '__mush_requires__', nothing)
-        else:
-            if isinstance(requires, (list, tuple)):
-                requires = RequiresType(*requires)
-            elif not isinstance(requires, RequiresType):
-                requires = RequiresType(requires)
-            self.requires = requires
-
-        if returns is None:
-            self.returns = getattr(obj, '__mush_returns__', result_type)
-        else:
-            if isinstance(returns, (list, tuple)):
-                returns = Returns(*returns)
-            elif not isinstance(returns, ReturnsType):
-                returns = Returns(returns)
-            self.returns = returns
-
+        requires, returns = extract_declarations(obj, requires, returns)
+        self.requires = requires or nothing
+        self.returns = returns or result_type
         self.labels = set()
         self.added_using = set()
 

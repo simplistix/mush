@@ -232,3 +232,25 @@ nothing = requires()
 #: A singleton  indicating that a callable's return value should be
 #: stored based on the type of that return value
 result_type = returns_result_type()
+
+
+def extract_declarations(obj, requires_, returns_):
+    if isinstance(requires_, requires):
+        pass
+    elif requires_ is None:
+        requires_ = getattr(obj, '__mush_requires__', None)
+    elif isinstance(requires_, (list, tuple)):
+        requires_ = requires(*requires_)
+    else:
+        requires_ = requires(requires_)
+
+    if isinstance(returns_, ReturnsType):
+        pass
+    elif returns_ is None:
+        returns_ = getattr(obj, '__mush_returns__', None)
+    elif isinstance(returns_, (list, tuple)):
+        returns_ = returns(*returns_)
+    else:
+        returns_ = returns(returns_)
+
+    return requires_, returns_

@@ -1,5 +1,6 @@
 from .callpoints import CallPoint
 from .context import Context, ContextError
+from .declarations import extract_declarations
 from .markers import not_specified
 from .modifier import Modifier
 from .plug import Plug
@@ -166,15 +167,12 @@ class Runner(object):
         while point:
             if point.obj is original:
 
-                new_requirements = (
-                    getattr(replacement, '__mush_requires__', None) or
-                    getattr(replacement, '__mush_returns__', None) or
-                    requires is not None or
-                    returns is not None
+                new_requirements = extract_declarations(
+                    replacement, requires, returns
                 )
 
-                if new_requirements:
-                    new_point = CallPoint(replacement, requires, returns)
+                if any(new_requirements):
+                    new_point = CallPoint(replacement, *new_requirements)
                     if point.previous is None:
                         self.start = new_point
                     else:
