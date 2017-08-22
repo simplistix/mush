@@ -245,7 +245,8 @@ NoneType = type(None)
 def extract_declarations(obj, explicit_requires, explicit_returns):
     mush_requires = getattr(obj, '__mush_requires__', None)
     mush_returns = getattr(obj, '__mush_returns__', None)
-    annotations = getattr(obj, '__annotations__', {})
+    annotations = getattr(obj, '__annotations__', None)
+    annotations = {} if annotations is None else annotations.copy()
     annotation_returns = annotations.pop('return', None)
     annotation_requires = annotations or None
 

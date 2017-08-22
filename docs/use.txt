@@ -414,12 +414,46 @@ Anywhere that a type can be used, a string name can be used instead:
 >>> runner()
 by the age of 37 I realised the meaning of life was 42
 
+Using Type Annotations
+~~~~~~~~~~~~~~~~~~~~~~
+
+While the imperative configuration used so far means that callables do not
+need to be modified, Python's type annotations can also be used to specify
+requirements and returned resources:
+
+.. code-block:: python
+
+  from mush import requires
+
+  def apple_tree():
+      print('I made an apple')
+      return Apple()
+
+  def magician(fruit: Apple) -> 'citrus':
+      print('I turned {0} into an orange'.format(fruit))
+      return Orange()
+
+  def juicer(fruit1: Apple, fruit2: 'citrus'):
+      print('I made juice out of {0} and {1}'.format(fruit1, fruit2))
+      return Juice()
+
+These can now be combined into a runner and executed. The runner will
+extract the requirements from the type annotations and will use them to
+map the parameters as appropriate:
+
+>>> runner = Runner(apple_tree, magician, juicer)
+>>> runner()
+I made an apple
+I turned an apple into an orange
+I made juice out of an apple and an orange
+a refreshing fruit beverage
+
 Declarative configuration
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-While the imperative configuration used so far means that callables do not
-need to be modified, the helpers for specifying requirements and return types
-can also be used as decorators:
+When type annotations are not available, either because they're being used
+for something else or because of the version of Python being used, the helpers
+for specifying requirements and return types can also be used as decorators:
 
 .. code-block:: python
 
@@ -454,9 +488,9 @@ a refreshing fruit beverage
 Hybrid configuration
 ~~~~~~~~~~~~~~~~~~~~
 
-The two styles of configuration are entirely interchangeable, with
-declarative requirements being inspected whenever a callable is added
-to a runner, and imperative requirements being taken whenever they are
+The three styles of configuration are entirely interchangeable, with
+declarative and type annotation requirements being inspected whenever a callable
+is added to a runner, and imperative requirements being taken whenever they are
 passed via the :meth:`~Runner.add` method:
 
 .. code-block:: python
@@ -464,13 +498,13 @@ passed via the :meth:`~Runner.add` method:
   @requires(Juice)
   def packager(juice):
       print('I put {0} in a bottle'.format(juice))
-  
-  def orange_tree():
+
+  def orange_tree() -> 'citrus':
       print('I made an orange')
       return Orange()
 
   trees = Runner(apple_tree)
-  trees.add(orange_tree, returns='citrus')
+  trees.add(orange_tree)
   runner = trees.clone()
   runner.extend(juicer, packager)
   
@@ -482,21 +516,13 @@ I made an orange
 I made juice out of an apple and an orange
 I put a refreshing fruit beverage in a bottle
 
-It's useful to note that imperative configuration will be used in
-preference to declarative configuration where both are present:
+In terms of precedence, requirements and returned resource specifications
+will be used in the following order, with the first one found being the one
+that is used:
 
-.. code-block:: python
-
-  runner = trees.clone()
-  runner.add(juicer, requires('citrus', Apple))
-
-This runner will give us juice made in a different order:
-
->>> runner()
-I made an apple
-I made an orange
-I made juice out of an orange and an apple
-a refreshing fruit beverage
+- Imperative configuration.
+- Declarative configuration.
+- Type annotations.
 
 .. _labels:
 
@@ -677,12 +703,11 @@ to use it once it's washed. This can neatly be done as follows:
 
   class JuicePlug(Plug):
 
-      @returns('produce')
-      def what(self):
+      def what(self) -> 'produce':
           return Apple()
 
-      @requires('produce')
-      def how(self, produce):
+      # xxx, should use name by default!
+      def how(self, produce: 'produce'):
           print('juicing '+str(produce))
 
   runner = kitchen_runner.clone()
@@ -712,13 +737,11 @@ add explicitly marked methods, for example:
           print('juicing '+str(produce))
 
       @insert()
-      @returns('produce')
-      def what(self):
+      def what(self) -> 'produce':
           return Apple()
 
       @insert()
-      @requires('produce')
-      def how(self, produce):
+      def how(self, produce: 'produce'):
           self.juice(produce)
 
   runner = kitchen_runner.clone()
@@ -746,12 +769,10 @@ helper:
       def juice(self, produce):
           print('juicing '+str(produce))
 
-      @returns('produce')
-      def what(self):
+      def what(self) -> 'produce':
           return Apple()
 
-      @requires('produce')
-      def how(self, produce):
+      def how(self, produce: 'produce'):
           self.juice(produce)
 
   runner = kitchen_runner.clone()
@@ -776,12 +797,10 @@ to the end of the runner where there is no label. Both of these are supported:
   class JuicePlug(Plug):
 
       @insert(label='what')
-      @returns('produce')
-      def pick_fruit(self):
+      def pick_fruit(self) -> 'produce':
           return Apple()
 
-      @requires('produce')
-      def how(self, produce):
+      def how(self, produce: 'produce'):
           print('juicing '+str(produce))
 
       @append()
@@ -866,12 +885,11 @@ a remote web service:
 
 .. code-block:: python
 
-  @returns('config')
-  def load_config():
+  def load_config() -> 'config':
       return json.loads(urllib2.urlopen('...').read())
 
-  @requires(item('config', 'username'), item('config', 'password'))
-  def do_stuff(username, password):
+  def do_stuff(username: item('config', 'username'),
+               password: item('config', 'password')):
       print('doing stuff as ' + username + ' with '+ password)
 
   runner = Runner(load_config, do_stuff)
@@ -917,12 +935,11 @@ That runner might be used for a specific script as follows:
 
 .. code-block:: python
 
-  @requires(ArgumentParser)
-  def job_args(parser):
+  def job_args(parser: ArgumentParser):
       parser.add_argument('--colour')
 
-  @requires(item('config', 'username'), attr(Namespace, 'colour'))
-  def do_stuff(username, colour):
+  def do_stuff(username: item('config', 'username'),
+               colour: attr(Namespace, 'colour')):
       print(username + ' is '+ colour)
 
   runner = base_runner.clone()
@@ -965,12 +982,10 @@ For example, consider this runner:
 
   from mush import Runner
 
-  @returns('config')
-  def make_config():
+  def make_config() -> 'config':
       return {'foo': 'bar'}
 
-  @requires(item('config', 'foo'))
-  def connect(foo):
+  def connect(foo: item('config', 'foo')):
       return 'connection'
 
   def process(connection):
@@ -986,7 +1001,7 @@ To see how the configuration panned out, we would look at the :func:`repr`:
 >>> runner
 <Runner>
     <function make_config ...> requires() returns('config')
-    <function connect ...> requires('config'['foo']) returns_result_type() <-- config
+    <function connect ...> requires(foo='config'['foo']) returns_result_type() <-- config
     <function process ...> requires() returns_result_type()
 </Runner>
 

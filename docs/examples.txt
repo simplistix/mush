@@ -39,7 +39,7 @@ extracted into re-usable functions that can be assembled by Mush into
 scripts:
 
 .. literalinclude:: ../mush/tests/example_with_mush_clone.py
-   :lines: 1-45
+   :lines: 1-40
 
 We start with a function that adds the options needed by all our
 scripts to an :mod:`argparse` parser. This uses the :class:`requires`
@@ -69,7 +69,7 @@ convenient. As an example, the following tests use a
 :class:`~testfixtures.LogCapture` to fully test the database-handling
 context manager:
 
-.. literalinclude:: ../mush/tests/test_example_with_mush_clone.py
+.. literalinclude:: ../mush/tests/test_example_with_mush_clone_py3.py
    :lines: 60-96
 
 Writing the specific parts of your script
@@ -81,7 +81,7 @@ functions:
 
 
 .. literalinclude:: ../mush/tests/example_with_mush_clone.py
-   :lines: 54-63
+   :lines: 52-61
 
 As you can imagine, this much smaller set of code is simpler to test
 and easier to maintain.
@@ -102,7 +102,7 @@ With this pattern, a "base runner" is created, usually in the same
 place that other re-usable parts of the original script are located:
 
 .. literalinclude:: ../mush/tests/example_with_mush_clone.py
-   :lines: 3,46-53
+   :lines: 3,42-49
 
 The code above shows how to label a point, `args` in this case, enabling
 callables to be inserted at that point at a later time. See :ref:`labels`
@@ -116,7 +116,7 @@ script-specific parts added to the clone leaving a callable that can
 be put in the usual block at the bottom of the script:
 
 .. literalinclude:: ../mush/tests/example_with_mush_clone.py
-   :lines: 67-
+   :lines: 63-
 
 Using a factory 
 ~~~~~~~~~~~~~~~

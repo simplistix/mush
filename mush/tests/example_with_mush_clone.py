@@ -1,25 +1,21 @@
 from argparse import ArgumentParser, Namespace
 from .configparser import RawConfigParser
-from mush import Runner, requires, attr, item, returns
+from mush import Runner, requires, attr, item
 import logging, os, sqlite3, sys
 
 log = logging.getLogger()
 
-@requires(ArgumentParser)
-def base_options(parser):
+def base_options(parser: ArgumentParser):
     parser.add_argument('config', help='Path to .ini file')
     parser.add_argument('--quiet', action='store_true',
                         help='Log less to the console')
     parser.add_argument('--verbose', action='store_true',
                         help='Log more to the console')
 
-@requires(ArgumentParser)
-def parse_args(parser):
+def parse_args(parser: ArgumentParser):
     return parser.parse_args()
 
-@requires(Namespace)
-@returns('config')
-def parse_config(args):
+def parse_config(args: Namespace) -> 'config':
     config = RawConfigParser()
     config.read(args.config)
     return dict(config.items('main'))
