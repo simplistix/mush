@@ -18,7 +18,9 @@ def mock():
 def compare_returns(x, y, context):
     if x.args == y.args:
         return
-    return context.label('x', repr(x)) + ' != ' + context.label('y', repr(y))
+    return (context.label('x', repr(x)) +
+            ' != ' +
+            context.label('y', repr(y))) # pragma: no cover
 
 
 register(returns, compare_returns)
