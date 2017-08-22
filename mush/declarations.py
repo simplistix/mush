@@ -238,21 +238,31 @@ nothing = requires()
 #: stored based on the type of that return value
 result_type = returns_result_type()
 
+# for 2/3 compatibility:
+NoneType = type(None)
 
-def extract_declarations(obj, requires_, returns_):
-    if isinstance(requires_, requires):
+
+def extract_declarations(obj, explicit_requires, explicit_returns):
+    mush_requires = getattr(obj, '__mush_requires__', None)
+    mush_returns = getattr(obj, '__mush_returns__', None)
+    annotations = getattr(obj, '__annotations__', {})
+    annotation_returns = annotations.pop('return', None)
+    annotation_requires = annotations or None
+
+    requires_ = explicit_requires or mush_requires or annotation_requires
+    returns_ = explicit_returns or mush_returns or annotation_returns
+
+    if isinstance(requires_, (requires, NoneType)):
         pass
-    elif requires_ is None:
-        requires_ = getattr(obj, '__mush_requires__', None)
     elif isinstance(requires_, (list, tuple)):
         requires_ = requires(*requires_)
+    elif isinstance(requires_, dict):
+        requires_ = requires(**requires_)
     else:
         requires_ = requires(requires_)
 
-    if isinstance(returns_, ReturnsType):
+    if isinstance(returns_, (ReturnsType, NoneType)):
         pass
-    elif returns_ is None:
-        returns_ = getattr(obj, '__mush_returns__', None)
     elif isinstance(returns_, (list, tuple)):
         returns_ = returns(*returns_)
     else:
