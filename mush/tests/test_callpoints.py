@@ -1,8 +1,11 @@
+from functools import update_wrapper
 from unittest import TestCase
+
 from mock import Mock
 from testfixtures import compare
+
 from mush.callpoints import CallPoint
-from mush.declarations import requires, returns
+from mush.declarations import requires, returns, update_wrapper
 
 
 class TestCallPoints(TestCase):
@@ -50,11 +53,11 @@ class TestCallPoints(TestCase):
                 return self.func()
 
         def my_dec(func):
-            return Wrapper(func)
+            return update_wrapper(func, Wrapper(func))
 
+        @my_dec
         @rq
         @rt
-        @my_dec
         def foo():
             return 'the answer'
 

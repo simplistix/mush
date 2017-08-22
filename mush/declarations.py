@@ -1,5 +1,10 @@
 import sys
 import types
+from functools import (
+    WRAPPER_UPDATES,
+    WRAPPER_ASSIGNMENTS as FUNCTOOLS_ASSIGNMENTS
+)
+
 from .markers import missing
 
 
@@ -254,3 +259,33 @@ def extract_declarations(obj, requires_, returns_):
         returns_ = returns(returns_)
 
     return requires_, returns_
+
+
+WRAPPER_ASSIGNMENTS = FUNCTOOLS_ASSIGNMENTS + (
+    '__mush__requires__', '__mush_returns__'
+)
+
+
+def update_wrapper(wrapper,
+                   wrapped,
+                   assigned=WRAPPER_ASSIGNMENTS,
+                   updated=WRAPPER_UPDATES):
+    """
+    An extended version of :func:`functools.update_wrapper` that
+    also preserves Mush's annotations.
+    """
+    # copied here to backport bugfix from Python 3.
+    for attr in assigned:
+        try:
+            value = getattr(wrapped, attr)
+        except AttributeError:
+            pass
+        else:
+            setattr(wrapper, attr, value)
+    for attr in updated:
+        getattr(wrapper, attr).update(getattr(wrapped, attr, {}))
+    # Issue #17482: set __wrapped__ last so we don't inadvertently copy it
+    # from the wrapped function when updating __dict__
+    wrapper.__wrapped__ = wrapped
+    # Return the wrapper so this can be used as a decorator via partial()
+    return wrapper
