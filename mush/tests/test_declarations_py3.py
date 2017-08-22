@@ -41,13 +41,13 @@ class TestExtractDeclarations(object):
                 return 'the '+self.func()
 
         def my_dec(func):
-            return update_wrapper(func, Wrapper(func))
+            return update_wrapper(Wrapper(func), func)
 
         @my_dec
         def foo(a: 'foo'=None) -> 'bar':
             return 'answer'
 
-        compare(foo(), expected='answer')
+        compare(foo(), expected='the answer')
         self.check_extract(foo,
                            expected_rq=requires(a='foo'),
                            expected_rt=returns('bar'))

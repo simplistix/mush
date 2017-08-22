@@ -50,16 +50,16 @@ class TestCallPoints(TestCase):
             def __init__(self, func):
                 self.func = func
             def __call__(self):
-                return self.func()
+                return 'the '+self.func()
 
         def my_dec(func):
-            return update_wrapper(func, Wrapper(func))
+            return update_wrapper(Wrapper(func), func)
 
         @my_dec
         @rq
         @rt
         def foo():
-            return 'the answer'
+            return 'answer'
 
         self.context.call.side_effect = lambda func, rq, rt: (func(), rq, rt)
         result = CallPoint(foo)(self.context)
