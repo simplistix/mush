@@ -1,5 +1,5 @@
 from mush import returns, requires
-from .compat import PY2
+from ..compat import PY2
 from mock import Mock
 from testfixtures.comparison import register
 import pytest

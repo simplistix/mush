@@ -10,7 +10,7 @@ from mush.context import ContextError
 from mush.declarations import (
     requires, attr, item, nothing, returns, returns_mapping)
 from mush.runner import Runner
-from .compat import PY2
+from ..compat import PY2
 
 
 def verify(runner, *expected):

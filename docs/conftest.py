@@ -5,7 +5,7 @@ from sybil.parsers.capture import parse_captures
 from sybil.parsers.codeblock import CodeBlockParser
 from sybil.parsers.doctest import DocTestParser
 
-from mush.tests.compat import PY2
+from mush.compat import PY2
 
 sybil_collector = Sybil(
     parsers=[

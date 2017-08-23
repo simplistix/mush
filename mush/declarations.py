@@ -5,6 +5,7 @@ from functools import (
     WRAPPER_ASSIGNMENTS as FUNCTOOLS_ASSIGNMENTS
 )
 
+from .compat import NoneType, zip_longest
 from .markers import missing
 
 
@@ -238,8 +239,6 @@ nothing = requires()
 #: stored based on the type of that return value
 result_type = returns_result_type()
 
-# for 2/3 compatibility:
-NoneType = type(None)
 
 
 def extract_declarations(obj, explicit_requires, explicit_returns):
