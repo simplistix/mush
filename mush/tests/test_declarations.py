@@ -6,7 +6,14 @@ from mush.declarations import (
     requires, optional, returns,
     returns_mapping, returns_sequence, returns_result_type,
     how, item, attr, nothing,
+    extract_declarations
 )
+
+
+def check_extract(obj, expected_rq, expected_rt):
+    rq, rt = extract_declarations(obj, None, None)
+    compare(rq, expected=expected_rq, strict=True)
+    compare(rt, expected=expected_rt, strict=True)
 
 
 class Type1(object): pass
