@@ -15,8 +15,7 @@ class TestCallPoints(TestCase):
 
     def test_passive_attributes(self):
         # these are managed by Modifiers
-        o = object()
-        point = CallPoint(o)
+        point = CallPoint(self.context)
         compare(point.previous, None)
         compare(point.next, None)
         compare(point.labels, set())

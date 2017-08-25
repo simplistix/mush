@@ -1,7 +1,8 @@
 from testfixtures import compare
 
 from mush.declarations import (
-    requires, returns, returns_mapping, returns_sequence, item, update_wrapper
+    requires, returns, returns_mapping, returns_sequence, item, update_wrapper,
+    optional
 )
 from mush.tests.test_declarations import check_extract
 
@@ -21,7 +22,7 @@ class TestExtractDeclarations(object):
                       expected_rt=None)
 
     def test_returns_only(self):
-        def foo(a) -> 'bar': pass
+        def foo() -> 'bar': pass
         check_extract(foo,
                       expected_rq=None,
                       expected_rt=returns('bar'))
@@ -73,4 +74,13 @@ class TestExtractDeclarations(object):
         def foo(a: how): pass
         check_extract(foo,
                       expected_rq=requires(a=how),
+                      expected_rt=None)
+
+    def test_default_requirements(self):
+        def foo(a, b=1, *, c, d=None): pass
+        check_extract(foo,
+                      expected_rq=requires('a',
+                                           optional('b'),
+                                           c='c',
+                                           d=optional('d')),
                       expected_rt=None)

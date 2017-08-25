@@ -4,9 +4,9 @@ from functools import (
     WRAPPER_UPDATES,
     WRAPPER_ASSIGNMENTS as FUNCTOOLS_ASSIGNMENTS
 )
-
-from .compat import NoneType, zip_longest
-from .markers import missing
+from inspect import isfunction
+from .compat import NoneType, zip_longest, PY2
+from .markers import missing, not_specified
 
 
 def name_or_repr(obj):
@@ -240,6 +240,64 @@ nothing = requires()
 result_type = returns_result_type()
 
 
+if PY2:
+    from inspect import getargspec, ismethod, isfunction, isclass
+
+
+    def guess_requirements(obj):
+        if isclass(obj):
+            obj = obj.__init__
+        if not (isfunction(obj) or ismethod(obj)):
+            obj = obj.__call__
+        if not (isfunction(obj) or ismethod(obj)):
+            return
+        spec = getargspec(obj)
+        spec_args = spec.args
+        if callable(obj) and not isfunction(obj):
+            spec_args = spec_args[1:]
+        if not spec_args:
+            # short circuit
+            return
+        args = []
+        for arg, default in zip_longest(
+            reversed(spec_args), reversed(spec.defaults or ()),
+            fillvalue=not_specified
+        ):
+            if default is not_specified:
+                args.append(arg)
+            else:
+                args.append(optional(arg))
+        return requires(*reversed(args))
+
+else:
+
+    from inspect import getfullargspec
+
+    def guess_requirements(obj):
+        spec = getfullargspec(obj)
+        spec_args = spec.args
+        if callable(obj) and not isfunction(obj):
+            spec_args = spec_args[1:]
+        if not (spec_args or spec.kwonlyargs):
+            # short circuit
+            return
+        args = []
+        for arg, default in zip_longest(
+            reversed(spec_args), reversed(spec.defaults or ()),
+            fillvalue=not_specified
+        ):
+            if default is not_specified:
+                args.append(arg)
+            else:
+                args.append(optional(arg))
+        kw = {}
+        for arg in spec.kwonlyargs:
+            if arg in spec.kwonlydefaults:
+                kw[arg] = optional(arg)
+            else:
+                kw[arg] = arg
+        return requires(*reversed(args), **kw)
+
 
 def extract_declarations(obj, explicit_requires, explicit_returns):
     mush_requires = getattr(obj, '__mush_requires__', None)
@@ -252,8 +310,10 @@ def extract_declarations(obj, explicit_requires, explicit_returns):
     requires_ = explicit_requires or mush_requires or annotation_requires
     returns_ = explicit_returns or mush_returns or annotation_returns
 
-    if isinstance(requires_, (requires, NoneType)):
+    if isinstance(requires_, requires):
         pass
+    elif isinstance(requires_, NoneType):
+        requires_ = guess_requirements(obj)
     elif isinstance(requires_, (list, tuple)):
         requires_ = requires(*requires_)
     elif isinstance(requires_, dict):

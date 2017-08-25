@@ -220,3 +220,19 @@ class TestReturnsResultType(TestCase):
             pass
         r = returns_result_type()
         compare(dict(r.process(foo())), {})
+
+
+class TestExtractDeclarations(object):
+
+    def test_default_requirements_for_function(self):
+        def foo(a, b=None): pass
+        check_extract(foo,
+                      expected_rq=requires('a', optional('b')),
+                      expected_rt=None)
+
+    def test_default_requirements_for_class(self):
+        class MyClass(object):
+            def __init__(self, a, b=None): pass
+        check_extract(MyClass,
+                      expected_rq=requires('a', optional('b')),
+                      expected_rt=None)

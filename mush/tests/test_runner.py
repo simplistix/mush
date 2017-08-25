@@ -4,13 +4,12 @@ from mock import Mock, call
 from testfixtures import (
     ShouldRaise,
     compare
-    )
+)
 
 from mush.context import ContextError
 from mush.declarations import (
     requires, attr, item, nothing, returns, returns_mapping)
 from mush.runner import Runner
-from ..compat import PY2
 
 
 def verify(runner, *expected):
@@ -470,15 +469,9 @@ class RunnerTests(TestCase):
         def job(arg):
             pass # pragma: nocover
         runner = Runner(job)
-        with ShouldRaise(TypeError) as s:
+        with ShouldRaise(ContextError) as s:
             runner()
-
-        if PY2:
-            message = "job() takes exactly 1 argument (0 given)"
-        else:
-            message = "job() missing 1 required positional argument: 'arg'"
-
-        compare(message, actual=str(s.raised))
+        compare(s.raised.text, expected="No 'arg' in context")
 
     def test_already_in_context(self):
         class T(object): pass
