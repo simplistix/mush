@@ -1,8 +1,10 @@
-from mush import returns, requires
-from ..compat import PY2
-from mock import Mock
-from testfixtures.comparison import register
 import pytest
+from mock import Mock
+from testfixtures.comparison import register, compare_simple
+
+from mush import returns, requires
+from mush.declarations import how
+from ..compat import PY2
 
 
 def pytest_ignore_collect(path):
@@ -16,20 +18,25 @@ def mock():
 
 
 def compare_requires(x, y, context):
-    if sorted(x) == sorted(y):
-        return
-    return (context.label('x', repr(x)) +
-            ' != ' +
-            context.label('y', repr(y))) # pragma: no cover
+    diff_args = context.different(x.args, y.args, '.args')
+    diff_kw = context.different(x.kw, y.kw, '.args')
+    if diff_args or diff_kw:  # pragma: no cover
+        return compare_simple(x, y, context)
 
 
 def compare_returns(x, y, context):
-    if x.args == y.args:
-        return
-    return (context.label('x', repr(x)) +
-            ' != ' +
-            context.label('y', repr(y))) # pragma: no cover
+    diff_args = context.different(x.args, y.args, '.args')
+    if diff_args:  # pragma: no cover
+        return compare_simple(x, y, context)
+
+
+def compare_how(x, y, context):
+    diff_args = context.different(x.type, y.type, '.type')
+    diff_names = context.different(x.type, y.type, '.names')
+    if diff_args or diff_names:  # pragma: no cover
+        return compare_simple(x, y, context)
 
 
 register(requires, compare_requires)
 register(returns, compare_returns)
+register(how, compare_how)
