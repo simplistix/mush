@@ -231,7 +231,11 @@ def check_type(*objs):
             )
 
 
-class Nothing(requires, returns): pass
+class Nothing(requires, returns):
+
+    def process(self, result):
+        return ()
+
 #: A singleton that be used as a :class:`requires` to indicate that a callable
 #: has no required arguments or as a :class:`returns` to indicate that anything
 #: returned from a callable should be ignored.

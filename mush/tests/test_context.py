@@ -284,4 +284,9 @@ class TestContext(TestCase):
         compare(result, 'bar')
         compare({}, context)
 
-
+    def test_ignore_non_iterable_return(self):
+        def foo(): pass
+        context = Context()
+        result = context.call(foo, nothing, nothing)
+        compare(result, expected=None)
+        compare(context, expected={})
