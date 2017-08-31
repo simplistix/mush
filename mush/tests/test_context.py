@@ -280,7 +280,7 @@ class TestContext(TestCase):
         def foo():
             return 'bar'
         context = Context()
-        result = context.call(foo, nothing, returns())
+        result = context.call(foo, nothing, nothing)
         compare(result, 'bar')
         compare({}, context)
 

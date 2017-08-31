@@ -231,12 +231,14 @@ def check_type(*objs):
             )
 
 
-#: A singleton :class:`requires` indicating that a callable
-#: has no required arguments.
-nothing = requires()
+class Nothing(requires, returns): pass
+#: A singleton that be used as a :class:`requires` to indicate that a callable
+#: has no required arguments or as a :class:`returns` to indicate that anything
+#: returned from a callable should be ignored.
+nothing = Nothing()
 
 #: A singleton  indicating that a callable's return value should be
-#: stored based on the type of that return value
+#: stored based on the type of that return value.
 result_type = returns_result_type()
 
 
