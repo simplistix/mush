@@ -3,6 +3,12 @@ Changes
 
 .. currentmodule:: mush
 
+2.7.1 (7 September 2017)
+------------------------
+
+- Use the original's requirements when the replacement passed to
+  :meth:`Runner.replace` has no specified requirements of its own.
+
 2.7.0 (7 September 2017)
 ------------------------
 
