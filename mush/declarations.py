@@ -305,7 +305,7 @@ else:
         return requires(*reversed(args), **kw)
 
 
-def extract_declarations(obj, explicit_requires, explicit_returns):
+def extract_declarations(obj, explicit_requires, explicit_returns, guess=True):
     mush_requires = getattr(obj, '__mush_requires__', None)
     mush_returns = getattr(obj, '__mush_returns__', None)
     annotations = getattr(obj, '__annotations__', None)
@@ -319,7 +319,8 @@ def extract_declarations(obj, explicit_requires, explicit_returns):
     if isinstance(requires_, requires):
         pass
     elif isinstance(requires_, NoneType):
-        requires_ = guess_requirements(obj)
+        if guess:
+            requires_ = guess_requirements(obj)
     elif isinstance(requires_, (list, tuple)):
         requires_ = requires(*requires_)
     elif isinstance(requires_, dict):

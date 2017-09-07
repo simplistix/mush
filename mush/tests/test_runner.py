@@ -1125,6 +1125,20 @@ class RunnerTests(TestCase):
             call.jobnew2(),
         ], actual=m.mock_calls)
 
+    def test_replace_keep_explicit_requirements(self):
+        def foo():
+            return 'bar'
+        def barbar(sheep):
+            return sheep*2
+
+        runner = Runner()
+        runner.add(foo, returns='flossy')
+        runner.add(barbar, requires='flossy')
+        compare(runner(), expected='barbar')
+
+        runner.replace(barbar, lambda dog: None)
+        compare(runner(), expected=None)
+
     def test_modifier_changes_endpoint(self):
         m = Mock()
         runner = Runner(m.job1)
