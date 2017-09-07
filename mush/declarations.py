@@ -236,9 +236,9 @@ class Nothing(requires, returns):
     def process(self, result):
         return ()
 
-#: A singleton that be used as a :class:`requires` to indicate that a callable
-#: has no required arguments or as a :class:`returns` to indicate that anything
-#: returned from a callable should be ignored.
+#: A singleton that be used as a :class:`~mush.requires` to indicate that a
+#: callable has no required arguments or as a :class:`~mush.returns` to indicate
+#: that anything returned from a callable should be ignored.
 nothing = Nothing()
 
 #: A singleton  indicating that a callable's return value should be

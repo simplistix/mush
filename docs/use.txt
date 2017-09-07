@@ -429,6 +429,8 @@ Anywhere that a type can be used, a string name can be used instead:
 >>> runner()
 by the age of 37 I realised the meaning of life was 42
 
+.. _type-annotations:
+
 Using Type Annotations
 ~~~~~~~~~~~~~~~~~~~~~~
 

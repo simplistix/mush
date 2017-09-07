@@ -3,7 +3,28 @@ Changes
 
 .. currentmodule:: mush
 
-2.6.0 (6 February 2016)
+2.7.0 (7 September 2017)
+------------------------
+
+- Move to `pytest`__ and `sybil`__ for testing.
+
+- Drop support for Python 3.3.
+
+- Add :func:`~mush.declarations.update_wrapper` helper.
+
+- Add support for using Python 3 :ref:`type annotations <type-annotations>`
+  to specify requirements and returned resources.
+
+- Add support for :ref:`arg names <default-configuration>` being used as
+  requirements when there is no other configuration.
+
+- Add an explicit way of :attr:`ignoring <mush.declarations.nothing>` the return value of a
+  callable.
+
+__ https://docs.pytest.org/en/latest/
+__ http://sybil.readthedocs.io/en/latest/
+
+2.6.0 (6 February 2017)
 -----------------------
 
 - Allow replacement of a callable to also supply new requirements.

@@ -10,5 +10,5 @@ __all__ = [
     'Runner',
     'requires', 'optional',
     'returns_result_type', 'returns_mapping', 'returns_sequence', 'returns',
-    'attr', 'item', 'Plug', nothing
+    'attr', 'item', 'Plug', 'nothing'
 ]
