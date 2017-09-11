@@ -369,7 +369,7 @@ configured to use the types from that mapping:
   runner.add(desperation, returns=returns_mapping())
   runner.add(juicer, requires(Apple, Orange))
 
-One again, we can happily make juice out of vegetables:
+Once again, we can happily make juice out of vegetables:
 
 >>> runner()
 I sold vegetables as fruit

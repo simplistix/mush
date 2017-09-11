@@ -41,7 +41,7 @@ Building the documentation
 --------------------------
 
 The Sphinx documentation is built by doing the following from the
-directory containg setup.py::
+directory containing setup.py::
 
   $ cd docs
   $ make html

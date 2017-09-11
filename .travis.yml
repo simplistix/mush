@@ -1,6 +1,6 @@
 language: python
 
-# for container-y googdness:
+# for container-y goodness:
 sudo: false
 
 python:

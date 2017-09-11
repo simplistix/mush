@@ -1,7 +1,7 @@
 Installation Instructions
 =========================
 
-The easyiest way to install Mush is::
+The easiest way to install Mush is::
 
   pip install mush
 

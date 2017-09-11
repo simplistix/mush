@@ -98,7 +98,7 @@ class TestItem(TestCase):
 
 class TestHow(TestCase):
 
-    def test_proccess_on_base(self):
+    def test_process_on_base(self):
         compare(how('foo').process('bar'), missing)
 
 
