@@ -30,12 +30,15 @@ jobs:
       script: "coveralls-check $TRAVIS_COMMIT"
 
     - stage: release
+      if: tag IS present
       python: 3.6
       script: skip
       # work around https://github.com/travis-ci/travis-ci/issues/8337:
       after_success: true
 
-      install: "pip install -Ue .[build]"
+      install:
+      - "pip install --upgrade pip setuptools"
+      - "pip install -Ue .[build]"
       deploy:
         provider: pypi
         user: chrisw
