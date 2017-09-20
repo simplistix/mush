@@ -4,8 +4,8 @@ from functools import (
     WRAPPER_UPDATES,
     WRAPPER_ASSIGNMENTS as FUNCTOOLS_ASSIGNMENTS
 )
-from inspect import isfunction
-from .compat import NoneType, zip_longest, PY2
+from inspect import isclass, isfunction
+from .compat import NoneType, signature
 from .markers import missing, not_specified
 
 
@@ -246,63 +246,23 @@ nothing = Nothing()
 result_type = returns_result_type()
 
 
-if PY2:
-    from inspect import getargspec, ismethod, isfunction, isclass
+def maybe_optional(p):
+    value = p.name
+    if p.default is not p.empty:
+        value = optional(value)
+    return value
 
 
-    def guess_requirements(obj):
-        if isclass(obj):
-            obj = obj.__init__
-        if not (isfunction(obj) or ismethod(obj)):
-            obj = obj.__call__
-        if not (isfunction(obj) or ismethod(obj)):
-            return
-        spec = getargspec(obj)
-        spec_args = spec.args
-        if callable(obj) and not isfunction(obj):
-            spec_args = spec_args[1:]
-        if not spec_args:
-            # short circuit
-            return
-        args = []
-        for arg, default in zip_longest(
-            reversed(spec_args), reversed(spec.defaults or ()),
-            fillvalue=not_specified
-        ):
-            if default is not_specified:
-                args.append(arg)
-            else:
-                args.append(optional(arg))
-        return requires(*reversed(args))
-
-else:
-
-    from inspect import getfullargspec
-
-    def guess_requirements(obj):
-        spec = getfullargspec(obj)
-        spec_args = spec.args
-        if callable(obj) and not isfunction(obj):
-            spec_args = spec_args[1:]
-        if not (spec_args or spec.kwonlyargs):
-            # short circuit
-            return
-        args = []
-        for arg, default in zip_longest(
-            reversed(spec_args), reversed(spec.defaults or ()),
-            fillvalue=not_specified
-        ):
-            if default is not_specified:
-                args.append(arg)
-            else:
-                args.append(optional(arg))
-        kw = {}
-        for arg in spec.kwonlyargs:
-            if arg in spec.kwonlydefaults:
-                kw[arg] = optional(arg)
-            else:
-                kw[arg] = arg
-        return requires(*reversed(args), **kw)
+def guess_requirements(obj):
+    args = []
+    kw = {}
+    for name, p in signature(obj).parameters.items():
+        if p.kind in {p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD}:
+            args.append(maybe_optional(p))
+        elif p.kind is p.KEYWORD_ONLY:
+            kw[name] = maybe_optional(p)
+    if args or kw:
+        return requires(*args, **kw)
 
 
 def extract_declarations(obj, explicit_requires, explicit_returns, guess=True):

@@ -1,3 +1,4 @@
+from functools import partial
 from unittest import TestCase
 from mock import Mock
 from testfixtures import compare, generator, ShouldRaise
@@ -236,3 +237,87 @@ class TestExtractDeclarations(object):
         check_extract(MyClass,
                       expected_rq=requires('a', optional('b')),
                       expected_rt=None)
+
+    def test_extract_from_partial(self):
+        def foo(x, y, z, a=None): pass
+        p = partial(foo, 1, y=2)
+        check_extract(
+            p,
+            expected_rq=requires(z='z', a=optional('a'), y=optional('y')),
+            expected_rt=None
+        )
+
+    def test_extract_from_partial_default_not_in_partial(self):
+        def foo(a=None): pass
+        p = partial(foo)
+        check_extract(
+            p,
+            expected_rq=requires(optional('a')),
+            expected_rt=None
+        )
+
+    def test_extract_from_partial_default_in_partial_arg(self):
+        def foo(a=None): pass
+        p = partial(foo, 1)
+        check_extract(
+            p,
+            # since a is already bound by the partial:
+            expected_rq=None,
+            expected_rt=None
+        )
+
+    def test_extract_from_partial_default_in_partial_kw(self):
+        def foo(a=None): pass
+        p = partial(foo, a=1)
+        check_extract(
+            p,
+            expected_rq=requires(a=optional('a')),
+            expected_rt=None
+        )
+
+    def test_extract_from_partial_required_in_partial_arg(self):
+        def foo(a): pass
+        p = partial(foo, 1)
+        check_extract(
+            p,
+            # since a is already bound by the partial:
+            expected_rq=None,
+            expected_rt=None
+        )
+
+    def test_extract_from_partial_required_in_partial_kw(self):
+        def foo(a): pass
+        p = partial(foo, a=1)
+        check_extract(
+            p,
+            expected_rq=requires(a=optional('a')),
+            expected_rt=None
+        )
+
+    def test_extract_from_partial_plus_one_default_not_in_partial(self):
+        def foo(b, a=None): pass
+        p = partial(foo)
+        check_extract(
+            p,
+            expected_rq=requires('b', optional('a')),
+            expected_rt=None
+        )
+
+    def test_extract_from_partial_plus_one_required_in_partial_arg(self):
+        def foo(b, a): pass
+        p = partial(foo, 1)
+        check_extract(
+            p,
+            # since b is already bound:
+            expected_rq=requires('a'),
+            expected_rt=None
+        )
+
+    def test_extract_from_partial_plus_one_required_in_partial_kw(self):
+        def foo(b, a): pass
+        p = partial(foo, a=1)
+        check_extract(
+            p,
+            expected_rq=requires('b', a=optional('a')),
+            expected_rt=None
+        )
