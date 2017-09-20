@@ -3,6 +3,12 @@ Changes
 
 .. currentmodule:: mush
 
+2.7.2 (20 September 2017)
+-------------------------
+
+- Fix bugs relating to :ref:`default configuration <default-configuration>`
+  of :func:`functools.partial`.
+
 2.7.1 (7 September 2017)
 ------------------------
 
