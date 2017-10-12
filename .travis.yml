@@ -23,6 +23,7 @@ jobs:
   include:
 
     - stage: coverage
+      if: type != cron
       python: 3.6
       after_success: skip
 
