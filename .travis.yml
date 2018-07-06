@@ -16,8 +16,7 @@ install:
 script: coverage run -m pytest
 
 after_success:
-  - coveralls
-
+  - "COVERALLS_PARALLEL=true coveralls"
 
 jobs:
   include:
