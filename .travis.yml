@@ -3,6 +3,9 @@ language: python
 # for container-y goodness:
 sudo: false
 
+env:
+  secure: "Jm01l9DZppH7lp2H0EKURFz6GWw+SMABnOv9gCOVCQifXSAp5uVGB+cak4GM8iwKWMpM/BFi9h201iz/9YSsvuQjFNxms/b2uA3VnI2eXuoVkYytQ3sU4ZD3PnPo61Jfb9qVTLeUlJ/pczdFX+s036+0z07SwM035HkkLijHA8A="
+
 python:
   - "3.6"
   - "2.7"
@@ -25,7 +28,7 @@ jobs:
       after_success: skip
 
       install: "pip install -U coveralls-check"
-      script: "coveralls-check $TRAVIS_COMMIT"
+      script: "coveralls-check $TRAVIS_COMMIT --parallel-build-number $TRAVIS_BUILD_NUMBER --repo-token $COVERALLS_REPO_TOKEN"
 
     - stage: release
       if: tag IS present
