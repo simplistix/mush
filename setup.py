@@ -1,4 +1,4 @@
-# Copyright (c) 2013 Simplistix Ltd, 2015-2017 Chris Withers
+# Copyright (c) 2013 Simplistix Ltd, 2015-2019 Chris Withers
 # See license.txt for license details.
 
 import os
@@ -32,6 +32,6 @@ setup(
     zip_safe=False,
     include_package_data=True,
     extras_require=dict(
-        test=['pytest', 'coverage', 'coveralls', 'mock', 'sybil', 'testfixtures'],
-        build=['sphinx', 'pkginfo', 'setuptools-git', 'wheel', 'twine']
+        test=['pytest', 'pytest-cov', 'mock', 'sybil', 'testfixtures'],
+        build=['sphinx', 'setuptools-git', 'wheel', 'twine']
     ))
