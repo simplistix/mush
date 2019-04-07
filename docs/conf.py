@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
-import os, pkginfo, datetime
+import os, datetime, pkg_resources
 
 on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
-pkg_info = pkginfo.Develop(os.path.join(os.path.dirname(__file__),'..'))
 
 extensions = [
     'sphinx.ext.autodoc',
@@ -17,11 +16,11 @@ intersphinx_mapping = dict(
 # General
 source_suffix = '.txt'
 master_doc = 'index'
-project = pkg_info.name
+project = 'mush'
 first_year = 2013
 current_year = datetime.datetime.now().year
 copyright = (str(current_year) if current_year==first_year else ('%s-%s'%(first_year,current_year)))+' Chris Withers'
-version = release = pkg_info.version
+version = release = pkg_resources.get_distribution(project).version
 exclude_trees = ['_build']
 exclude_patterns = ['description.txt']
 pygments_style = 'sphinx'
