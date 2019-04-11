@@ -150,7 +150,7 @@ class Runner(object):
         Replace all instances of one callable with another.
 
         No changes in requirements or call ordering will be made unless the
-        replacements has been decorated with and requirements, or either
+        replacements have been decorated with requirements, or either
         ``requires`` or ``returns`` have been specified.
 
         :param requires: The resources to required as parameters when calling
