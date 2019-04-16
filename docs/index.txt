@@ -1,9 +1,4 @@
-Mush Documentation
-==================
-
-Mush is a light weight type-based dependency injection framework aimed at
-enabling the easy testing and re-use of chunks of code that make up
-scripts. 
+.. include:: ../README.rst
 
 .. toctree::
    :maxdepth: 2

@@ -14,7 +14,7 @@ setup(
     license='MIT',
     description="Type-based dependency injection for scripts.",
     long_description=open(
-            os.path.join(base_dir, 'docs', 'description.txt')
+            os.path.join(base_dir, 'docs', 'README.rst')
     ).read(),
     url='http://pypi.python.org/pypi/mush',
     classifiers=[
