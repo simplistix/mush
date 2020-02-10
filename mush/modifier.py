@@ -19,7 +19,7 @@ class Modifier(object):
         else:
             self.labels = {label}
 
-    def add(self, obj, requires=None, returns=None, label=None):
+    def add(self, obj, requires=None, returns=None, label=None, lazy=False):
         """
         :param obj: The callable to be added.
 
@@ -37,6 +37,9 @@ class Modifier(object):
                       point where `obj` is added that can later be retrieved
                       with :meth:`Runner.__getitem__`.
 
+        :param lazy: If true, ``obj`` will only be called the first time it
+                     is needed.
+
         If no label is specified but the point which this
         :class:`~.modifier.Modifier` represents has any labels, those labels
         will be moved to the newly inserted point.
@@ -45,7 +48,7 @@ class Modifier(object):
             raise ValueError('%r already points to %r' % (
                 label, self.runner.labels[label]
             ))
-        callpoint = CallPoint(obj, requires, returns)
+        callpoint = CallPoint(obj, requires, returns, lazy)
 
         if label:
             self.add_label(label, callpoint)

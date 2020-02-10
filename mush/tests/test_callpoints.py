@@ -1,7 +1,7 @@
 from functools import update_wrapper
 from unittest import TestCase
 
-from mock import Mock
+from mock import Mock, call
 from testfixtures import compare
 
 from mush.callpoints import CallPoint
@@ -22,11 +22,11 @@ class TestCallPoints(TestCase):
 
     def test_supplied_explicitly(self):
         obj = object()
-        rq  = requires('foo')
+        rq = requires('foo')
         rt = returns('bar')
         result = CallPoint(obj, rq, rt)(self.context)
-        compare(result, self.context.call.return_value)
-        self.context.call.assert_called_with(obj, rq, rt)
+        compare(result, self.context.extract.return_value)
+        self.context.extract.assert_called_with(obj, rq, rt)
 
     def test_extract_from_decorations(self):
         rq = requires('foo')
@@ -37,8 +37,8 @@ class TestCallPoints(TestCase):
         def foo(): pass
 
         result = CallPoint(foo)(self.context)
-        compare(result, self.context.call.return_value)
-        self.context.call.assert_called_with(foo, rq, rt)
+        compare(result, self.context.extract.return_value)
+        self.context.extract.assert_called_with(foo, rq, rt)
 
     def test_extract_from_decorated_class(self):
 
@@ -60,7 +60,7 @@ class TestCallPoints(TestCase):
         def foo():
             return 'answer'
 
-        self.context.call.side_effect = lambda func, rq, rt: (func(), rq, rt)
+        self.context.extract.side_effect = lambda func, rq, rt: (func(), rq, rt)
         result = CallPoint(foo)(self.context)
         compare(result, expected=('the answer', rq, rt))
 
@@ -73,8 +73,8 @@ class TestCallPoints(TestCase):
         rt = returns('bob')
 
         result = CallPoint(foo, requires=rq, returns=rt)(self.context)
-        compare(result, self.context.call.return_value)
-        self.context.call.assert_called_with(foo, rq, rt)
+        compare(result, self.context.extract.return_value)
+        self.context.extract.assert_called_with(foo, rq, rt)
 
     def test_repr_minimal(self):
         def foo(): pass

@@ -8,7 +8,8 @@ from testfixtures import (
 
 from mush.context import ContextError
 from mush.declarations import (
-    requires, attr, item, nothing, returns, returns_mapping)
+    requires, attr, item, nothing, returns, returns_mapping, lazy
+)
 from mush.runner import Runner
 
 
@@ -401,6 +402,78 @@ class RunnerTests(TestCase):
                 call.job1(),
                 call.job2(t),
                 ], m.mock_calls)
+
+    def test_lazy_decorator(self):
+        m = Mock()
+        class T1(object): pass
+        class T2(object): pass
+        t = T1()
+
+        @lazy
+        @returns(T1)
+        def lazy_used():
+            m.lazy_used()
+            return t
+
+        @lazy
+        @returns(T2)
+        def lazy_unused():
+            raise AssertionError('should not be called')  # pragma: no cover
+
+        @requires(T1)
+        def job(obj):
+            m.job(obj)
+
+        runner = Runner(lazy_used, lazy_unused, job)
+        runner()
+
+        compare(m.mock_calls, expected=[
+            call.lazy_used(),
+            call.job(t),
+        ], )
+
+    def test_lazy_imperative(self):
+        m = Mock()
+        class T1(object): pass
+        class T2(object): pass
+        t = T1()
+
+        def lazy_used():
+            m.lazy_used()
+            return t
+
+        def lazy_unused():
+            raise AssertionError('should not be called')  # pragma: no cover
+
+        def job(obj):
+            m.job(obj)
+
+        runner = Runner()
+        runner.add(lazy_used, returns=returns(T1), lazy=True)
+        runner.add(lazy_unused, returns=returns(T2), lazy=True)
+        runner.add(job, requires(T1))
+        runner()
+
+        compare(m.mock_calls, expected=[
+            call.lazy_used(),
+            call.job(t),
+        ], )
+
+    def test_lazy_no_return_type_specified(self):
+        runner = Runner()
+        with ShouldRaise(
+            TypeError('a single return type must be explicitly specified')
+        ):
+            runner.add(lambda: None, lazy=True)
+
+    def test_returns_more_than_one_type(self):
+        class T1(object): pass
+        class T2(object): pass
+        runner = Runner()
+        with ShouldRaise(
+            TypeError('a single return type must be explicitly specified')
+        ):
+            runner.add(lambda: None, returns=returns(T1, T2), lazy=True)
 
     def test_missing_from_context_no_chain(self):
         class T(object): pass

@@ -1,6 +1,7 @@
 from collections import deque
 
 from .declarations import how, nothing
+from .factory import Factory
 from .markers import missing
 
 NONE_TYPE = None.__class__
@@ -84,7 +85,17 @@ class Context(dict):
             bits.append('\n')
         return '<Context: {%s}>' % ''.join(bits)
 
-    def call(self, obj, requires, returns):
+    def extract(self, obj, requires, returns):
+        result = self.call(obj, requires)
+        for type, obj in returns.process(result):
+            self.add(obj, type)
+        return result
+
+    def call(self, obj, requires):
+
+        if isinstance(obj, Factory):
+            self.add(obj, obj.returns.args[0])
+            return
 
         args = []
         kw = {}
@@ -98,6 +109,8 @@ class Context(dict):
                 type = type.type
 
             o = self.get(type, missing)
+            if isinstance(o, Factory):
+                o = o(self)
 
             for op in ops:
                 o = op(o)
@@ -113,9 +126,4 @@ class Context(dict):
             else:
                 kw[name] = o
 
-        result = obj(*args, **kw)
-
-        for type, obj in returns.process(result):
-            self.add(obj, type)
-
-        return result
+        return obj(*args, **kw)

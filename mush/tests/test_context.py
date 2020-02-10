@@ -6,7 +6,7 @@ from testfixtures import ShouldRaise, compare
 from mush.context import Context, ContextError
 
 from mush.declarations import (
-    nothing, result_type, requires, optional, item,
+    nothing, requires, optional, item,
     attr, returns, returns_mapping
 )
 
@@ -86,27 +86,26 @@ class TestContext(TestCase):
         def foo():
             return 'bar'
         context = Context()
-        result = context.call(foo, nothing, result_type)
+        result = context.call(foo, nothing)
         compare(result, 'bar')
-        compare({str: 'bar'}, context)
 
     def test_call_requires_string(self):
         def foo(obj):
             return obj
         context = Context()
         context.add('bar', 'baz')
-        result = context.call(foo, requires('baz'), result_type)
+        result = context.call(foo, requires('baz'))
         compare(result, 'bar')
-        compare({'baz': 'bar', str: 'bar'}, context)
+        compare({'baz': 'bar'}, context)
 
     def test_call_requires_type(self):
         def foo(obj):
             return obj
         context = Context()
         context.add('bar', TheType)
-        result = context.call(foo, requires(TheType), result_type)
+        result = context.call(foo, requires(TheType))
         compare(result, 'bar')
-        compare({TheType: 'bar', str: 'bar'}, context)
+        compare({TheType: 'bar'}, context)
 
     def test_call_requires_missing(self):
         def foo(obj): return obj
@@ -114,7 +113,7 @@ class TestContext(TestCase):
         with ShouldRaise(ContextError(
                 "No <class 'mush.tests.test_context.TheType'> in context"
         )):
-            context.call(foo, requires(TheType), result_type)
+            context.call(foo, requires(TheType))
 
     def test_call_requires_item_missing(self):
         def foo(obj): return obj
@@ -123,7 +122,7 @@ class TestContext(TestCase):
         with ShouldRaise(ContextError(
                 "No TheType['foo'] in context"
         )):
-            context.call(foo, requires(item(TheType, 'foo')), result_type)
+            context.call(foo, requires(item(TheType, 'foo')))
 
     def test_call_requires_accidental_tuple(self):
         def foo(obj): return obj
@@ -133,7 +132,7 @@ class TestContext(TestCase):
                 "<class 'mush.tests.test_context.TheType'>) "
                 "is not a type or label"
         )):
-            context.call(foo, requires((TheType, TheType)), result_type)
+            context.call(foo, requires((TheType, TheType)))
 
     def test_call_requires_named_parameter(self):
         def foo(x, y):
@@ -141,54 +140,43 @@ class TestContext(TestCase):
         context = Context()
         context.add('foo', TheType)
         context.add('bar', 'baz')
-        result = context.call(foo,
-                              requires(y='baz', x=TheType),
-                              result_type)
+        result = context.call(foo, requires(y='baz', x=TheType))
         compare(result, ('foo', 'bar'))
         compare({TheType: 'foo',
-                 'baz': 'bar',
-                 tuple: ('foo', 'bar')}, context)
+                 'baz': 'bar'},
+                actual=context)
 
     def test_call_requires_optional_present(self):
         def foo(x=1):
             return x
         context = Context()
         context.add(2, TheType)
-        result = context.call(foo,
-                              requires(optional(TheType)),
-                              result_type)
+        result = context.call(foo, requires(optional(TheType)))
         compare(result, 2)
-        compare({TheType: 2, int: 2}, context)
+        compare({TheType: 2}, context)
 
     def test_call_requires_optional_ContextError(self):
         def foo(x=1):
             return x
         context = Context()
-        result = context.call(foo,
-                              requires(optional(TheType)),
-                              result_type)
+        result = context.call(foo, requires(optional(TheType)))
         compare(result, 1)
-        compare({int: 1}, context)
 
     def test_call_requires_optional_string(self):
         def foo(x=1):
             return x
         context = Context()
         context.add(2, 'foo')
-        result = context.call(foo,
-                              requires(optional('foo')),
-                              result_type)
+        result = context.call(foo, requires(optional('foo')))
         compare(result, 2)
-        compare({'foo': 2, int: 2}, context)
+        compare({'foo': 2}, context)
 
     def test_call_requires_item(self):
         def foo(x):
             return x
         context = Context()
         context.add(dict(bar='baz'), 'foo')
-        result = context.call(foo,
-                              requires(item('foo', 'bar')),
-                              result_type)
+        result = context.call(foo, requires(item('foo', 'bar')))
         compare(result, 'baz')
 
     def test_call_requires_attr(self):
@@ -197,9 +185,7 @@ class TestContext(TestCase):
         m = Mock()
         context = Context()
         context.add(m, 'foo')
-        result = context.call(foo,
-                              requires(attr('foo', 'bar')),
-                              result_type)
+        result = context.call(foo, requires(attr('foo', 'bar')))
         compare(result, m.bar)
 
     def test_call_requires_item_attr(self):
@@ -209,18 +195,14 @@ class TestContext(TestCase):
         m.bar= dict(baz='bob')
         context = Context()
         context.add(m, 'foo')
-        result = context.call(foo,
-                              requires(item(attr('foo', 'bar'), 'baz')),
-                              result_type)
+        result = context.call(foo, requires(item(attr('foo', 'bar'), 'baz')))
         compare(result, 'bob')
 
     def test_call_requires_optional_item_ContextError(self):
         def foo(x=1):
             return x
         context = Context()
-        result = context.call(foo,
-                              requires(optional(item('foo', 'bar'))),
-                              result_type)
+        result = context.call(foo, requires(optional(item('foo', 'bar'))))
         compare(result, 1)
 
     def test_call_requires_optional_item_present(self):
@@ -228,18 +210,14 @@ class TestContext(TestCase):
             return x
         context = Context()
         context.add(dict(bar='baz'), 'foo')
-        result = context.call(foo,
-                              requires(optional(item('foo', 'bar'))),
-                              result_type)
+        result = context.call(foo, requires(optional(item('foo', 'bar'))))
         compare(result, 'baz')
 
     def test_call_requires_item_optional_ContextError(self):
         def foo(x=1):
             return x
         context = Context()
-        result = context.call(foo,
-                              requires(item(optional('foo'), 'bar')),
-                              result_type)
+        result = context.call(foo, requires(item(optional('foo'), 'bar')))
         compare(result, 1)
 
     def test_call_requires_item_optional_present(self):
@@ -247,16 +225,14 @@ class TestContext(TestCase):
             return x
         context = Context()
         context.add(dict(bar='baz'), 'foo')
-        result = context.call(foo,
-                              requires(item(optional('foo'), 'bar')),
-                              result_type)
+        result = context.call(foo, requires(item(optional('foo'), 'bar')))
         compare(result, 'baz')
 
     def test_returns_single(self):
         def foo():
             return 'bar'
         context = Context()
-        result = context.call(foo, nothing, returns(TheType))
+        result = context.extract(foo, nothing, returns(TheType))
         compare(result, 'bar')
         compare({TheType: 'bar'}, context)
 
@@ -264,7 +240,7 @@ class TestContext(TestCase):
         def foo():
             return 1, 2
         context = Context()
-        result = context.call(foo, nothing, returns('foo', 'bar'))
+        result = context.extract(foo, nothing, returns('foo', 'bar'))
         compare(result, (1, 2))
         compare({'foo': 1, 'bar': 2}, context)
 
@@ -272,7 +248,7 @@ class TestContext(TestCase):
         def foo():
             return {'foo': 1, 'bar': 2}
         context = Context()
-        result = context.call(foo, nothing, returns_mapping())
+        result = context.extract(foo, nothing, returns_mapping())
         compare(result, {'foo': 1, 'bar': 2})
         compare({'foo': 1, 'bar': 2}, context)
 
@@ -280,13 +256,13 @@ class TestContext(TestCase):
         def foo():
             return 'bar'
         context = Context()
-        result = context.call(foo, nothing, nothing)
+        result = context.extract(foo, nothing, nothing)
         compare(result, 'bar')
         compare({}, context)
 
     def test_ignore_non_iterable_return(self):
         def foo(): pass
         context = Context()
-        result = context.call(foo, nothing, nothing)
+        result = context.extract(foo, nothing, nothing)
         compare(result, expected=None)
         compare(context, expected={})

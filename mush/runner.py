@@ -19,7 +19,7 @@ class Runner(object):
         self.labels = {}
         self.extend(*objects)
 
-    def add(self, obj, requires=None, returns=None, label=None):
+    def add(self, obj, requires=None, returns=None, label=None, lazy=False):
         """
         Add a callable to the runner.
 
@@ -38,12 +38,15 @@ class Runner(object):
         :param label: If specified, this is a string that adds a label to the
                       point where `obj` is added that can later be retrieved
                       with :meth:`Runner.__getitem__`.
+
+        :param lazy: If true, ``obj`` will only be called the first time it
+                     is needed.
         """
         if isinstance(obj, Plug):
             obj.add_to(self)
         else:
             m = Modifier(self, self.end, not_specified)
-            m.add(obj, requires, returns, label)
+            m.add(obj, requires, returns, label, lazy)
             return m
 
     def add_label(self, label):

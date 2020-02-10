@@ -134,6 +134,15 @@ class returns(returns_result_type):
         return self.__class__.__name__ + '(' + args_repr + ')'
 
 
+def lazy(obj):
+    """
+    Declaration that specifies the callable should only be called the first time
+    it is required.
+    """
+    obj.__mush_lazy__ = True
+    return obj
+
+
 class how(object):
     """
     The base class for type decorators that indicate which part of a
