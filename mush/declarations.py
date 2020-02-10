@@ -109,7 +109,7 @@ class returns_sequence(returns_result_type):
 
 class returns(returns_result_type):
     """
-    Declaration that specified names for returned resources or overrides
+    Declaration that specifies names for returned resources or overrides
     the type of a returned resource.
 
     This declaration can be used to indicate the type or name of a single
