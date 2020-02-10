@@ -3,6 +3,11 @@ Changes
 
 .. currentmodule:: mush
 
+2.8.0 (10 February 2020)
+------------------------
+
+- Add support for lazy resources.
+
 2.7.2 (20 September 2017)
 -------------------------
 

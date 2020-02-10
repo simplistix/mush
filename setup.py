@@ -1,4 +1,4 @@
-# Copyright (c) 2013 Simplistix Ltd, 2015-2019 Chris Withers
+# Copyright (c) 2013 Simplistix Ltd, 2015-2020 Chris Withers
 # See license.txt for license details.
 
 import os
@@ -8,7 +8,7 @@ base_dir = os.path.dirname(__file__)
 
 setup(
     name='mush',
-    version='2.7.2',
+    version='2.8.0',
     author='Chris Withers',
     author_email='chris@simplistix.co.uk',
     license='MIT',
