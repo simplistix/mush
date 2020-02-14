@@ -1,12 +1,11 @@
-import sys
-import types
 from functools import (
     WRAPPER_UPDATES,
-    WRAPPER_ASSIGNMENTS as FUNCTOOLS_ASSIGNMENTS
+    WRAPPER_ASSIGNMENTS as FUNCTOOLS_ASSIGNMENTS,
+    update_wrapper as functools_update_wrapper,
 )
-from inspect import isclass, isfunction
-from .compat import NoneType, signature
-from .markers import missing, not_specified
+from inspect import signature
+
+from .markers import missing
 
 
 def name_or_repr(obj):
@@ -226,10 +225,7 @@ class item(how):
             return o
 
 
-if sys.version_info[0] == 2:
-    ok_types = (type, types.ClassType, str, how)
-else:
-    ok_types = (type, str, how)
+ok_types = (type, str, how)
 
 
 def check_type(*objs):
@@ -287,7 +283,7 @@ def extract_declarations(obj, explicit_requires, explicit_returns, guess=True):
 
     if isinstance(requires_, requires):
         pass
-    elif isinstance(requires_, NoneType):
+    elif requires_ is None:
         if guess:
             requires_ = guess_requirements(obj)
     elif isinstance(requires_, (list, tuple)):
@@ -297,7 +293,7 @@ def extract_declarations(obj, explicit_requires, explicit_returns, guess=True):
     else:
         requires_ = requires(requires_)
 
-    if isinstance(returns_, (ReturnsType, NoneType)):
+    if returns_ is None or isinstance(returns_, ReturnsType):
         pass
     elif isinstance(returns_, (list, tuple)):
         returns_ = returns(*returns_)
@@ -320,18 +316,4 @@ def update_wrapper(wrapper,
     An extended version of :func:`functools.update_wrapper` that
     also preserves Mush's annotations.
     """
-    # copied here to backport bugfix from Python 3.
-    for attr in assigned:
-        try:
-            value = getattr(wrapped, attr)
-        except AttributeError:
-            pass
-        else:
-            setattr(wrapper, attr, value)
-    for attr in updated:
-        getattr(wrapper, attr).update(getattr(wrapped, attr, {}))
-    # Issue #17482: set __wrapped__ last so we don't inadvertently copy it
-    # from the wrapped function when updating __dict__
-    wrapper.__wrapped__ = wrapped
-    # Return the wrapper so this can be used as a decorator via partial()
-    return wrapper
+    return functools_update_wrapper(wrapper, wrapped, assigned, updated)

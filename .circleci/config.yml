@@ -7,17 +7,17 @@ common: &common
   jobs:
 
     - python/pip-run-tests:
-        name: python27
-        image: circleci/python:2.7
+        name: python36
+        image: circleci/python:3.6
     - python/pip-run-tests:
-        name: python37
-        image: circleci/python:3.7
+        name: python38
+        image: circleci/python:3.8
 
     - python/coverage:
         name: coverage
         requires:
-          - python27
-          - python37
+          - python36
+          - python38
 
     - python/release:
         name: release

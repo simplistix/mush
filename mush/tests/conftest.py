@@ -4,12 +4,6 @@ from testfixtures.comparison import register, compare_simple
 
 from mush import returns, requires
 from mush.declarations import how
-from ..compat import PY2
-
-
-def pytest_ignore_collect(path):
-    if 'py3' in path.basename and PY2:
-        return True
 
 
 @pytest.fixture()

@@ -1,5 +1,5 @@
 from argparse import ArgumentParser
-from .configparser import RawConfigParser
+from configparser import RawConfigParser
 import logging, os, sqlite3, sys
 
 log = logging.getLogger()
