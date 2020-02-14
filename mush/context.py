@@ -4,7 +4,7 @@ from .declarations import how, nothing
 from .factory import Factory
 from .markers import missing
 
-NONE_TYPE = None.__class__
+NONE_TYPE = type(None)
 
 
 class ContextError(Exception):
@@ -58,8 +58,11 @@ def type_key(type_tuple):
     return type.__name__
 
 
-class Context(dict):
+class Context:
     "Stores resources for a particular run."
+
+    def __init__(self):
+        self._store = {}
 
     def add(self, it, type):
         """
@@ -71,15 +74,15 @@ class Context(dict):
 
         if type is NONE_TYPE:
             raise ValueError('Cannot add None to context')
-        if type in self:
+        if type in self._store:
             raise ContextError('Context already contains %r' % (
                     type
                     ))
-        self[type] = it
+        self._store[type] = it
 
     def __repr__(self):
         bits = []
-        for type, value in sorted(self.items(), key=type_key):
+        for type, value in sorted(self._store.items(), key=type_key):
             bits.append('\n    %r: %r' % (type, value))
         if bits:
             bits.append('\n')
@@ -108,7 +111,7 @@ class Context(dict):
                 ops.appendleft(type.process)
                 type = type.type
 
-            o = self.get(type, missing)
+            o = self._store.get(type, missing)
             if isinstance(o, Factory):
                 o = self.call(o.__wrapped__, o.requires)
                 self[type] = o

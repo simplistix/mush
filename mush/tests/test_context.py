@@ -23,7 +23,7 @@ class TestContext(TestCase):
         context = Context()
         context.add(obj, TheType)
 
-        self.assertTrue(context[TheType] is obj)
+        self.assertTrue(context._store[TheType] is obj)
         expected = (
             "<Context: {\n"
             "    <class 'mush.tests.test_context.TheType'>: <TheType obj>\n"
@@ -40,7 +40,7 @@ class TestContext(TestCase):
         expected = ("<Context: {\n"
                     "    'my label': <TheType obj>\n"
                     "}>")
-        self.assertTrue(context['my label'] is obj)
+        self.assertTrue(context._store['my label'] is obj)
         self.assertEqual(repr(context), expected)
         self.assertEqual(str(context), expected)
 
@@ -49,7 +49,7 @@ class TestContext(TestCase):
         obj = TheType()
         context = Context()
         context.add(obj, T2)
-        self.assertTrue(context[T2] is obj)
+        self.assertTrue(context._store[T2] is obj)
         expected = ("<Context: {\n"
                     "    " + repr(T2) + ": <TheType obj>\n"
                     "}>")
@@ -80,7 +80,7 @@ class TestContext(TestCase):
     def test_add_none_with_type(self):
         context = Context()
         context.add(None, TheType)
-        self.assertTrue(context[TheType] is None)
+        self.assertTrue(context._store[TheType] is None)
 
     def test_call_basic(self):
         def foo():
@@ -96,7 +96,7 @@ class TestContext(TestCase):
         context.add('bar', 'baz')
         result = context.call(foo, requires('baz'))
         compare(result, 'bar')
-        compare({'baz': 'bar'}, context)
+        compare({'baz': 'bar'}, context._store)
 
     def test_call_requires_type(self):
         def foo(obj):
@@ -105,7 +105,7 @@ class TestContext(TestCase):
         context.add('bar', TheType)
         result = context.call(foo, requires(TheType))
         compare(result, 'bar')
-        compare({TheType: 'bar'}, context)
+        compare({TheType: 'bar'}, context._store)
 
     def test_call_requires_missing(self):
         def foo(obj): return obj
@@ -144,7 +144,7 @@ class TestContext(TestCase):
         compare(result, ('foo', 'bar'))
         compare({TheType: 'foo',
                  'baz': 'bar'},
-                actual=context)
+                actual=context._store)
 
     def test_call_requires_optional_present(self):
         def foo(x=1):
@@ -153,7 +153,7 @@ class TestContext(TestCase):
         context.add(2, TheType)
         result = context.call(foo, requires(optional(TheType)))
         compare(result, 2)
-        compare({TheType: 2}, context)
+        compare({TheType: 2}, context._store)
 
     def test_call_requires_optional_ContextError(self):
         def foo(x=1):
@@ -169,7 +169,7 @@ class TestContext(TestCase):
         context.add(2, 'foo')
         result = context.call(foo, requires(optional('foo')))
         compare(result, 2)
-        compare({'foo': 2}, context)
+        compare({'foo': 2}, context._store)
 
     def test_call_requires_item(self):
         def foo(x):
@@ -234,7 +234,7 @@ class TestContext(TestCase):
         context = Context()
         result = context.extract(foo, nothing, returns(TheType))
         compare(result, 'bar')
-        compare({TheType: 'bar'}, context)
+        compare({TheType: 'bar'}, context._store)
 
     def test_returns_sequence(self):
         def foo():
@@ -242,7 +242,7 @@ class TestContext(TestCase):
         context = Context()
         result = context.extract(foo, nothing, returns('foo', 'bar'))
         compare(result, (1, 2))
-        compare({'foo': 1, 'bar': 2}, context)
+        compare({'foo': 1, 'bar': 2}, context._store)
 
     def test_returns_mapping(self):
         def foo():
@@ -250,7 +250,7 @@ class TestContext(TestCase):
         context = Context()
         result = context.extract(foo, nothing, returns_mapping())
         compare(result, {'foo': 1, 'bar': 2})
-        compare({'foo': 1, 'bar': 2}, context)
+        compare({'foo': 1, 'bar': 2}, context._store)
 
     def test_ignore_return(self):
         def foo():
@@ -258,11 +258,11 @@ class TestContext(TestCase):
         context = Context()
         result = context.extract(foo, nothing, nothing)
         compare(result, 'bar')
-        compare({}, context)
+        compare({}, context._store)
 
     def test_ignore_non_iterable_return(self):
         def foo(): pass
         context = Context()
         result = context.extract(foo, nothing, nothing)
         compare(result, expected=None)
-        compare(context, expected={})
+        compare(context._store, expected={})
