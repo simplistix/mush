@@ -1,4 +1,4 @@
-from .declarations import result_type, nothing, extract_declarations
+from .declarations import result_type, nothing, extract_requires, extract_returns
 from .factory import Factory
 
 
@@ -6,11 +6,10 @@ class CallPoint(object):
 
     next = None
     previous = None
-    requires = nothing
-    returns = result_type
 
     def __init__(self, obj, requires=None, returns=None, lazy=None):
-        requires, returns = extract_declarations(obj, requires, returns)
+        requires = extract_requires(obj, requires)
+        returns = extract_returns(obj, returns)
         lazy = lazy or getattr(obj, '__mush__', {}).get('lazy')
         requires = requires or nothing
         returns = returns or result_type

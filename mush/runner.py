@@ -1,6 +1,6 @@
 from .callpoints import CallPoint
 from .context import Context, ContextError
-from .declarations import extract_declarations
+from .declarations import extract_requires, extract_returns
 from .markers import not_specified
 from .modifier import Modifier
 from .plug import Plug
@@ -170,8 +170,9 @@ class Runner(object):
         while point:
             if point.obj is original:
 
-                new_requirements = extract_declarations(
-                    replacement, requires, returns, guess=False
+                new_requirements = (
+                    extract_requires(replacement, requires, guess=False),
+                    extract_returns(replacement, returns)
                 )
 
                 if any(new_requirements):

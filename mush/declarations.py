@@ -276,17 +276,15 @@ def guess_requirements(obj):
         return requires(*args, **kw)
 
 
-def extract_declarations(obj, explicit_requires, explicit_returns, guess=True):
-    mush_declarations = getattr(obj, '__mush__', {})
-    mush_requires = mush_declarations.get('requires', None)
-    mush_returns = mush_declarations.get('returns', None)
-    annotations = getattr(obj, '__annotations__', None)
-    annotations = {} if annotations is None else annotations.copy()
-    annotation_returns = annotations.pop('return', None)
-    annotation_requires = annotations or None
-
-    requires_ = explicit_requires or mush_requires or annotation_requires
-    returns_ = explicit_returns or mush_returns or annotation_returns
+def extract_requires(obj, requires_, guess=True):
+    if requires_ is None:
+        mush_declarations = getattr(obj, '__mush__', {})
+        requires_ = mush_declarations.get('requires', None)
+        if requires_ is None:
+            annotations = getattr(obj, '__annotations__', None)
+            annotations = {} if annotations is None else annotations.copy()
+            annotations.pop('return', None)
+            requires_ = annotations or None
 
     if isinstance(requires_, requires):
         pass
@@ -300,6 +298,17 @@ def extract_declarations(obj, explicit_requires, explicit_returns, guess=True):
     else:
         requires_ = requires(requires_)
 
+    return requires_
+
+
+def extract_returns(obj, returns_):
+    if returns_ is None:
+        mush_declarations = getattr(obj, '__mush__', {})
+        returns_ = mush_declarations.get('returns', None)
+        if returns_ is None:
+            annotations = getattr(obj, '__annotations__', {})
+            returns_ = annotations.get('return')
+
     if returns_ is None or isinstance(returns_, ReturnsType):
         pass
     elif isinstance(returns_, (list, tuple)):
@@ -307,7 +316,7 @@ def extract_declarations(obj, explicit_requires, explicit_returns, guess=True):
     else:
         returns_ = returns(returns_)
 
-    return requires_, returns_
+    return returns_
 
 
 WRAPPER_ASSIGNMENTS = FUNCTOOLS_ASSIGNMENTS + ('__mush__',)
