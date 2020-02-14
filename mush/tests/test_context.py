@@ -3,7 +3,7 @@ from mock import Mock
 
 from testfixtures import ShouldRaise, compare
 
-from mush.context import Context, ContextError
+from mush import Context, ContextError
 
 from mush.declarations import (
     nothing, requires, optional, item,

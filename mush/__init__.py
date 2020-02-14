@@ -5,8 +5,10 @@ from .declarations import (
     optional, attr, item, nothing
 )
 from .plug import Plug
+from .context import Context, ContextError
 
 __all__ = [
+    'Context', 'ContextError',
     'Runner',
     'requires', 'optional',
     'returns_result_type', 'returns_mapping', 'returns_sequence', 'returns',
