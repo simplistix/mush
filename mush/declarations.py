@@ -12,6 +12,12 @@ def name_or_repr(obj):
     return getattr(obj, '__name__', None) or repr(obj)
 
 
+def set_mush(obj, key, value):
+    if not hasattr(obj, '__mush__'):
+        obj.__mush__ = {}
+    obj.__mush__[key] = value
+
+
 class requires(object):
     """
     Represents requirements for a particular callable.
@@ -54,14 +60,14 @@ class requires(object):
         return txt
 
     def __call__(self, obj):
-        obj.__mush_requires__ = self
+        set_mush(obj, 'requires', self)
         return obj
 
 
 class ReturnsType(object):
 
     def __call__(self, obj):
-        obj.__mush_returns__ = self
+        set_mush(obj, 'returns', self)
         return obj
 
     def __repr__(self):
@@ -138,7 +144,7 @@ def lazy(obj):
     Declaration that specifies the callable should only be called the first time
     it is required.
     """
-    obj.__mush_lazy__ = True
+    set_mush(obj, 'lazy', True)
     return obj
 
 
@@ -271,8 +277,9 @@ def guess_requirements(obj):
 
 
 def extract_declarations(obj, explicit_requires, explicit_returns, guess=True):
-    mush_requires = getattr(obj, '__mush_requires__', None)
-    mush_returns = getattr(obj, '__mush_returns__', None)
+    mush_declarations = getattr(obj, '__mush__', {})
+    mush_requires = mush_declarations.get('requires', None)
+    mush_returns = mush_declarations.get('returns', None)
     annotations = getattr(obj, '__annotations__', None)
     annotations = {} if annotations is None else annotations.copy()
     annotation_returns = annotations.pop('return', None)
@@ -303,9 +310,7 @@ def extract_declarations(obj, explicit_requires, explicit_returns, guess=True):
     return requires_, returns_
 
 
-WRAPPER_ASSIGNMENTS = FUNCTOOLS_ASSIGNMENTS + (
-    '__mush__requires__', '__mush_returns__'
-)
+WRAPPER_ASSIGNMENTS = FUNCTOOLS_ASSIGNMENTS + ('__mush__',)
 
 
 def update_wrapper(wrapper,

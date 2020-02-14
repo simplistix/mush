@@ -63,7 +63,7 @@ class TestRequires(TestCase):
         def foo():
             return 'bar'
 
-        compare(set(foo.__mush_requires__), {(None, Type1)})
+        compare(set(foo.__mush__['requires']), {(None, Type1)})
         compare(foo(), 'bar')
 
 
@@ -163,7 +163,7 @@ class TestReturns(TestCase):
         @returns(Type1)
         def foo():
             return 'foo'
-        r = foo.__mush_returns__
+        r = foo.__mush__['returns']
         compare(repr(r), 'returns(Type1)')
         compare(dict(r.process(foo())), {Type1: 'foo'})
 
@@ -180,7 +180,7 @@ class TestReturnsMapping(TestCase):
         @returns_mapping()
         def foo():
             return {Type1: 'foo', 'bar': 'baz'}
-        r = foo.__mush_returns__
+        r = foo.__mush__['returns']
         compare(repr(r), 'returns_mapping()')
         compare(dict(r.process(foo())),
                 {Type1: 'foo', 'bar': 'baz'})
@@ -194,7 +194,7 @@ class TestReturnsSequence(TestCase):
         @returns_sequence()
         def foo():
             return t1, t2
-        r = foo.__mush_returns__
+        r = foo.__mush__['returns']
         compare(repr(r), 'returns_sequence()')
         compare(dict(r.process(foo())),
                 {Type1: t1, Type2: t2})
@@ -206,7 +206,7 @@ class TestReturnsResultType(TestCase):
         @returns_result_type()
         def foo():
             return 'foo'
-        r = foo.__mush_returns__
+        r = foo.__mush__['returns']
         compare(repr(r), 'returns_result_type()')
         compare(dict(r.process(foo())), {str: 'foo'})
 

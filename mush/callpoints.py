@@ -11,7 +11,7 @@ class CallPoint(object):
 
     def __init__(self, obj, requires=None, returns=None, lazy=None):
         requires, returns = extract_declarations(obj, requires, returns)
-        lazy = lazy or getattr(obj, '__mush_lazy__', False)
+        lazy = lazy or getattr(obj, '__mush__', {}).get('lazy')
         requires = requires or nothing
         returns = returns or result_type
         if lazy:

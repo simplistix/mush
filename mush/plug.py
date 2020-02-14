@@ -1,10 +1,13 @@
+from .declarations import set_mush
+
+
 class ignore(object):
     """
     A decorator to explicitly mark that a method of a :class:`~mush.Plug` should
     not be added to a runner by :meth:`~mush.Plug.add_to`
     """
     def __call__(self, method):
-        method.__mush_plug__ = self
+        set_mush(method, 'plug', self)
         return method
 
     def apply(self, runner, obj):
@@ -64,5 +67,5 @@ class Plug(object):
             if not name.startswith('_'):
                 obj = getattr(self, name)
                 if callable(obj):
-                    action = getattr(obj, '__mush_plug__', default_action)
+                    action = getattr(obj, '__mush__', {}).get('plug', default_action)
                     action.apply(runner, obj)
