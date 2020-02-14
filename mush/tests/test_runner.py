@@ -475,6 +475,31 @@ class RunnerTests(TestCase):
         ):
             runner.add(lambda: None, returns=returns(T1, T2), lazy=True)
 
+    def test_lazy_per_context(self):
+        m = Mock()
+        class T1(object): pass
+        t = T1()
+
+        def lazy():
+            m.lazy_used()
+            return t
+
+        def job(obj):
+            m.job(obj)
+
+        runner = Runner()
+        runner.add(lazy, returns=returns(T1), lazy=True)
+        runner.add(job, requires(T1))
+        runner()
+        runner()
+
+        compare(m.mock_calls, expected=[
+            call.lazy_used(),
+            call.job(t),
+            call.lazy_used(),
+            call.job(t),
+        ], )
+
     def test_missing_from_context_no_chain(self):
         class T(object): pass
 

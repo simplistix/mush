@@ -12,10 +12,5 @@ class Factory(object):
         self.requires = requires
         self.returns = returns
 
-    def __call__(self, context):
-        if self.value is None:
-            self.value = context.call(self.__wrapped__, self.requires)
-        return self.value
-
     def __repr__(self):
         return '<Factory for %r>' % self.__wrapped__

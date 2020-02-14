@@ -110,7 +110,8 @@ class Context(dict):
 
             o = self.get(type, missing)
             if isinstance(o, Factory):
-                o = o(self)
+                o = self.call(o.__wrapped__, o.requires)
+                self[type] = o
 
             for op in ops:
                 o = op(o)
