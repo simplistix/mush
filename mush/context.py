@@ -103,31 +103,35 @@ class Context:
         args = []
         kw = {}
 
-        for name, required in requires:
-
-            type = required
-            ops = deque()
-            while isinstance(type, how):
-                ops.appendleft(type.process)
-                type = type.type
-
-            o = self._store.get(type, missing)
-            if isinstance(o, Factory):
-                o = self.call(o.__wrapped__, o.requires)
-                self[type] = o
-
-            for op in ops:
-                o = op(o)
-                if o is nothing:
-                    break
-
+        for name, requirement in requires:
+            o = self.get(requirement)
             if o is nothing:
                 pass
-            elif o is missing:
-                raise ContextError('No %s in context' % repr(required))
             elif name is None:
                 args.append(o)
             else:
                 kw[name] = o
 
         return obj(*args, **kw)
+
+    def get(self, requirement):
+        spec = requirement
+        ops = deque()
+
+        while isinstance(spec, how):
+            ops.appendleft(spec.process)
+            spec = spec.type
+
+        o = self._store.get(spec, missing)
+        if isinstance(o, Factory):
+            o = o(self)
+
+        for op in ops:
+            o = op(o)
+            if o is nothing:
+                break
+
+        if o is missing:
+            raise ContextError('No %s in context' % repr(requirement))
+
+        return o
