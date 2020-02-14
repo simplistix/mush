@@ -3,6 +3,12 @@ Changes
 
 .. currentmodule:: mush
 
+2.8.1 (14 February 2020)
+------------------------
+
+- Fix bug that resulted in lazy resources being cached across separate
+  runs.
+
 2.8.0 (10 February 2020)
 ------------------------
 

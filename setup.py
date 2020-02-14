@@ -8,7 +8,7 @@ base_dir = os.path.dirname(__file__)
 
 setup(
     name='mush',
-    version='2.8.0',
+    version='2.8.1',
     author='Chris Withers',
     author_email='chris@simplistix.co.uk',
     license='MIT',
