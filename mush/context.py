@@ -1,6 +1,6 @@
 from collections import deque
 
-from .declarations import how, nothing
+from .declarations import how, nothing, extract_requires
 from .factory import Factory
 from .markers import missing
 
@@ -94,7 +94,8 @@ class Context:
             self.add(obj, type)
         return result
 
-    def call(self, obj, requires):
+    def call(self, obj, requires=None):
+        requires = extract_requires(obj, requires)
 
         if isinstance(obj, Factory):
             self.add(obj, obj.returns.args[0])

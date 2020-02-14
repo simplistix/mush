@@ -228,6 +228,21 @@ class TestContext(TestCase):
         result = context.call(foo, requires(item(optional('foo'), 'bar')))
         compare(result, 'baz')
 
+    def test_call_extract_requirements(self):
+        def foo(param):
+            return param
+        context = Context()
+        context.add('bar', 'param')
+        result = context.call(foo)
+        compare(result, 'bar')
+
+    def test_call_extract_no_requirements(self):
+        def foo():
+            pass
+        context = Context()
+        result = context.call(foo)
+        compare(result, expected=None)
+
     def test_returns_single(self):
         def foo():
             return 'bar'
