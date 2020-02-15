@@ -1,7 +1,7 @@
 from functools import update_wrapper
 from unittest import TestCase
 
-from mock import Mock, call
+from mock import Mock
 from testfixtures import compare
 
 from mush.callpoints import CallPoint
