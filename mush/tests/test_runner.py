@@ -8,7 +8,7 @@ from testfixtures import (
 
 from mush.context import ContextError
 from mush.declarations import (
-    requires, attr, item, nothing, returns, returns_mapping, lazy
+    requires, attr, item, nothing, returns, returns_mapping
 )
 from mush.runner import Runner
 
@@ -403,36 +403,7 @@ class RunnerTests(TestCase):
                 call.job2(t),
                 ], m.mock_calls)
 
-    def test_lazy_decorator(self):
-        m = Mock()
-        class T1(object): pass
-        class T2(object): pass
-        t = T1()
-
-        @lazy
-        @returns(T1)
-        def lazy_used():
-            m.lazy_used()
-            return t
-
-        @lazy
-        @returns(T2)
-        def lazy_unused():
-            raise AssertionError('should not be called')  # pragma: no cover
-
-        @requires(T1)
-        def job(obj):
-            m.job(obj)
-
-        runner = Runner(lazy_used, lazy_unused, job)
-        runner()
-
-        compare(m.mock_calls, expected=[
-            call.lazy_used(),
-            call.job(t),
-        ], )
-
-    def test_lazy_imperative(self):
+    def test_lazy(self):
         m = Mock()
         class T1(object): pass
         class T2(object): pass

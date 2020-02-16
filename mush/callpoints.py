@@ -8,10 +8,9 @@ class CallPoint(object):
     next = None
     previous = None
 
-    def __init__(self, obj, requires=None, returns=None, lazy=None):
+    def __init__(self, obj, requires=None, returns=None, lazy=False):
         requires = extract_requires(obj, requires)
         returns = extract_returns(obj, returns)
-        lazy = lazy or getattr(obj, '__mush__', {}).get('lazy')
         if lazy:
             obj = Lazy(obj, requires, returns)
             requires = requires(Context)
