@@ -21,7 +21,7 @@ class TestContext(TestCase):
     def test_simple(self):
         obj = TheType()
         context = Context()
-        context.add(obj, TheType)
+        context.add(obj)
 
         self.assertTrue(context._store[TheType] is obj)
         expected = (
@@ -48,7 +48,7 @@ class TestContext(TestCase):
         class T2(object): pass
         obj = TheType()
         context = Context()
-        context.add(obj, T2)
+        context.add(obj, provides=T2)
         self.assertTrue(context._store[T2] is obj)
         expected = ("<Context: {\n"
                     "    " + repr(T2) + ": <TheType obj>\n"

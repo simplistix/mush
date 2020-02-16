@@ -1,6 +1,6 @@
-from collections import deque
+from typing import Optional, Any, Union, Type
 
-from .declarations import how, nothing, extract_requires
+from .declarations import nothing, extract_requires
 from .factory import Factory
 from .markers import missing
 
@@ -64,13 +64,16 @@ class Context:
     def __init__(self):
         self._store = {}
 
-    def add(self, resource, provides):
+    def add(self,
+            resource: Any,
+            provides: Optional[Union[Type, str]] = None):
         """
         Add a resource to the context.
 
         Optionally specify what the resource provides.
         """
-
+        if provides is None:
+            provides = type(resource)
         if provides is NONE_TYPE:
             raise ValueError('Cannot add None to context')
         if provides in self._store:
