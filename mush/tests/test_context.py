@@ -74,7 +74,7 @@ class TestContext(TestCase):
         context = Context()
         context.add(provides='foo', resolver=m)
         m.assert_not_called()
-        assert context.get(requires('foo')[0]) is m.return_value
+        assert context.get('foo') is m.return_value
         m.assert_called_with(context)
 
     def test_resolver_and_resource(self):
@@ -317,6 +317,7 @@ class TestContext(TestCase):
         def return_context(context: Context):
             return context
         assert context.call(return_context) is context
+        assert context.get(Context) is context
 
     def test_remove(self):
         context = Context()
@@ -334,3 +335,12 @@ class TestContext(TestCase):
         context = Context()
         context.remove('foo', strict=False)
         compare(context._store, expected={})
+
+    def test_get_present(self):
+        context = Context()
+        context.add('bar', provides='foo')
+        compare(context.get('foo'), expected='bar')
+
+    def test_get_missing(self):
+        context = Context()
+        compare(context.get('foo'), expected=None)

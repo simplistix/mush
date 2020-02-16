@@ -125,7 +125,16 @@ class Context:
         kw = {}
 
         for requirement in requires:
-            o = self.get(requirement)
+            o = self.get(requirement.base, missing)
+
+            for op in requirement.ops:
+                o = op(o)
+                if o is nothing:
+                    break
+
+            if o is missing:
+                raise ContextError('No %s in context' % repr(requirement.base))
+
             if o is nothing:
                 pass
             elif requirement.target is None:
@@ -135,22 +144,10 @@ class Context:
 
         return obj(*args, **kw)
 
-    def get(self, requirement: Requirement):
-        resolver = self._store.get(requirement.base, missing)
-        if resolver is missing:
-            o = missing
-        else:
-            o = resolver(self)
-
-        for op in requirement.ops:
-            o = op(o)
-            if o is nothing:
-                break
-
-        if o is missing:
-            if requirement.base is Context:
-                o = self
-            else:
-                raise ContextError('No %s in context' % repr(requirement.spec))
-
-        return o
+    def get(self, requirement: ResourceKey, default=None):
+        resolver = self._store.get(requirement, None)
+        if resolver is None:
+            if requirement is Context:
+                return self
+            return default
+        return resolver(self)
