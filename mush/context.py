@@ -103,35 +103,29 @@ class Context:
         args = []
         kw = {}
 
-        for name, requirement in requires:
+        for requirement in requires.resolvers:
             o = self.get(requirement)
             if o is nothing:
                 pass
-            elif name is None:
+            elif requirement.target is None:
                 args.append(o)
             else:
-                kw[name] = o
+                kw[requirement.target] = o
 
         return obj(*args, **kw)
 
     def get(self, requirement):
-        spec = requirement
-        ops = deque()
-
-        while isinstance(spec, how):
-            ops.appendleft(spec.process)
-            spec = spec.type
-
-        o = self._store.get(spec, missing)
+        # extract requirement?
+        o = self._store.get(requirement.base, missing)
         if isinstance(o, Factory):
             o = o(self)
 
-        for op in ops:
+        for op in requirement.ops:
             o = op(o)
             if o is nothing:
                 break
 
         if o is missing:
-            raise ContextError('No %s in context' % repr(requirement))
+            raise ContextError('No %s in context' % repr(requirement.spec))
 
         return o

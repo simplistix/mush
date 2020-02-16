@@ -1,9 +1,11 @@
+from collections import deque
 from functools import (
     WRAPPER_UPDATES,
     WRAPPER_ASSIGNMENTS as FUNCTOOLS_ASSIGNMENTS,
     update_wrapper as functools_update_wrapper,
 )
 from inspect import signature
+from typing import List
 
 from .markers import missing
 
@@ -16,6 +18,25 @@ def set_mush(obj, key, value):
     if not hasattr(obj, '__mush__'):
         obj.__mush__ = {}
     obj.__mush__[key] = value
+
+
+class Requirement:
+
+    def __init__(self, source, target=None):
+        self.target = target
+        self.spec = source
+        self.ops = deque()
+        while isinstance(source, how):
+            self.ops.appendleft(source.process)
+            source = source.type
+        self.base = source
+
+    def __repr__(self):
+        requirement_repr = name_or_repr(self.spec)
+        if self.target is None:
+            return requirement_repr
+        else:
+            return f'{self.target}={requirement_repr}'
 
 
 class requires(object):
@@ -33,31 +54,14 @@ class requires(object):
     def __init__(self, *args, **kw):
         check_type(*args)
         check_type(*kw.values())
-        self.args = args
-        self.kw = kw
-
-    def __iter__(self):
-        """
-        When iterated over, yields tuples representing individual
-        types required by arguments or keyword parameters in the form
-        ``(keyword_name, decorated_type)``.
-
-        If the keyword name is ``None``, then the type is for
-        a positional argument.
-        """
-        for arg in self.args:
-            yield None, arg
-        for k, v in self.kw.items():
-            yield k, v
+        self.resolvers = []
+        for arg in args:
+            self.resolvers.append(Requirement(arg))
+        for k, v in kw.items():
+            self.resolvers.append(Requirement(v, target=k))
 
     def __repr__(self):
-        bits = []
-        for arg in self.args:
-            bits.append(name_or_repr(arg))
-        for k, v in sorted(self.kw.items()):
-            bits.append('%s=%s' % (k, name_or_repr(v)))
-        txt = 'requires(%s)' % ', '.join(bits)
-        return txt
+        return f"requires({', '.join(repr(r) for r in self.resolvers)})"
 
     def __call__(self, obj):
         set_mush(obj, 'requires', self)

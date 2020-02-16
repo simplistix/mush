@@ -1,14 +1,14 @@
 from functools import partial
 from unittest import TestCase
 from mock import Mock
-from testfixtures import compare, generator, ShouldRaise
+from testfixtures import compare, ShouldRaise
 from mush.markers import missing
 from mush.declarations import (
     requires, optional, returns,
     returns_mapping, returns_sequence, returns_result_type,
     how, item, attr, nothing,
     extract_requires, extract_returns,
-    result_type)
+    result_type, Requirement)
 
 
 def check_extract(obj, expected_rq, expected_rt):
@@ -29,27 +29,27 @@ class TestRequires(TestCase):
     def test_empty(self):
         r = requires()
         compare(repr(r), 'requires()')
-        compare(generator(), r)
+        compare(r.resolvers, [])
 
     def test_types(self):
         r = requires(Type1, Type2, x=Type3, y=Type4)
         compare(repr(r), 'requires(Type1, Type2, x=Type3, y=Type4)')
-        compare({
-            (None, Type1),
-            (None, Type2),
-            ('x', Type3),
-            ('y', Type4),
-        }, set(r))
+        compare(r.resolvers, expected=[
+            Requirement(Type1),
+            Requirement(Type2),
+            Requirement(Type3, target='x'),
+            Requirement(Type4, target='y'),
+        ])
 
     def test_strings(self):
         r = requires('1', '2', x='3', y='4')
         compare(repr(r), "requires('1', '2', x='3', y='4')")
-        compare({
-            (None, '1'),
-            (None, '2'),
-            ('x', '3'),
-            ('y', '4'),
-        }, set(r))
+        compare(r.resolvers, expected=[
+            Requirement('1'),
+            Requirement('2'),
+            Requirement('3', target='x'),
+            Requirement('4', target='y'),
+        ])
 
     def test_tuple_arg(self):
         with ShouldRaise(TypeError("('1', '2') is not a type or label")):
@@ -64,7 +64,7 @@ class TestRequires(TestCase):
         def foo():
             return 'bar'
 
-        compare(set(foo.__mush__['requires']), {(None, Type1)})
+        compare(foo.__mush__['requires'].resolvers, expected=[Requirement(Type1)])
         compare(foo(), 'bar')
 
 
@@ -244,7 +244,7 @@ class TestExtractDeclarations(object):
         p = partial(foo, 1, y=2)
         check_extract(
             p,
-            expected_rq=requires(z='z', a=optional('a'), y=optional('y')),
+            expected_rq=requires(y=optional('y'), z='z', a=optional('a'), ),
             expected_rt=result_type
         )
 
