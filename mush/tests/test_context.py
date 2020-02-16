@@ -9,6 +9,7 @@ from mush.declarations import (
     nothing, requires, optional, item,
     attr, returns, returns_mapping
 )
+from mush.resolvers import ValueResolver
 
 
 class TheType(object):
@@ -23,7 +24,7 @@ class TestContext(TestCase):
         context = Context()
         context.add(obj)
 
-        self.assertTrue(context._store[TheType] is obj)
+        compare(context._store, expected={TheType: ValueResolver(obj)})
         expected = (
             "<Context: {\n"
             "    <class 'mush.tests.test_context.TheType'>: <TheType obj>\n"
@@ -40,7 +41,7 @@ class TestContext(TestCase):
         expected = ("<Context: {\n"
                     "    'my label': <TheType obj>\n"
                     "}>")
-        self.assertTrue(context._store['my label'] is obj)
+        compare(context._store, expected={'my label': ValueResolver(obj)})
         self.assertEqual(repr(context), expected)
         self.assertEqual(str(context), expected)
 
@@ -49,13 +50,40 @@ class TestContext(TestCase):
         obj = TheType()
         context = Context()
         context.add(obj, provides=T2)
-        self.assertTrue(context._store[T2] is obj)
+        compare(context._store, expected={T2: ValueResolver(obj)})
         expected = ("<Context: {\n"
                     "    " + repr(T2) + ": <TheType obj>\n"
                     "}>")
         compare(repr(context), expected)
         compare(str(context), expected)
+    
+    def test_no_resolver_or_provides(self):
+        context = Context()
+        with ShouldRaise(ValueError('Cannot add None to context')):
+            context.add()
+        compare(context._store, expected={})
 
+    def test_resolver_but_no_provides(self):
+        context = Context()
+        with ShouldRaise(TypeError('Both provides and resolver must be supplied')):
+            context.add(resolver=lambda: None)
+        compare(context._store, expected={})
+    
+    def test_resolver(self):
+        m = Mock()
+        context = Context()
+        context.add(provides='foo', resolver=m)
+        m.assert_not_called()
+        assert context.get(requires('foo')[0]) is m.return_value
+        m.assert_called_with(context)
+
+    def test_resolver_and_resource(self):
+        m = Mock()
+        context = Context()
+        with ShouldRaise(TypeError('resource cannot be supplied when using a resolver')):
+            context.add('bar', provides='foo', resolver=m)
+        compare(context._store, expected={})
+    
     def test_clash(self):
         obj1 = TheType()
         obj2 = TheType()
@@ -75,12 +103,12 @@ class TestContext(TestCase):
     def test_add_none(self):
         context = Context()
         with ShouldRaise(ValueError('Cannot add None to context')):
-            context.add(None, None.__class__)
+            context.add(None, type(None))
 
     def test_add_none_with_type(self):
         context = Context()
         context.add(None, TheType)
-        self.assertTrue(context._store[TheType] is None)
+        compare(context._store, expected={TheType: ValueResolver(None)})
 
     def test_call_basic(self):
         def foo():
@@ -96,7 +124,7 @@ class TestContext(TestCase):
         context.add('bar', 'baz')
         result = context.call(foo, requires('baz'))
         compare(result, 'bar')
-        compare({'baz': 'bar'}, context._store)
+        compare({'baz': ValueResolver('bar')}, actual=context._store)
 
     def test_call_requires_type(self):
         def foo(obj):
@@ -105,7 +133,7 @@ class TestContext(TestCase):
         context.add('bar', TheType)
         result = context.call(foo, requires(TheType))
         compare(result, 'bar')
-        compare({TheType: 'bar'}, context._store)
+        compare({TheType: ValueResolver('bar')}, actual=context._store)
 
     def test_call_requires_missing(self):
         def foo(obj): return obj
@@ -142,8 +170,8 @@ class TestContext(TestCase):
         context.add('bar', 'baz')
         result = context.call(foo, requires(y='baz', x=TheType))
         compare(result, ('foo', 'bar'))
-        compare({TheType: 'foo',
-                 'baz': 'bar'},
+        compare({TheType: ValueResolver('foo'),
+                 'baz': ValueResolver('bar')},
                 actual=context._store)
 
     def test_call_requires_optional_present(self):
@@ -153,7 +181,7 @@ class TestContext(TestCase):
         context.add(2, TheType)
         result = context.call(foo, requires(optional(TheType)))
         compare(result, 2)
-        compare({TheType: 2}, context._store)
+        compare({TheType: ValueResolver(2)}, actual=context._store)
 
     def test_call_requires_optional_ContextError(self):
         def foo(x=1):
@@ -169,7 +197,7 @@ class TestContext(TestCase):
         context.add(2, 'foo')
         result = context.call(foo, requires(optional('foo')))
         compare(result, 2)
-        compare({'foo': 2}, context._store)
+        compare({'foo': ValueResolver(2)}, actual=context._store)
 
     def test_call_requires_item(self):
         def foo(x):
@@ -249,7 +277,7 @@ class TestContext(TestCase):
         context = Context()
         result = context.extract(foo, nothing, returns(TheType))
         compare(result, 'bar')
-        compare({TheType: 'bar'}, context._store)
+        compare({TheType: ValueResolver('bar')}, actual=context._store)
 
     def test_returns_sequence(self):
         def foo():
@@ -257,7 +285,8 @@ class TestContext(TestCase):
         context = Context()
         result = context.extract(foo, nothing, returns('foo', 'bar'))
         compare(result, (1, 2))
-        compare({'foo': 1, 'bar': 2}, context._store)
+        compare({'foo': ValueResolver(1), 'bar': ValueResolver(2)},
+                actual=context._store)
 
     def test_returns_mapping(self):
         def foo():
@@ -265,7 +294,8 @@ class TestContext(TestCase):
         context = Context()
         result = context.extract(foo, nothing, returns_mapping())
         compare(result, {'foo': 1, 'bar': 2})
-        compare({'foo': 1, 'bar': 2}, context._store)
+        compare({'foo': ValueResolver(1), 'bar': ValueResolver(2)},
+                actual=context._store)
 
     def test_ignore_return(self):
         def foo():

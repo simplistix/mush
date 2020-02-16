@@ -1,8 +1,9 @@
-from typing import Optional, Any, Union, Type
+from typing import Optional, Any, Union, Type, Callable, NewType
 
-from .declarations import nothing, extract_requires
-from .factory import Factory
+from mush.resolvers import ValueResolver
+from .declarations import nothing, extract_requires, Requirement
 from .markers import missing
+from .resolvers import Factory
 
 NONE_TYPE = type(None)
 
@@ -58,6 +59,11 @@ def type_key(type_tuple):
     return type.__name__
 
 
+ResourceKey = NewType('ResourceKey', Union[Type, str])
+ResourceValue = NewType('ResourceValue', Any)
+Resolver = Callable[['Context'], ResourceValue]
+
+
 class Context:
     "Stores resources for a particular run."
 
@@ -65,13 +71,18 @@ class Context:
         self._store = {}
 
     def add(self,
-            resource: Any,
-            provides: Optional[Union[Type, str]] = None):
+            resource: Optional[ResourceValue] = None,
+            provides: Optional[ResourceKey] = None,
+            resolver: Optional[Resolver] = None):
         """
         Add a resource to the context.
 
         Optionally specify what the resource provides.
         """
+        if resolver is not None and (provides is None or resource is not None):
+            if resource is not None:
+                raise TypeError('resource cannot be supplied when using a resolver')
+            raise TypeError('Both provides and resolver must be supplied')
         if provides is None:
             provides = type(resource)
         if provides is NONE_TYPE:
@@ -80,7 +91,9 @@ class Context:
             raise ContextError('Context already contains %r' % (
                     provides
                     ))
-        self._store[provides] = resource
+        if resolver is None:
+            resolver = ValueResolver(resource)
+        self._store[provides] = resolver
 
     def __repr__(self):
         bits = []
@@ -117,11 +130,14 @@ class Context:
 
         return obj(*args, **kw)
 
-    def get(self, requirement):
-        # extract requirement?
-        o = self._store.get(requirement.base, missing)
-        if isinstance(o, Factory):
-            o = o(self)
+    def get(self, requirement: Requirement):
+        resolver = self._store.get(requirement.base, missing)
+        if resolver is missing:
+            o = missing
+        else:
+            o = resolver(self)
+            if isinstance(o, Factory):
+                o = o(self)
 
         for op in requirement.ops:
             o = op(o)

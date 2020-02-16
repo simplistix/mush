@@ -1,5 +1,5 @@
 from .declarations import result_type, nothing, extract_requires, extract_returns
-from .factory import Factory
+from .resolvers import Factory
 
 
 class CallPoint(object):

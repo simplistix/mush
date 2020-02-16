@@ -1,6 +1,20 @@
 from .declarations import returns as returns_declaration
 
 
+class ValueResolver:
+    
+    __slots__ = ['value']
+    
+    def __init__(self, value):
+        self.value = value
+        
+    def __call__(self, context):
+        return self.value
+
+    def __repr__(self):
+        return repr(self.value)
+
+
 class Factory(object):
 
     value = None
