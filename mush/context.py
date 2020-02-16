@@ -154,6 +154,9 @@ class Context:
                 break
 
         if o is missing:
-            raise ContextError('No %s in context' % repr(requirement.spec))
+            if requirement.base is Context:
+                o = self
+            else:
+                raise ContextError('No %s in context' % repr(requirement.spec))
 
         return o

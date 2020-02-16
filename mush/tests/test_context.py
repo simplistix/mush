@@ -312,6 +312,12 @@ class TestContext(TestCase):
         compare(result, expected=None)
         compare(context._store, expected={})
 
+    def test_context_contains_itself(self):
+        context = Context()
+        def return_context(context: Context):
+            return context
+        assert context.call(return_context) is context
+
     def test_remove(self):
         context = Context()
         context.add('foo')
