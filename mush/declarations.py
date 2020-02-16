@@ -39,7 +39,7 @@ class Requirement:
             return f'{self.target}={requirement_repr}'
 
 
-class requires(list):
+class RequiresType(list):
     """
     Represents requirements for a particular callable.
 
@@ -67,6 +67,9 @@ class requires(list):
     def __call__(self, obj):
         set_mush(obj, 'requires', self)
         return obj
+
+
+requires = RequiresType
 
 
 class ReturnsType(object):

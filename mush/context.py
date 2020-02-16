@@ -1,6 +1,6 @@
 from typing import Optional, Any, Union, Type, Callable, NewType
 
-from .declarations import nothing, extract_requires, Requirement
+from .declarations import nothing, extract_requires, Requirement, RequiresType
 from .markers import missing
 from .resolvers import ValueResolver
 
@@ -118,7 +118,8 @@ class Context:
         return result
 
     def call(self, obj, requires=None):
-        requires = extract_requires(obj, requires)
+        if requires.__class__ is not RequiresType:
+            requires = extract_requires(obj, requires)
 
         args = []
         kw = {}
