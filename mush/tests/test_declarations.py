@@ -34,7 +34,7 @@ class TestRequires(TestCase):
     def test_types(self):
         r = requires(Type1, Type2, x=Type3, y=Type4)
         compare(repr(r), 'requires(Type1, Type2, x=Type3, y=Type4)')
-        compare(r.resolvers, expected=[
+        compare(r, expected=[
             Requirement(Type1),
             Requirement(Type2),
             Requirement(Type3, target='x'),
@@ -44,7 +44,7 @@ class TestRequires(TestCase):
     def test_strings(self):
         r = requires('1', '2', x='3', y='4')
         compare(repr(r), "requires('1', '2', x='3', y='4')")
-        compare(r.resolvers, expected=[
+        compare(r, expected=[
             Requirement('1'),
             Requirement('2'),
             Requirement('3', target='x'),
@@ -64,7 +64,7 @@ class TestRequires(TestCase):
         def foo():
             return 'bar'
 
-        compare(foo.__mush__['requires'].resolvers, expected=[Requirement(Type1)])
+        compare(foo.__mush__['requires'], expected=[Requirement(Type1)])
         compare(foo(), 'bar')
 
 

@@ -39,7 +39,7 @@ class Requirement:
             return f'{self.target}={requirement_repr}'
 
 
-class requires(object):
+class requires(list):
     """
     Represents requirements for a particular callable.
 
@@ -52,16 +52,17 @@ class requires(object):
     """
 
     def __init__(self, *args, **kw):
+        super(requires, self).__init__()
         check_type(*args)
         check_type(*kw.values())
         self.resolvers = []
         for arg in args:
-            self.resolvers.append(Requirement(arg))
+            self.append(Requirement(arg))
         for k, v in kw.items():
-            self.resolvers.append(Requirement(v, target=k))
+            self.append(Requirement(v, target=k))
 
     def __repr__(self):
-        return f"requires({', '.join(repr(r) for r in self.resolvers)})"
+        return f"requires({', '.join(repr(r) for r in self)})"
 
     def __call__(self, obj):
         set_mush(obj, 'requires', self)
@@ -250,6 +251,7 @@ class Nothing(requires, returns):
 
     def process(self, result):
         return ()
+
 
 #: A singleton that be used as a :class:`~mush.requires` to indicate that a
 #: callable has no required arguments or as a :class:`~mush.returns` to indicate

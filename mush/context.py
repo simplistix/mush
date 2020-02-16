@@ -103,7 +103,7 @@ class Context:
         args = []
         kw = {}
 
-        for requirement in requires.resolvers:
+        for requirement in requires:
             o = self.get(requirement)
             if o is nothing:
                 pass
