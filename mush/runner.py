@@ -171,8 +171,8 @@ class Runner(object):
             if point.obj is original:
 
                 new_requirements = (
-                    extract_requires(replacement, requires, guess=False),
-                    extract_returns(replacement, returns)
+                    extract_requires(replacement, requires, default=None),
+                    extract_returns(replacement, returns, default=None)
                 )
 
                 if any(new_requirements):

@@ -11,8 +11,6 @@ class CallPoint(object):
         requires = extract_requires(obj, requires)
         returns = extract_returns(obj, returns)
         lazy = lazy or getattr(obj, '__mush__', {}).get('lazy')
-        requires = requires or nothing
-        returns = returns or result_type
         if lazy:
             obj = Factory(obj, requires, returns)
             requires = returns = nothing

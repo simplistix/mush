@@ -2,8 +2,8 @@ from testfixtures import compare
 
 from mush.declarations import (
     requires, returns, returns_mapping, returns_sequence, item, update_wrapper,
-    optional
-)
+    optional,
+    nothing, result_type)
 from mush.tests.test_declarations import check_extract
 
 
@@ -19,12 +19,12 @@ class TestExtractDeclarations(object):
         def foo(a: 'foo'): pass
         check_extract(foo,
                       expected_rq=requires(a='foo'),
-                      expected_rt=None)
+                      expected_rt=result_type)
 
     def test_returns_only(self):
         def foo() -> 'bar': pass
         check_extract(foo,
-                      expected_rq=None,
+                      expected_rq=nothing,
                       expected_rt=returns('bar'))
 
     def test_extract_from_decorated_class(self, mock):
@@ -59,14 +59,14 @@ class TestExtractDeclarations(object):
         rt = returns_mapping()
         def foo() -> rt: pass
         check_extract(foo,
-                      expected_rq=None,
+                      expected_rq=nothing,
                       expected_rt=rt)
 
     def test_returns_sequence(self):
         rt = returns_sequence()
         def foo() -> rt: pass
         check_extract(foo,
-                      expected_rq=None,
+                      expected_rq=nothing,
                       expected_rt=rt)
 
     def test_how_instance_in_annotations(self):
@@ -74,7 +74,7 @@ class TestExtractDeclarations(object):
         def foo(a: how): pass
         check_extract(foo,
                       expected_rq=requires(a=how),
-                      expected_rt=None)
+                      expected_rt=result_type)
 
     def test_default_requirements(self):
         def foo(a, b=1, *, c, d=None): pass
@@ -83,4 +83,4 @@ class TestExtractDeclarations(object):
                                            optional('b'),
                                            c='c',
                                            d=optional('d')),
-                      expected_rt=None)
+                      expected_rt=result_type)

@@ -7,8 +7,8 @@ from mush.declarations import (
     requires, optional, returns,
     returns_mapping, returns_sequence, returns_result_type,
     how, item, attr, nothing,
-    extract_requires, extract_returns
-)
+    extract_requires, extract_returns,
+    result_type)
 
 
 def check_extract(obj, expected_rq, expected_rt):
@@ -230,14 +230,14 @@ class TestExtractDeclarations(object):
         def foo(a, b=None): pass
         check_extract(foo,
                       expected_rq=requires('a', optional('b')),
-                      expected_rt=None)
+                      expected_rt=result_type)
 
     def test_default_requirements_for_class(self):
         class MyClass(object):
             def __init__(self, a, b=None): pass
         check_extract(MyClass,
                       expected_rq=requires('a', optional('b')),
-                      expected_rt=None)
+                      expected_rt=result_type)
 
     def test_extract_from_partial(self):
         def foo(x, y, z, a=None): pass
@@ -245,7 +245,7 @@ class TestExtractDeclarations(object):
         check_extract(
             p,
             expected_rq=requires(z='z', a=optional('a'), y=optional('y')),
-            expected_rt=None
+            expected_rt=result_type
         )
 
     def test_extract_from_partial_default_not_in_partial(self):
@@ -254,7 +254,7 @@ class TestExtractDeclarations(object):
         check_extract(
             p,
             expected_rq=requires(optional('a')),
-            expected_rt=None
+            expected_rt=result_type
         )
 
     def test_extract_from_partial_default_in_partial_arg(self):
@@ -263,8 +263,8 @@ class TestExtractDeclarations(object):
         check_extract(
             p,
             # since a is already bound by the partial:
-            expected_rq=None,
-            expected_rt=None
+            expected_rq=nothing,
+            expected_rt=result_type
         )
 
     def test_extract_from_partial_default_in_partial_kw(self):
@@ -273,7 +273,7 @@ class TestExtractDeclarations(object):
         check_extract(
             p,
             expected_rq=requires(a=optional('a')),
-            expected_rt=None
+            expected_rt=result_type
         )
 
     def test_extract_from_partial_required_in_partial_arg(self):
@@ -282,8 +282,8 @@ class TestExtractDeclarations(object):
         check_extract(
             p,
             # since a is already bound by the partial:
-            expected_rq=None,
-            expected_rt=None
+            expected_rq=nothing,
+            expected_rt=result_type
         )
 
     def test_extract_from_partial_required_in_partial_kw(self):
@@ -292,7 +292,7 @@ class TestExtractDeclarations(object):
         check_extract(
             p,
             expected_rq=requires(a=optional('a')),
-            expected_rt=None
+            expected_rt=result_type
         )
 
     def test_extract_from_partial_plus_one_default_not_in_partial(self):
@@ -301,7 +301,7 @@ class TestExtractDeclarations(object):
         check_extract(
             p,
             expected_rq=requires('b', optional('a')),
-            expected_rt=None
+            expected_rt=result_type
         )
 
     def test_extract_from_partial_plus_one_required_in_partial_arg(self):
@@ -311,7 +311,7 @@ class TestExtractDeclarations(object):
             p,
             # since b is already bound:
             expected_rq=requires('a'),
-            expected_rt=None
+            expected_rt=result_type
         )
 
     def test_extract_from_partial_plus_one_required_in_partial_kw(self):
@@ -320,5 +320,5 @@ class TestExtractDeclarations(object):
         check_extract(
             p,
             expected_rq=requires('b', a=optional('a')),
-            expected_rt=None
+            expected_rt=result_type
         )

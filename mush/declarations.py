@@ -276,7 +276,7 @@ def guess_requirements(obj):
         return requires(*args, **kw)
 
 
-def extract_requires(obj, requires_, guess=True):
+def extract_requires(obj, requires_, default=nothing):
     if requires_ is None:
         mush_declarations = getattr(obj, '__mush__', {})
         requires_ = mush_declarations.get('requires', None)
@@ -289,7 +289,7 @@ def extract_requires(obj, requires_, guess=True):
     if isinstance(requires_, requires):
         pass
     elif requires_ is None:
-        if guess:
+        if default is not None:
             requires_ = guess_requirements(obj)
     elif isinstance(requires_, (list, tuple)):
         requires_ = requires(*requires_)
@@ -298,10 +298,10 @@ def extract_requires(obj, requires_, guess=True):
     else:
         requires_ = requires(requires_)
 
-    return requires_
+    return requires_ or default
 
 
-def extract_returns(obj, returns_):
+def extract_returns(obj, returns_, default=result_type):
     if returns_ is None:
         mush_declarations = getattr(obj, '__mush__', {})
         returns_ = mush_declarations.get('returns', None)
@@ -316,7 +316,7 @@ def extract_returns(obj, returns_):
     else:
         returns_ = returns(returns_)
 
-    return returns_
+    return returns_ or default
 
 
 WRAPPER_ASSIGNMENTS = FUNCTOOLS_ASSIGNMENTS + ('__mush__',)
