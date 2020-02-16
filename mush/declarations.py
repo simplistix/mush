@@ -5,9 +5,14 @@ from functools import (
     update_wrapper as functools_update_wrapper,
 )
 from inspect import signature
-from typing import List
+from typing import List, Type, Optional, Callable, Sequence, NewType, Union, Any
 
 from .markers import missing
+
+
+ResourceKey = NewType('ResourceKey', Union[Type, str])
+ResourceValue = NewType('ResourceValue', Any)
+Resolver = Callable[['Context'], ResourceValue]
 
 
 def name_or_repr(obj):
@@ -29,7 +34,7 @@ class Requirement:
         while isinstance(source, how):
             self.ops.appendleft(source.process)
             source = source.type
-        self.base = source
+        self.key: ResourceKey = source
 
     def __repr__(self):
         requirement_repr = name_or_repr(self.spec)

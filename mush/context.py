@@ -1,6 +1,9 @@
-from typing import Optional, Any, Union, Type, Callable, NewType
+from typing import Optional
 
-from .declarations import nothing, extract_requires, Requirement, RequiresType
+from .declarations import (
+    nothing, extract_requires, RequiresType,
+    ResourceKey, ResourceValue, Resolver
+)
 from .markers import missing
 from .resolvers import ValueResolver
 
@@ -58,11 +61,6 @@ def type_key(type_tuple):
     return type.__name__
 
 
-ResourceKey = NewType('ResourceKey', Union[Type, str])
-ResourceValue = NewType('ResourceValue', Any)
-Resolver = Callable[['Context'], ResourceValue]
-
-
 class Context:
     "Stores resources for a particular run."
 
@@ -92,16 +90,16 @@ class Context:
             resolver = ValueResolver(resource)
         self._store[provides] = resolver
 
-    def remove(self, provides: ResourceKey, *, strict: bool = True):
+    def remove(self, key: ResourceKey, *, strict: bool = True):
         """
         Remove the specified resource key from the context.
 
         If ``strict``, then a :class:`ContextError` will be raised if the
         specified resource is not present in the context.
         """
-        if strict and provides not in self._store:
-            raise ContextError(f'Context does not contain {provides!r}')
-        self._store.pop(provides, None)
+        if strict and key not in self._store:
+            raise ContextError(f'Context does not contain {key!r}')
+        self._store.pop(key, None)
 
     def __repr__(self):
         bits = []
@@ -125,7 +123,7 @@ class Context:
         kw = {}
 
         for requirement in requires:
-            o = self.get(requirement.base, missing)
+            o = self.get(requirement.key, missing)
 
             for op in requirement.ops:
                 o = op(o)
@@ -133,7 +131,7 @@ class Context:
                     break
 
             if o is missing:
-                raise ContextError('No %s in context' % repr(requirement.base))
+                raise ContextError('No %s in context' % repr(requirement.spec))
 
             if o is nothing:
                 pass
@@ -144,10 +142,10 @@ class Context:
 
         return obj(*args, **kw)
 
-    def get(self, requirement: ResourceKey, default=None):
-        resolver = self._store.get(requirement, None)
+    def get(self, key: ResourceKey, default=None):
+        resolver = self._store.get(key, None)
         if resolver is None:
-            if requirement is Context:
+            if key is Context:
                 return self
             return default
         return resolver(self)
