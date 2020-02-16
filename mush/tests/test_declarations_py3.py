@@ -27,7 +27,7 @@ class TestExtractDeclarations(object):
                       expected_rq=nothing,
                       expected_rt=returns('bar'))
 
-    def test_extract_from_decorated_class(self, mock):
+    def test_extract_from_decorated_class(self):
 
         class Wrapper(object):
             def __init__(self, func):
