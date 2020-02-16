@@ -35,7 +35,7 @@ class TestContext(TestCase):
     def test_type_as_string(self):
         obj = TheType()
         context = Context()
-        context.add(obj, type='my label')
+        context.add(obj, provides='my label')
 
         expected = ("<Context: {\n"
                     "    'my label': <TheType obj>\n"
@@ -68,9 +68,9 @@ class TestContext(TestCase):
         obj1 = TheType()
         obj2 = TheType()
         context = Context()
-        context.add(obj1, type='my label')
+        context.add(obj1, provides='my label')
         with ShouldRaise(ContextError("Context already contains 'my label'")):
-            context.add(obj2, type='my label')
+            context.add(obj2, provides='my label')
 
     def test_add_none(self):
         context = Context()

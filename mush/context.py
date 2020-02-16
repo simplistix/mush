@@ -64,21 +64,20 @@ class Context:
     def __init__(self):
         self._store = {}
 
-    def add(self, it, type):
+    def add(self, resource, provides):
         """
         Add a resource to the context.
 
-        Optionally specify the type to use for the object rather than
-        the type of the object itself.
+        Optionally specify what the resource provides.
         """
 
-        if type is NONE_TYPE:
+        if provides is NONE_TYPE:
             raise ValueError('Cannot add None to context')
-        if type in self._store:
+        if provides in self._store:
             raise ContextError('Context already contains %r' % (
-                    type
+                    provides
                     ))
-        self._store[type] = it
+        self._store[provides] = resource
 
     def __repr__(self):
         bits = []
