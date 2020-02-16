@@ -88,12 +88,21 @@ class Context:
         if provides is NONE_TYPE:
             raise ValueError('Cannot add None to context')
         if provides in self._store:
-            raise ContextError('Context already contains %r' % (
-                    provides
-                    ))
+            raise ContextError(f'Context already contains {provides!r}')
         if resolver is None:
             resolver = ValueResolver(resource)
         self._store[provides] = resolver
+
+    def remove(self, provides: ResourceKey, *, strict: bool = True):
+        """
+        Remove the specified resource key from the context.
+
+        If ``strict``, then a :class:`ContextError` will be raised if the
+        specified resource is not present in the context.
+        """
+        if strict and provides not in self._store:
+            raise ContextError(f'Context does not contain {provides!r}')
+        self._store.pop(provides, None)
 
     def __repr__(self):
         bits = []
