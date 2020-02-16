@@ -1,5 +1,6 @@
-from .declarations import result_type, nothing, extract_requires, extract_returns
-from .resolvers import Factory
+from .context import Context
+from .declarations import nothing, extract_requires, extract_returns
+from .resolvers import Lazy
 
 
 class CallPoint(object):
@@ -12,8 +13,9 @@ class CallPoint(object):
         returns = extract_returns(obj, returns)
         lazy = lazy or getattr(obj, '__mush__', {}).get('lazy')
         if lazy:
-            obj = Factory(obj, requires, returns)
-            requires = returns = nothing
+            obj = Lazy(obj, requires, returns)
+            requires = requires(Context)
+            returns = nothing
         self.obj = obj
         self.requires = requires
         self.returns = returns

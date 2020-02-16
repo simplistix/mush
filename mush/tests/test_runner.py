@@ -500,6 +500,33 @@ class RunnerTests(TestCase):
             call.job(t),
         ], )
 
+    def test_lazy_only_resolved_once(self):
+        m = Mock()
+        class T1(object): pass
+        t = T1()
+
+        def lazy_used():
+            m.lazy_used()
+            return t
+
+        def job1(obj):
+            m.job1(obj)
+
+        def job2(obj):
+            m.job2(obj)
+
+        runner = Runner()
+        runner.add(lazy_used, returns=returns(T1), lazy=True)
+        runner.add(job1, requires(T1))
+        runner.add(job2, requires(T1))
+        runner()
+
+        compare(m.mock_calls, expected=[
+            call.lazy_used(),
+            call.job1(t),
+            call.job2(t),
+        ], )
+
     def test_missing_from_context_no_chain(self):
         class T(object): pass
 

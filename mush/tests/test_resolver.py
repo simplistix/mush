@@ -1,7 +1,7 @@
 from testfixtures import compare
 
 from mush import returns
-from mush.resolvers import Factory, ValueResolver
+from mush.resolvers import Lazy, ValueResolver
 from mush.markers import Marker
 
 foo = Marker('foo')
@@ -17,5 +17,5 @@ class TestValueResolver:
 class TestFactory:
 
     def test_repr(self):
-        f = Factory(foo, None, returns('foo'))
-        compare(repr(f), expected='<Factory for <Marker: foo>>')
+        f = Lazy(foo, None, returns('foo'))
+        compare(repr(f), expected='<Lazy for <Marker: foo>>')

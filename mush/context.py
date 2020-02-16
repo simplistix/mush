@@ -1,9 +1,8 @@
 from typing import Optional, Any, Union, Type, Callable, NewType
 
-from mush.resolvers import ValueResolver
 from .declarations import nothing, extract_requires, Requirement
 from .markers import missing
-from .resolvers import Factory
+from .resolvers import ValueResolver
 
 NONE_TYPE = type(None)
 
@@ -121,10 +120,6 @@ class Context:
     def call(self, obj, requires=None):
         requires = extract_requires(obj, requires)
 
-        if isinstance(obj, Factory):
-            self.add(obj, obj.returns.args[0])
-            return
-
         args = []
         kw = {}
 
@@ -145,8 +140,6 @@ class Context:
             o = missing
         else:
             o = resolver(self)
-            if isinstance(o, Factory):
-                o = o(self)
 
         for op in requirement.ops:
             o = op(o)

@@ -15,16 +15,23 @@ class ValueResolver:
         return repr(self.value)
 
 
-class Factory(object):
-
-    value = None
+class Lazy(object):
 
     def __init__(self, obj, requires, returns):
         if not (type(returns) is returns_declaration and len(returns.args) == 1):
             raise TypeError('a single return type must be explicitly specified')
         self.__wrapped__ = obj
         self.requires = requires
-        self.returns = returns
+        self.provides = returns.args[0]
+
+    def __call__(self, context):
+        context.add(resolver=self.resolve, provides=self.provides)
+
+    def resolve(self, context):
+        result = context.call(self.__wrapped__, self.requires)
+        context.remove(self.provides)
+        context.add(result, self.provides)
+        return result
 
     def __repr__(self):
-        return '<Factory for %r>' % self.__wrapped__
+        return '<Lazy for %r>' % self.__wrapped__
