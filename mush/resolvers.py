@@ -8,7 +8,7 @@ class ValueResolver:
     def __init__(self, value):
         self.value = value
         
-    def __call__(self, context):
+    def __call__(self, context, default):
         return self.value
 
     def __repr__(self):
@@ -27,7 +27,7 @@ class Lazy(object):
     def __call__(self, context):
         context.add(resolver=self.resolve, provides=self.provides)
 
-    def resolve(self, context):
+    def resolve(self, context, default):
         result = context.call(self.__wrapped__, self.requires)
         context.remove(self.provides)
         context.add(result, self.provides)

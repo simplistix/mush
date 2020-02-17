@@ -12,7 +12,7 @@ from .markers import missing
 
 ResourceKey = NewType('ResourceKey', Union[Type, str])
 ResourceValue = NewType('ResourceValue', Any)
-Resolver = Callable[['Context'], ResourceValue]
+Resolver = Callable[['Context', Any], ResourceValue]
 
 
 def name_or_repr(obj):

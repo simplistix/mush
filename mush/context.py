@@ -148,4 +148,4 @@ class Context:
             if key is Context:
                 return self
             return default
-        return resolver(self)
+        return resolver(self, default)

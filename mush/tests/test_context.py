@@ -75,7 +75,7 @@ class TestContext(TestCase):
         context.add(provides='foo', resolver=m)
         m.assert_not_called()
         assert context.get('foo') is m.return_value
-        m.assert_called_with(context)
+        m.assert_called_with(context, None)
 
     def test_resolver_and_resource(self):
         m = Mock()
@@ -83,7 +83,14 @@ class TestContext(TestCase):
         with ShouldRaise(TypeError('resource cannot be supplied when using a resolver')):
             context.add('bar', provides='foo', resolver=m)
         compare(context._store, expected={})
-    
+
+    def test_resolver_with_default(self):
+        m = Mock()
+        context = Context()
+        context.add(provides='foo',
+                    resolver=lambda context, default=None: context.get('foo-bar', default))
+        assert context.get('foo', default=m) is m
+
     def test_clash(self):
         obj1 = TheType()
         obj2 = TheType()
