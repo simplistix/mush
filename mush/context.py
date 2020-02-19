@@ -122,7 +122,7 @@ class Context:
         args = []
         kw = {}
 
-        for requirement in requires:
+        for target, requirement in requires:
             o = self.get(requirement.key, missing)
 
             for op in requirement.ops:
@@ -135,10 +135,10 @@ class Context:
 
             if o is nothing:
                 pass
-            elif requirement.target is None:
+            elif target is None:
                 args.append(o)
             else:
-                kw[requirement.target] = o
+                kw[target] = o
 
         return obj(*args, **kw)
 

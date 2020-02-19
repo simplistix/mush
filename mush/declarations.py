@@ -28,10 +28,10 @@ def set_mush(obj, key, value):
 
 class Requirement:
 
-    def __init__(self, source, target=None):
-        self.target = target
-        self.spec = source
+    def __init__(self, source):
         self.repr = name_or_repr(source)
+
+        self.spec = source
         self.ops = deque()
         while isinstance(source, how):
             self.ops.appendleft(source.process)
@@ -39,10 +39,7 @@ class Requirement:
         self.key: ResourceKey = source
 
     def __repr__(self):
-        if self.target is None:
-            return self.repr
-        else:
-            return f'{self.target}={self.repr}'
+        return self.repr
 
 
 class RequiresType(list):
@@ -61,14 +58,16 @@ class RequiresType(list):
         super(requires, self).__init__()
         check_type(*args)
         check_type(*kw.values())
-        self.resolvers = []
-        for arg in args:
-            self.append(Requirement(arg))
-        for k, v in kw.items():
-            self.append(Requirement(v, target=k))
+        for target, source in chain(
+            ((None, arg) for arg in args),
+            kw.items(),
+        ):
+            self.append((target, Requirement(source)))
 
     def __repr__(self):
-        return f"requires({', '.join(repr(r) for r in self)})"
+        parts = (repr(r) if t is None else f'{t}={r!r}'
+                 for (t, r) in self)
+        return f"requires({', '.join(parts)})"
 
     def __call__(self, obj):
         set_mush(obj, 'requires', self)
