@@ -16,7 +16,7 @@ from mush.declarations import (
 def check_extract(obj, expected_rq, expected_rt):
     rq = extract_requires(obj, None)
     rt = extract_returns(obj, None)
-    compare(rq, expected=expected_rq, strict=True, ignore_attributes={Requirement: ['ops']})
+    compare(rq, expected=expected_rq, strict=True)
     compare(rt, expected=expected_rt, strict=True)
 
 

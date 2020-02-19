@@ -31,6 +31,7 @@ class Requirement:
     def __init__(self, source, target=None):
         self.target = target
         self.spec = source
+        self.repr = name_or_repr(source)
         self.ops = deque()
         while isinstance(source, how):
             self.ops.appendleft(source.process)
@@ -38,11 +39,10 @@ class Requirement:
         self.key: ResourceKey = source
 
     def __repr__(self):
-        requirement_repr = name_or_repr(self.spec)
         if self.target is None:
-            return requirement_repr
+            return self.repr
         else:
-            return f'{self.target}={requirement_repr}'
+            return f'{self.target}={self.repr}'
 
 
 class RequiresType(list):
