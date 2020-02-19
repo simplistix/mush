@@ -146,7 +146,7 @@ class TestContext(TestCase):
         def foo(obj): return obj
         context = Context()
         with ShouldRaise(ContextError(
-                "No <class 'mush.tests.test_context.TheType'> in context"
+                "No TheType in context"
         )):
             context.call(foo, requires(TheType))
 

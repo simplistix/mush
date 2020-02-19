@@ -7,10 +7,9 @@ from functools import (
 )
 from inspect import signature
 from itertools import chain
-from typing import List, Type, Optional, Callable, Sequence, NewType, Union, Any
+from typing import Type, Callable, NewType, Union, Any
 
 from .markers import missing
-
 
 ResourceKey = NewType('ResourceKey', Union[Type, str])
 ResourceValue = NewType('ResourceValue', Any)
@@ -32,7 +31,6 @@ class Requirement:
     def __init__(self, source, default=missing):
         self.repr = name_or_repr(source)
 
-        self.spec = source
         self.default = default
 
         self.ops = deque()
@@ -42,7 +40,7 @@ class Requirement:
         self.key: ResourceKey = source
 
     def __repr__(self):
-        return self.repr
+        return f'Requirement({self.repr}, default={self.default})'
 
 
 class RequiresType(list):
@@ -70,7 +68,7 @@ class RequiresType(list):
             self.append((target, requirement))
 
     def __repr__(self):
-        parts = (repr(r) if t is None else f'{t}={r!r}'
+        parts = (r.repr if t is None else f'{t}={r.repr}'
                  for (t, r) in self)
         return f"requires({', '.join(parts)})"
 

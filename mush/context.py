@@ -131,7 +131,7 @@ class Context:
                     break
 
             if o is missing:
-                raise ContextError('No %s in context' % repr(requirement.spec))
+                raise ContextError('No %s in context' % requirement.repr)
 
             if o is nothing:
                 pass

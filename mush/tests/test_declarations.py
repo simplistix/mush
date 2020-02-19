@@ -70,6 +70,13 @@ class TestRequires(TestCase):
         compare(foo(), 'bar')
 
 
+class TestRequirement:
+
+    def test_repr(self):
+        compare(repr(Requirement('foo', default=None)),
+                expected="Requirement('foo', default=None)")
+
+
 class TestItem(TestCase):
 
     def test_single(self):

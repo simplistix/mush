@@ -514,10 +514,10 @@ class RunnerTests(TestCase):
             'While calling: '+repr(job)+' requires(T) returns_result_type()',
             'with <Context: {}>:',
             '',
-            'No '+repr(T)+' in context',
+            'No T in context',
         ))
-        compare(text, repr(s.raised))
-        compare(text, str(s.raised))
+        compare(text, actual=repr(s.raised))
+        compare(text, actual=str(s.raised))
 
     def test_missing_from_context_with_chain(self):
         class T(object): pass
@@ -552,14 +552,14 @@ class RunnerTests(TestCase):
             'While calling: '+repr(job3)+' requires(T) returns_result_type()',
             'with <Context: {}>:',
             '',
-            'No '+repr(T)+' in context',
+            'No T in context',
             '',
             'Still to call:',
             repr(job4)+' requires() returns_result_type() <-- 4',
             repr(job5)+" requires('foo', bar='baz') returns('bob')",
         ))
-        compare(text, repr(s.raised))
-        compare(text, str(s.raised))
+        compare(text, actual=repr(s.raised))
+        compare(text, actual=str(s.raised))
 
     def test_job_called_badly(self):
         def job(arg):
