@@ -123,7 +123,7 @@ class Context:
         kw = {}
 
         for target, requirement in requires:
-            o = self.get(requirement.key, missing)
+            o = self.get(requirement.key, requirement.default)
 
             for op in requirement.ops:
                 o = op(o)

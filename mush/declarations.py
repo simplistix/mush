@@ -6,6 +6,7 @@ from functools import (
     update_wrapper as functools_update_wrapper,
 )
 from inspect import signature
+from itertools import chain
 from typing import List, Type, Optional, Callable, Sequence, NewType, Union, Any
 
 from .markers import missing
@@ -28,10 +29,12 @@ def set_mush(obj, key, value):
 
 class Requirement:
 
-    def __init__(self, source):
+    def __init__(self, source, default=missing):
         self.repr = name_or_repr(source)
 
         self.spec = source
+        self.default = default
+
         self.ops = deque()
         while isinstance(source, how):
             self.ops.appendleft(source.process)
@@ -55,14 +58,16 @@ class RequiresType(list):
     """
 
     def __init__(self, *args, **kw):
-        super(requires, self).__init__()
+        super().__init__()
         check_type(*args)
         check_type(*kw.values())
-        for target, source in chain(
+        for target, requirement in chain(
             ((None, arg) for arg in args),
             kw.items(),
         ):
-            self.append((target, Requirement(source)))
+            if not isinstance(requirement, Requirement):
+                requirement = Requirement(requirement)
+            self.append((target, requirement))
 
     def __repr__(self):
         parts = (repr(r) if t is None else f'{t}={r!r}'
@@ -246,7 +251,7 @@ class item(how):
             return o
 
 
-ok_types = (type, str, how)
+ok_types = (type, str, how, Requirement)
 
 
 def check_type(*objs):

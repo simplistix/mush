@@ -197,6 +197,14 @@ class TestContext(TestCase):
         result = context.call(foo, requires(optional(TheType)))
         compare(result, 1)
 
+    def test_call_requires_optional_override_source_and_default(self):
+        def foo(x=1):
+            return x
+        context = Context()
+        context.add(2, provides='x')
+        result = context.call(foo, requires(x=Requirement('y', default=3)))
+        compare(result, expected=3)
+
     def test_call_requires_optional_string(self):
         def foo(x=1):
             return x
