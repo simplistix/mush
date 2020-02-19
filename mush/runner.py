@@ -26,17 +26,17 @@ class Runner(object):
         :param obj: The callable to be added.
 
         :param requires: The resources to required as parameters when calling
-                         `obj`. These can be specified by passing a single
+                         ``obj``. These can be specified by passing a single
                          type, a string name or a :class:`requires` object.
 
-        :param returns: The resources that `obj` will return.
+        :param returns: The resources that ``obj`` will return.
                         These can be specified as a single
                         type, a string name or a :class:`returns`,
                         :class:`returns_mapping`, :class:`returns_sequence`
                         object.
 
         :param label: If specified, this is a string that adds a label to the
-                      point where `obj` is added that can later be retrieved
+                      point where ``obj`` is added that can later be retrieved
                       with :meth:`Runner.__getitem__`.
 
         :param lazy: If true, ``obj`` will only be called the first time it

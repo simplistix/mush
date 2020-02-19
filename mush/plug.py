@@ -17,7 +17,7 @@ class ignore(object):
 class insert(ignore):
     """
     A decorator to explicitly mark that a method of a :class:`~mush.Plug` should
-    be added to a runner by :meth:`~mush.Plug.add_to`. The `label` parameter
+    be added to a runner by :meth:`~mush.Plug.add_to`. The ``label`` parameter
     can be used to indicate a different label at which to add the method,
     instead of using the name of the method.
     """
