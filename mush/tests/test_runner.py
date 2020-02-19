@@ -8,8 +8,8 @@ from testfixtures import (
 
 from mush.context import ContextError
 from mush.declarations import (
-    requires, attr, item, nothing, returns, returns_mapping
-)
+    requires, attr, item, nothing, returns, returns_mapping,
+    replacement, original)
 from mush.runner import Runner
 
 
@@ -1090,9 +1090,9 @@ class RunnerTests(TestCase):
         runner = Runner(job1, job2, job3)
         runner.replace(job1, m.job1)
         m.job1.return_value = t1
-        runner.replace(job2, m.job2)
+        runner.replace(job2, m.job2, requires_from=original)
         m.job2.return_value = t2
-        runner.replace(job3, m.job3)
+        runner.replace(job3, m.job3, requires_from=original)
         runner()
 
         compare([
@@ -1120,7 +1120,9 @@ class RunnerTests(TestCase):
         job2 = requires(T4)(m.job2)
         runner = Runner(job0, job1, job2)
 
-        runner.replace(job1, requires(T2)(returns(T4)(m.job1)))
+        runner.replace(job1,
+                       requires(T2)(returns(T4)(m.job1)),
+                       returns_from=replacement)
         runner()
 
         compare([
@@ -1147,7 +1149,8 @@ class RunnerTests(TestCase):
         job2 = requires(T4)(m.job2)
         runner = Runner(job0, job1, job2)
 
-        runner.replace(job1, m.job1, requires=T2, returns=T4)
+        runner.replace(job1, requires(T2)(returns(T4)(m.job1)),
+                       returns_from=replacement)
         runner()
 
         compare([
@@ -1163,7 +1166,9 @@ class RunnerTests(TestCase):
         runner['foo'].add(m.job1)
         runner['foo'].add(m.job2)
 
-        runner.replace(m.job2, m.jobnew, returns='mock')
+        runner.replace(m.job2,
+                       returns('mock')(m.jobnew),
+                       returns_from=replacement)
 
         runner()
 
@@ -1196,10 +1201,10 @@ class RunnerTests(TestCase):
         ], actual=m.mock_calls)
 
     def test_replace_explicit_at_start(self):
-        m = Mock()
+        m = returns('mock')(Mock())
         runner = Runner(m.job1, m.job2)
 
-        runner.replace(m.job1, m.jobnew, returns='mock')
+        runner.replace(m.job1, m.jobnew, returns_from=replacement)
         runner()
 
         compare([
@@ -1208,10 +1213,10 @@ class RunnerTests(TestCase):
         ], actual=m.mock_calls)
 
     def test_replace_explicit_at_end(self):
-        m = Mock()
+        m = returns('mock')(Mock())
         runner = Runner(m.job1, m.job2)
 
-        runner.replace(m.job2, m.jobnew, returns='mock')
+        runner.replace(m.job2, m.jobnew, returns_from=replacement)
         runner.add(m.jobnew2)
         runner()
 
@@ -1232,7 +1237,7 @@ class RunnerTests(TestCase):
         runner.add(barbar, requires='flossy')
         compare(runner(), expected='barbar')
 
-        runner.replace(barbar, lambda dog: None)
+        runner.replace(barbar, lambda dog: None, requires_from=original)
         compare(runner(), expected=None)
 
     def test_modifier_changes_endpoint(self):

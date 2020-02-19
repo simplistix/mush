@@ -1,6 +1,8 @@
+from typing import Callable
+
 from .callpoints import CallPoint
 from .context import Context, ContextError
-from .declarations import extract_requires, extract_returns
+from .declarations import extract_requires, extract_returns, DeclarationsFrom
 from .markers import not_specified
 from .modifier import Modifier
 from .plug import Plug
@@ -148,52 +150,62 @@ class Runner(object):
         runner._copy_from(start, end, added_using)
         return runner
 
-    def replace(self, original, replacement, requires=None, returns=None):
+    def replace(self,
+                original: Callable,
+                replacement: Callable,
+                requires_from: DeclarationsFrom = DeclarationsFrom.replacement,
+                returns_from: DeclarationsFrom = DeclarationsFrom.original):
         """
         Replace all instances of one callable with another.
 
-        No changes in requirements or call ordering will be made unless the
-        replacements have been decorated with requirements, or either
-        ``requires`` or ``returns`` have been specified.
+        :param original: The callable to replaced.
 
-        :param requires: The resources to required as parameters when calling
-                         `obj`. These can be specified by passing a single
-                         type, a string name or a :class:`requires` object.
+        :param replacement: The callable use instead.
 
-        :param returns: The resources that `obj` will return.
-                        These can be specified as a single
-                        type, a string name or a :class:`returns`,
-                        :class:`returns_mapping`, :class:`returns_sequence`
-                        object.
+        :param requires_from:
+
+            Which :class:`requires` to use.
+            If :attr:`~mush.declarations.DeclarationsFrom.original`,
+            the existing ones will be used.
+            If :attr:`~mush.declarations.DeclarationsFrom.replacement`,
+            they will be extracted from the supplied replacements.
+
+        :param returns_from:
+
+            Which :class:`returns` to use.
+            If :attr:`~mush.declarations.DeclarationsFrom.original`,
+            the existing ones will be used.
+            If :attr:`~mush.declarations.DeclarationsFrom.replacement`,
+            they will be extracted from the supplied replacements.
         """
         point = self.start
         while point:
             if point.obj is original:
-
-                new_requirements = (
-                    extract_requires(replacement, requires, default=None),
-                    extract_returns(replacement, returns, default=None)
-                )
-
-                if any(new_requirements):
-                    new_point = CallPoint(replacement, *new_requirements)
-                    if point.previous is None:
-                        self.start = new_point
-                    else:
-                        point.previous.next = new_point
-                    if point.next is None:
-                        self.end = new_point
-                    else:
-                        point.next.previous = new_point
-                    new_point.next = point.next
-                    for label in point.labels:
-                        self.labels[label] = new_point
-                        new_point.labels.add(label)
-                    new_point.added_using = set(point.added_using)
-
+                if requires_from is DeclarationsFrom.replacement:
+                    requires = extract_requires(replacement)
                 else:
+                    requires = point.requires
+                if returns_from is DeclarationsFrom.replacement:
+                    returns = extract_returns(replacement)
+                else:
+                    returns = point.returns
 
-                    point.obj = replacement
+                new_point = CallPoint(replacement, requires, returns)
+
+                if point.previous is None:
+                    self.start = new_point
+                else:
+                    point.previous.next = new_point
+                if point.next is None:
+                    self.end = new_point
+                else:
+                    point.next.previous = new_point
+                new_point.next = point.next
+
+                for label in point.labels:
+                    self.labels[label] = new_point
+                    new_point.labels.add(label)
+                new_point.added_using = set(point.added_using)
 
             point = point.next
 

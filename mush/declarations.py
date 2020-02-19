@@ -1,4 +1,5 @@
 from collections import deque
+from enum import Enum, auto
 from functools import (
     WRAPPER_UPDATES,
     WRAPPER_ASSIGNMENTS as FUNCTOOLS_ASSIGNMENTS,
@@ -152,6 +153,17 @@ class returns(returns_result_type):
         return self.__class__.__name__ + '(' + args_repr + ')'
 
 
+class DeclarationsFrom(Enum):
+    #: Use declarations from the original callable.
+    original = auto()
+    #: Use declarations from the replacement callable.
+    replacement = auto()
+
+
+original = DeclarationsFrom.original
+replacement = DeclarationsFrom.replacement
+
+
 class how(object):
     """
     The base class for type decorators that indicate which part of a
@@ -281,8 +293,8 @@ def guess_requirements(obj):
         return requires(*args, **kw)
 
 
-def extract_requires(obj, requires_, default=nothing):
-    if requires_ is None:
+def extract_requires(obj, explicit=None):
+    if explicit is None:
         mush_declarations = getattr(obj, '__mush__', {})
         requires_ = mush_declarations.get('requires', None)
         if requires_ is None:
@@ -290,29 +302,30 @@ def extract_requires(obj, requires_, default=nothing):
             annotations = {} if annotations is None else annotations.copy()
             annotations.pop('return', None)
             requires_ = annotations or None
+    else:
+        requires_ = explicit
 
     if isinstance(requires_, requires):
         pass
     elif requires_ is None:
-        if default is not None:
-            requires_ = guess_requirements(obj)
+        requires_ = guess_requirements(obj)
     elif isinstance(requires_, (list, tuple)):
         requires_ = requires(*requires_)
-    elif isinstance(requires_, dict):
-        requires_ = requires(**requires_)
     else:
         requires_ = requires(requires_)
 
-    return requires_ or default
+    return requires_ or nothing
 
 
-def extract_returns(obj, returns_, default=result_type):
-    if returns_ is None:
+def extract_returns(obj, explicit=None):
+    if explicit is None:
         mush_declarations = getattr(obj, '__mush__', {})
         returns_ = mush_declarations.get('returns', None)
         if returns_ is None:
             annotations = getattr(obj, '__annotations__', {})
             returns_ = annotations.get('return')
+    else:
+        returns_ = explicit
 
     if returns_ is None or isinstance(returns_, ReturnsType):
         pass
@@ -321,7 +334,7 @@ def extract_returns(obj, returns_, default=result_type):
     else:
         returns_ = returns(returns_)
 
-    return returns_ or default
+    return returns_ or result_type
 
 
 WRAPPER_ASSIGNMENTS = FUNCTOOLS_ASSIGNMENTS + ('__mush__',)
