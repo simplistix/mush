@@ -5,7 +5,7 @@ from functools import (
     WRAPPER_ASSIGNMENTS as FUNCTOOLS_ASSIGNMENTS,
     update_wrapper as functools_update_wrapper,
 )
-from inspect import signature
+from inspect import Signature
 from itertools import chain
 from typing import Type, Callable, NewType, Union, Any
 
@@ -38,6 +38,14 @@ class Requirement:
             self.ops.appendleft(source.process)
             source = source.type
         self.key: ResourceKey = source
+
+    def resolve(self, context):
+        o = context.get(self.key, missing)
+        if o is missing:
+            return self.default
+        for op in self.ops:
+            o = op(o)
+        return o
 
     def __repr__(self):
         return f'Requirement({self.repr}, default={self.default})'
@@ -198,18 +206,6 @@ class how(object):
         """
         return missing
 
-class optional(how):
-    """
-    A :class:`~.declarations.how` that indicates the callable requires the
-    wrapped requirement only if it's present in the :class:`~.context.Context`.
-    """
-    type_pattern = 'optional(%(type)s)'
-
-    def process(self, o):
-        if o is missing:
-            return nothing
-        return o
-
 
 class attr(how):
     """
@@ -276,23 +272,17 @@ nothing = Nothing()
 result_type = returns_result_type()
 
 
-def maybe_optional(p):
-    value = p.name
-    if p.default is not p.empty:
-        value = optional(value)
-    return value
-
-
 def guess_requirements(obj):
     args = []
     kw = {}
-    for name, p in signature(obj).parameters.items():
+    for name, p in Signature.from_callable(obj).parameters.items():
+        key = p.name if p.annotation is missing else p.annotation
+        requirement = Requirement(key, default=p.default)
         if p.kind in {p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD}:
-            args.append(maybe_optional(p))
+            args.append(requirement)
         elif p.kind is p.KEYWORD_ONLY:
-            kw[name] = maybe_optional(p)
-    if args or kw:
-        return requires(*args, **kw)
+            kw[name] = requirement
+    return requires(*args, **kw)
 
 
 def extract_requires(obj, explicit=None):
@@ -300,17 +290,12 @@ def extract_requires(obj, explicit=None):
         mush_declarations = getattr(obj, '__mush__', {})
         requires_ = mush_declarations.get('requires', None)
         if requires_ is None:
-            annotations = getattr(obj, '__annotations__', None)
-            annotations = {} if annotations is None else annotations.copy()
-            annotations.pop('return', None)
-            requires_ = annotations or None
+            requires_ = guess_requirements(obj)
     else:
         requires_ = explicit
 
     if isinstance(requires_, requires):
         pass
-    elif requires_ is None:
-        requires_ = guess_requirements(obj)
     elif isinstance(requires_, (list, tuple)):
         requires_ = requires(*requires_)
     else:
@@ -319,7 +304,7 @@ def extract_requires(obj, explicit=None):
     return requires_ or nothing
 
 
-def extract_returns(obj, explicit=None):
+def extract_returns(obj: Callable, explicit: ReturnsType = None):
     if explicit is None:
         mush_declarations = getattr(obj, '__mush__', {})
         returns_ = mush_declarations.get('returns', None)

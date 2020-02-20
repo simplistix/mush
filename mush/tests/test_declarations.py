@@ -4,7 +4,7 @@ from mock import Mock
 from testfixtures import compare, ShouldRaise
 from mush.markers import missing
 from mush.declarations import (
-    requires, optional, returns,
+    requires, returns,
     returns_mapping, returns_sequence, returns_result_type,
     how, item, attr, nothing,
     extract_requires, extract_returns,
@@ -136,21 +136,6 @@ class TestAttr(TestCase):
         compare(h.process(missing), missing)
 
 
-class TestOptional(TestCase):
-
-    def test_type(self):
-        compare(repr(optional(Type1)), "optional(Type1)")
-
-    def test_string(self):
-        compare(repr(optional('1')), "optional('1')")
-
-    def test_present(self):
-        compare(optional(Type1).process(1), 1)
-
-    def test_missing(self):
-        compare(optional(Type1).process(missing), nothing)
-
-
 class TestReturns(TestCase):
 
     def test_type(self):
@@ -238,14 +223,14 @@ class TestExtractDeclarations(object):
     def test_default_requirements_for_function(self):
         def foo(a, b=None): pass
         check_extract(foo,
-                      expected_rq=requires('a', optional('b')),
+                      expected_rq=requires('a', Requirement('b', default=None)),
                       expected_rt=result_type)
 
     def test_default_requirements_for_class(self):
         class MyClass(object):
             def __init__(self, a, b=None): pass
         check_extract(MyClass,
-                      expected_rq=requires('a', optional('b')),
+                      expected_rq=requires('a', Requirement('b', default=None)),
                       expected_rt=result_type)
 
     def test_extract_from_partial(self):
@@ -253,7 +238,9 @@ class TestExtractDeclarations(object):
         p = partial(foo, 1, y=2)
         check_extract(
             p,
-            expected_rq=requires(y=optional('y'), z='z', a=optional('a'), ),
+            expected_rq=requires(y=Requirement('y', default=2),
+                                 z='z',
+                                 a=Requirement('a', default=None)),
             expected_rt=result_type
         )
 
@@ -262,7 +249,7 @@ class TestExtractDeclarations(object):
         p = partial(foo)
         check_extract(
             p,
-            expected_rq=requires(optional('a')),
+            expected_rq=requires(Requirement('a', default=None)),
             expected_rt=result_type
         )
 
@@ -281,7 +268,7 @@ class TestExtractDeclarations(object):
         p = partial(foo, a=1)
         check_extract(
             p,
-            expected_rq=requires(a=optional('a')),
+            expected_rq=requires(a=Requirement('a', default=1)),
             expected_rt=result_type
         )
 
@@ -300,7 +287,7 @@ class TestExtractDeclarations(object):
         p = partial(foo, a=1)
         check_extract(
             p,
-            expected_rq=requires(a=optional('a')),
+            expected_rq=requires(a=Requirement('a', default=1)),
             expected_rt=result_type
         )
 
@@ -309,7 +296,7 @@ class TestExtractDeclarations(object):
         p = partial(foo)
         check_extract(
             p,
-            expected_rq=requires('b', optional('a')),
+            expected_rq=requires('b', Requirement('a', default=None)),
             expected_rt=result_type
         )
 
@@ -328,7 +315,7 @@ class TestExtractDeclarations(object):
         p = partial(foo, a=1)
         check_extract(
             p,
-            expected_rq=requires('b', a=optional('a')),
+            expected_rq=requires('b', a=Requirement('a', default=1)),
             expected_rt=result_type
         )
 
@@ -338,13 +325,16 @@ class TestExtractDeclarationsFromTypeAnnotations(object):
     def test_extract_from_annotations(self):
         def foo(a: 'foo', b, c: 'bar' = 1, d=2) -> 'bar': pass
         check_extract(foo,
-                      expected_rq=requires(a='foo', c='bar'),
+                      expected_rq=requires('foo',
+                                           'b',
+                                           Requirement('bar', default=1),
+                                           Requirement('d', default=2)),
                       expected_rt=returns('bar'))
 
     def test_requires_only(self):
         def foo(a: 'foo'): pass
         check_extract(foo,
-                      expected_rq=requires(a='foo'),
+                      expected_rq=requires('foo'),
                       expected_rt=result_type)
 
     def test_returns_only(self):
@@ -365,12 +355,12 @@ class TestExtractDeclarationsFromTypeAnnotations(object):
             return update_wrapper(Wrapper(func), func)
 
         @my_dec
-        def foo(a: 'foo'=None) -> 'bar':
+        def foo(a: 'foo' = None) -> 'bar':
             return 'answer'
 
         compare(foo(), expected='the answer')
         check_extract(foo,
-                      expected_rq=requires(a='foo'),
+                      expected_rq=requires(Requirement('foo', default=None)),
                       expected_rt=returns('bar'))
 
     def test_decorator_trumps_annotations(self):
@@ -396,17 +386,17 @@ class TestExtractDeclarationsFromTypeAnnotations(object):
                       expected_rt=rt)
 
     def test_how_instance_in_annotations(self):
-        how = item('config', 'db_url')
-        def foo(a: how): pass
+        how_instance = item('config', 'db_url')
+        def foo(a: how_instance): pass
         check_extract(foo,
-                      expected_rq=requires(a=how),
+                      expected_rq=requires(how_instance),
                       expected_rt=result_type)
 
     def test_default_requirements(self):
         def foo(a, b=1, *, c, d=None): pass
         check_extract(foo,
                       expected_rq=requires('a',
-                                           optional('b'),
+                                           Requirement('b', default=1),
                                            c='c',
-                                           d=optional('d')),
+                                           d=Requirement('d', default=None)),
                       expected_rt=result_type)

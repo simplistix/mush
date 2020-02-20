@@ -1,13 +1,11 @@
 from unittest import TestCase
-from mock import Mock
 
+from mock import Mock
 from testfixtures import ShouldRaise, compare
 
 from mush import Context, ContextError
-
 from mush.declarations import (
-    nothing, requires, optional, item,
-    attr, returns, returns_mapping
+    nothing, requires, item, attr, returns, returns_mapping, Requirement
 )
 from mush.resolvers import ValueResolver
 
@@ -186,15 +184,15 @@ class TestContext(TestCase):
             return x
         context = Context()
         context.add(2, TheType)
-        result = context.call(foo, requires(optional(TheType)))
+        result = context.call(foo, requires(TheType))
         compare(result, 2)
         compare({TheType: ValueResolver(2)}, actual=context._store)
 
-    def test_call_requires_optional_ContextError(self):
-        def foo(x=1):
+    def test_call_requires_optional_missing(self):
+        def foo(x: TheType = 1):
             return x
         context = Context()
-        result = context.call(foo, requires(optional(TheType)))
+        result = context.call(foo)
         compare(result, 1)
 
     def test_call_requires_optional_override_source_and_default(self):
@@ -206,11 +204,11 @@ class TestContext(TestCase):
         compare(result, expected=3)
 
     def test_call_requires_optional_string(self):
-        def foo(x=1):
+        def foo(x:'foo'=1):
             return x
         context = Context()
         context.add(2, 'foo')
-        result = context.call(foo, requires(optional('foo')))
+        result = context.call(foo)
         compare(result, 2)
         compare({'foo': ValueResolver(2)}, actual=context._store)
 
@@ -241,11 +239,11 @@ class TestContext(TestCase):
         result = context.call(foo, requires(item(attr('foo', 'bar'), 'baz')))
         compare(result, 'bob')
 
-    def test_call_requires_optional_item_ContextError(self):
-        def foo(x=1):
+    def test_call_requires_optional_item_missing(self):
+        def foo(x: item('foo', 'bar') = 1):
             return x
         context = Context()
-        result = context.call(foo, requires(optional(item('foo', 'bar'))))
+        result = context.call(foo)
         compare(result, 1)
 
     def test_call_requires_optional_item_present(self):
@@ -253,22 +251,7 @@ class TestContext(TestCase):
             return x
         context = Context()
         context.add(dict(bar='baz'), 'foo')
-        result = context.call(foo, requires(optional(item('foo', 'bar'))))
-        compare(result, 'baz')
-
-    def test_call_requires_item_optional_ContextError(self):
-        def foo(x=1):
-            return x
-        context = Context()
-        result = context.call(foo, requires(item(optional('foo'), 'bar')))
-        compare(result, 1)
-
-    def test_call_requires_item_optional_present(self):
-        def foo(x=1):
-            return x
-        context = Context()
-        context.add(dict(bar='baz'), 'foo')
-        result = context.call(foo, requires(item(optional('foo'), 'bar')))
+        result = context.call(foo, requires((item('foo', 'bar'))))
         compare(result, 'baz')
 
     def test_call_extract_requirements(self):

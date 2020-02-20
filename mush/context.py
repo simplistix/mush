@@ -1,8 +1,7 @@
 from typing import Optional
 
 from .declarations import (
-    nothing, extract_requires, RequiresType,
-    ResourceKey, ResourceValue, Resolver
+    extract_requires, RequiresType, ResourceKey, ResourceValue, Resolver
 )
 from .markers import missing
 from .resolvers import ValueResolver
@@ -123,19 +122,11 @@ class Context:
         kw = {}
 
         for target, requirement in requires:
-            o = self.get(requirement.key, requirement.default)
-
-            for op in requirement.ops:
-                o = op(o)
-                if o is nothing:
-                    break
-
+            o = requirement.resolve(self)
             if o is missing:
-                raise ContextError('No %s in context' % requirement.repr)
-
-            if o is nothing:
-                pass
-            elif target is None:
+                if requirement.default is missing:
+                    raise ContextError('No %s in context' % requirement.repr)
+            if target is None:
                 args.append(o)
             else:
                 kw[target] = o

@@ -1,3 +1,6 @@
+from inspect import Parameter
+
+
 class Marker(object):
 
     def __init__(self, name):
@@ -8,4 +11,4 @@ class Marker(object):
 
 
 not_specified = Marker('not_specified')
-missing = Marker('missing')
+missing = Parameter.empty

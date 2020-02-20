@@ -198,8 +198,6 @@ I made an apple
 I turned an apple into an orange
 I made juice out of an apple and an orange
 
-.. _optional-resources:
-
 Optional requirements
 ~~~~~~~~~~~~~~~~~~~~~
 
@@ -209,17 +207,17 @@ take this into account. Take the following function:
 
 .. code-block:: python
 
-  def greet(name='stranger'):
+  def greet(name: str = 'stranger'):
       print('Hello ' + name + '!')
 
-If a name is not always be available, it can be added to a runner as follows:
+If a name is not always be available, the callable's default will be used:
 
 .. code-block:: python
 
-  from mush import Runner, optional
+  from mush import Runner
 
   runner = Runner()
-  runner.add(greet, requires=optional(str))
+  runner.add(greet)
 
 Now, when this runner is called, the default will be used:
 
@@ -231,13 +229,13 @@ available:
 
 .. code-block:: python
 
-  from mush import Runner, optional
+  from mush import Runner
 
   def my_name_is():
      return 'Slim Shady'
 
   runner = Runner(my_name_is)
-  runner.add(greet, requires=optional(str))
+  runner.add(greet)
 
 In this case, the string returned will be used:
 
@@ -537,9 +535,6 @@ I made an apple
 I turned an apple into an orange
 I made juice out of an apple and an orange
 a refreshing fruit beverage
-
-If an argument has a default, then the requirement will be made
-:ref:`optional <optional-resources>`.
 
 Configuration Precedence
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1040,7 +1035,7 @@ To see how the configuration panned out, we would look at the :func:`repr`:
 >>> runner
 <Runner>
     <function make_config ...> requires() returns('config')
-    <function connect ...> requires(foo='config'['foo']) returns_result_type() <-- config
+    <function connect ...> requires('config'['foo']) returns_result_type() <-- config
     <function process ...> requires('connection') returns_result_type()
 </Runner>
 

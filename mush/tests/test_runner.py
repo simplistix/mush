@@ -767,31 +767,6 @@ class RunnerTests(TestCase):
                 call.cm1.exit(Exception, e)
                 ], m.mock_calls)
 
-    def test_marker_interfaces(self):
-        # return {Type:None}
-        # don't pass when a requirement is for a type but value is None
-        class Marker(object): pass
-
-        m = Mock()
-
-        def setup():
-            m.setup()
-            return {Marker: nothing}
-
-        @requires(Marker)
-        def use():
-            m.use()
-
-        runner = Runner()
-        runner.add(setup, returns=returns_mapping(), label='setup')
-        runner['setup'].add(use)
-        runner()
-
-        compare([
-                call.setup(),
-                call.use(),
-                ], m.mock_calls)
-
     def test_clone(self):
         m = Mock()
         class T1(object): pass
