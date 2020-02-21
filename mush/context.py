@@ -63,6 +63,8 @@ def type_key(type_tuple):
 class Context:
     "Stores resources for a particular run."
 
+    _parent = None
+
     def __init__(self):
         self._store = {}
 
@@ -134,9 +136,24 @@ class Context:
         return obj(*args, **kw)
 
     def get(self, key: ResourceKey, default=None):
-        resolver = self._store.get(key, None)
+        context = self
+        resolver = None
+
+        while resolver is None and context is not None:
+            resolver = context._store.get(key, None)
+            if resolver is None:
+                context = context._parent
+            elif context is not self:
+                self._store[key] = resolver
+
         if resolver is None:
             if key is Context:
                 return self
             return default
+
         return resolver(self, default)
+
+    def nest(self):
+        nested = type(self)()
+        nested._parent = self
+        return nested

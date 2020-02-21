@@ -342,3 +342,17 @@ class TestContext(TestCase):
     def test_get_missing(self):
         context = Context()
         compare(context.get('foo'), expected=None)
+
+    def test_nest(self):
+        c1 = Context()
+        c1.add('a', provides='a')
+        c1.add('c', provides='c')
+        c2 = c1.nest()
+        c2.add('b', provides='b')
+        c2.add('d', provides='c')
+        compare(c2.get('a'), expected='a')
+        compare(c2.get('b'), expected='b')
+        compare(c2.get('c'), expected='d')
+        compare(c1.get('a'), expected='a')
+        compare(c1.get('b'), expected=None)
+        compare(c1.get('c'), expected='c')
