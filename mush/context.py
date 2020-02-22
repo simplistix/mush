@@ -4,7 +4,6 @@ from .declarations import (
     extract_requires, RequiresType, ResourceKey, ResourceValue, Resolver
 )
 from .markers import missing
-from .resolvers import ValueResolver
 
 NONE_TYPE = type(None)
 
@@ -60,6 +59,19 @@ def type_key(type_tuple):
     return type.__name__
 
 
+class ResolvableValue:
+    __slots__ = ('value', 'resolver')
+
+    def __init__(self, value, resolver=None):
+        self.value = value
+        self.resolver = resolver
+
+    def __repr__(self):
+        if self.resolver is None:
+            return repr(self.value)
+        return repr(self.resolver)
+
+
 class Context:
     "Stores resources for a particular run."
 
@@ -87,9 +99,7 @@ class Context:
             raise ValueError('Cannot add None to context')
         if provides in self._store:
             raise ContextError(f'Context already contains {provides!r}')
-        if resolver is None:
-            resolver = ValueResolver(resource)
-        self._store[provides] = resolver
+        self._store[provides] = ResolvableValue(resource, resolver)
 
     def remove(self, key: ResourceKey, *, strict: bool = True):
         """
@@ -135,23 +145,29 @@ class Context:
 
         return obj(*args, **kw)
 
-    def get(self, key: ResourceKey, default=None):
+    def _get(self, key, default):
         context = self
-        resolver = None
+        resolvable = None
 
-        while resolver is None and context is not None:
-            resolver = context._store.get(key, None)
-            if resolver is None:
+        while resolvable is None and context is not None:
+            resolvable = context._store.get(key, None)
+            if resolvable is None:
                 context = context._parent
             elif context is not self:
-                self._store[key] = resolver
+                self._store[key] = resolvable
 
-        if resolver is None:
+        if resolvable is None:
             if key is Context:
-                return self
-            return default
+                return ResolvableValue(self)
+            return ResolvableValue(default)
 
-        return resolver(self, default)
+        return resolvable
+
+    def get(self, key: ResourceKey, default=None):
+        resolvable = self._get(key, default)
+        if resolvable.resolver is not None:
+            return resolvable.resolver(self, default)
+        return resolvable.value
 
     def nest(self):
         nested = type(self)()

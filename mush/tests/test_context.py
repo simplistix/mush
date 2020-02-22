@@ -1,13 +1,13 @@
 from unittest import TestCase
 
 from mock import Mock
+from mush.context import ResolvableValue
 from testfixtures import ShouldRaise, compare
 
 from mush import Context, ContextError
 from mush.declarations import (
     nothing, requires, item, attr, returns, returns_mapping, Requirement
 )
-from mush.resolvers import ValueResolver
 
 
 class TheType(object):
@@ -22,7 +22,7 @@ class TestContext(TestCase):
         context = Context()
         context.add(obj)
 
-        compare(context._store, expected={TheType: ValueResolver(obj)})
+        compare(context._store, expected={TheType: ResolvableValue(obj)})
         expected = (
             "<Context: {\n"
             "    <class 'mush.tests.test_context.TheType'>: <TheType obj>\n"
@@ -39,7 +39,7 @@ class TestContext(TestCase):
         expected = ("<Context: {\n"
                     "    'my label': <TheType obj>\n"
                     "}>")
-        compare(context._store, expected={'my label': ValueResolver(obj)})
+        compare(context._store, expected={'my label': ResolvableValue(obj)})
         self.assertEqual(repr(context), expected)
         self.assertEqual(str(context), expected)
 
@@ -48,7 +48,7 @@ class TestContext(TestCase):
         obj = TheType()
         context = Context()
         context.add(obj, provides=T2)
-        compare(context._store, expected={T2: ValueResolver(obj)})
+        compare(context._store, expected={T2: ResolvableValue(obj)})
         expected = ("<Context: {\n"
                     "    " + repr(T2) + ": <TheType obj>\n"
                     "}>")
@@ -113,7 +113,7 @@ class TestContext(TestCase):
     def test_add_none_with_type(self):
         context = Context()
         context.add(None, TheType)
-        compare(context._store, expected={TheType: ValueResolver(None)})
+        compare(context._store, expected={TheType: ResolvableValue(None)})
 
     def test_call_basic(self):
         def foo():
@@ -129,7 +129,7 @@ class TestContext(TestCase):
         context.add('bar', 'baz')
         result = context.call(foo, requires('baz'))
         compare(result, 'bar')
-        compare({'baz': ValueResolver('bar')}, actual=context._store)
+        compare({'baz': ResolvableValue('bar')}, actual=context._store)
 
     def test_call_requires_type(self):
         def foo(obj):
@@ -138,7 +138,7 @@ class TestContext(TestCase):
         context.add('bar', TheType)
         result = context.call(foo, requires(TheType))
         compare(result, 'bar')
-        compare({TheType: ValueResolver('bar')}, actual=context._store)
+        compare({TheType: ResolvableValue('bar')}, actual=context._store)
 
     def test_call_requires_missing(self):
         def foo(obj): return obj
@@ -175,8 +175,8 @@ class TestContext(TestCase):
         context.add('bar', 'baz')
         result = context.call(foo, requires(y='baz', x=TheType))
         compare(result, ('foo', 'bar'))
-        compare({TheType: ValueResolver('foo'),
-                 'baz': ValueResolver('bar')},
+        compare({TheType: ResolvableValue('foo'),
+                 'baz': ResolvableValue('bar')},
                 actual=context._store)
 
     def test_call_requires_optional_present(self):
@@ -186,7 +186,7 @@ class TestContext(TestCase):
         context.add(2, TheType)
         result = context.call(foo, requires(TheType))
         compare(result, 2)
-        compare({TheType: ValueResolver(2)}, actual=context._store)
+        compare({TheType: ResolvableValue(2)}, actual=context._store)
 
     def test_call_requires_optional_missing(self):
         def foo(x: TheType = 1):
@@ -210,7 +210,7 @@ class TestContext(TestCase):
         context.add(2, 'foo')
         result = context.call(foo)
         compare(result, 2)
-        compare({'foo': ValueResolver(2)}, actual=context._store)
+        compare({'foo': ResolvableValue(2)}, actual=context._store)
 
     def test_call_requires_item(self):
         def foo(x):
@@ -275,7 +275,7 @@ class TestContext(TestCase):
         context = Context()
         result = context.extract(foo, nothing, returns(TheType))
         compare(result, 'bar')
-        compare({TheType: ValueResolver('bar')}, actual=context._store)
+        compare({TheType: ResolvableValue('bar')}, actual=context._store)
 
     def test_returns_sequence(self):
         def foo():
@@ -283,7 +283,7 @@ class TestContext(TestCase):
         context = Context()
         result = context.extract(foo, nothing, returns('foo', 'bar'))
         compare(result, (1, 2))
-        compare({'foo': ValueResolver(1), 'bar': ValueResolver(2)},
+        compare({'foo': ResolvableValue(1), 'bar': ResolvableValue(2)},
                 actual=context._store)
 
     def test_returns_mapping(self):
@@ -292,7 +292,7 @@ class TestContext(TestCase):
         context = Context()
         result = context.extract(foo, nothing, returns_mapping())
         compare(result, {'foo': 1, 'bar': 2})
-        compare({'foo': ValueResolver(1), 'bar': ValueResolver(2)},
+        compare({'foo': ResolvableValue(1), 'bar': ResolvableValue(2)},
                 actual=context._store)
 
     def test_ignore_return(self):
