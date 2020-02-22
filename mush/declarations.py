@@ -276,8 +276,9 @@ def guess_requirements(obj):
     args = []
     kw = {}
     for name, p in Signature.from_callable(obj).parameters.items():
-        key = p.name if p.annotation is missing else p.annotation
-        requirement = Requirement(key, default=p.default)
+        key = p.name if p.annotation is p.empty else p.annotation
+        default = missing if p.default is p.empty else p.default
+        requirement = Requirement(key, default=default)
         if p.kind in {p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD}:
             args.append(requirement)
         elif p.kind is p.KEYWORD_ONLY:
