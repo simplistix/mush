@@ -136,7 +136,10 @@ class Context:
         for target, requirement in requires:
             o = requirement.resolve(self)
             if o is missing:
-                if requirement.default is missing:
+                key = requirement.key
+                if isinstance(key, type) and issubclass(key, Context):
+                    o = self
+                elif requirement.default is missing:
                     raise ContextError('No %s in context' % requirement.repr)
             if target is None:
                 args.append(o)
@@ -157,8 +160,6 @@ class Context:
                 self._store[key] = resolvable
 
         if resolvable is None:
-            if key is Context:
-                return ResolvableValue(self)
             return ResolvableValue(default)
 
         return resolvable

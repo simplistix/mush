@@ -315,7 +315,6 @@ class TestContext(TestCase):
         def return_context(context: Context):
             return context
         assert context.call(return_context) is context
-        assert context.get(Context) is context
 
     def test_remove(self):
         context = Context()
