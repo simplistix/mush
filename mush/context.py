@@ -126,26 +126,40 @@ class Context:
             self.add(obj, type)
         return result
 
-    def call(self, obj, requires=None):
+    @staticmethod
+    def _resolve(obj, requires, args, kw, context):
+
         if requires.__class__ is not RequiresType:
             requires = extract_requires(obj, requires)
 
-        args = []
-        kw = {}
-
         for target, requirement in requires:
-            o = requirement.resolve(self)
+            o = yield requirement
+
+            if o is not requirement.default:
+                for op in requirement.ops:
+                    o = op(o)
+
             if o is missing:
                 key = requirement.key
                 if isinstance(key, type) and issubclass(key, Context):
-                    o = self
-                elif requirement.default is missing:
+                    o = context
+                else:
                     raise ContextError('No %s in context' % requirement.repr)
+
             if target is None:
                 args.append(o)
             else:
                 kw[target] = o
 
+            yield
+
+    def call(self, obj, requires=None):
+        args = []
+        kw = {}
+        resolving = self._resolve(obj, requires, args, kw, self)
+        for requirement in resolving:
+            o = self.get(requirement.key, requirement.default)
+            resolving.send(o)
         return obj(*args, **kw)
 
     def _get(self, key, default):

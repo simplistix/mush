@@ -6,9 +6,10 @@ from .declarations import (
 )
 from .plug import Plug
 from .context import Context, ContextError
+from .asyncio import AsyncContext
 
 __all__ = [
-    'Context', 'ContextError',
+    'Context', 'AsyncContext', 'ContextError',
     'Runner',
     'requires',
     'returns_result_type', 'returns_mapping', 'returns_sequence', 'returns',

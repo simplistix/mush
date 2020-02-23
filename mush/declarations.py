@@ -39,14 +39,6 @@ class Requirement:
             source = source.type
         self.key: ResourceKey = source
 
-    def resolve(self, context):
-        o = context.get(self.key, missing)
-        if o is missing:
-            return self.default
-        for op in self.ops:
-            o = op(o)
-        return o
-
     def __repr__(self):
         return f'Requirement({self.repr}, default={self.default})'
 
