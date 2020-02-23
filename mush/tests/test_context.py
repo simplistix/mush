@@ -6,7 +6,7 @@ from testfixtures import ShouldRaise, compare
 
 from mush import Context, ContextError
 from mush.declarations import (
-    nothing, requires, item, attr, returns, returns_mapping, Requirement
+    nothing, requires, item, attr, returns, returns_mapping, Requirement, missing
 )
 
 
@@ -355,3 +355,30 @@ class TestContext(TestCase):
         compare(c1.get('a'), expected='a')
         compare(c1.get('b'), expected=None)
         compare(c1.get('c'), expected='c')
+
+    def test_custom_requirement(self):
+
+        class FromRequest(Requirement):
+            def resolve(self, context):
+                return context.get('request')[self.key]
+
+        def foo(bar: FromRequest('bar')):
+            return bar
+
+        context = Context()
+        context.add({'bar': 'foo'}, provides='request')
+        compare(context.call(foo), expected='foo')
+
+    def test_custom_requirement_returns_missing(self):
+
+        class FromRequest(Requirement):
+            def resolve(self, context):
+                return context.get('request').get(self.key, missing)
+
+        def foo(bar: FromRequest('bar')):
+            pass
+
+        context = Context(default_requirement_type=FromRequest)
+        context.add({}, provides='request')
+        with ShouldRaise(ContextError("No 'bar' in context")):
+            compare(context.call(foo))

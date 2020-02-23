@@ -33,25 +33,26 @@ class AsyncContext(Context):
         super().__init__()
         self._sync_context = SyncContext(self, asyncio.get_event_loop())
 
+    def _context_for(self, obj):
+        return self if asyncio.iscoroutinefunction(obj) else self._sync_context
+
     async def get(self, key: ResourceKey, default=None):
         resolvable = self._get(key, default)
-        if resolvable.resolver is not None:
-            if asyncio.iscoroutinefunction(resolvable.resolver):
-                context = self
-            else:
-                context = self._sync_context
-            return await ensure_async(resolvable.resolver, context, default)
+        r = resolvable.resolver
+        if r is not None:
+            return await ensure_async(r, self._context_for(r), default)
         return resolvable.value
 
     async def call(self, obj, requires=None):
         args = []
         kw = {}
-        resolving = self._resolve(
-            obj, requires, args, kw,
-            self if asyncio.iscoroutinefunction(obj) else self._sync_context
-        )
+        resolving = self._resolve(obj, requires, args, kw, self._context_for(obj))
         for requirement in resolving:
-            o = await self.get(requirement.key, requirement.default)
+            r = requirement.resolve
+            if r is not None:
+                o = await ensure_async(r, self._context_for(r))
+            else:
+                o = await self.get(requirement.key, requirement.default)
             resolving.send(o)
         return await ensure_async(obj, *args, **kw)
 

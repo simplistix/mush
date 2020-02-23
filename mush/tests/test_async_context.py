@@ -2,6 +2,7 @@ import asyncio
 import pytest
 
 from mush import AsyncContext, Context, requires, returns
+from mush.declarations import Requirement
 from testfixtures import compare
 
 
@@ -146,3 +147,33 @@ async def test_extract_sync():
     result = context.extract(it, requires(Context), returns('baz'))
     compare(await result, expected='foobar')
     compare(await context.get('baz'), expected='foobar')
+
+
+@pytest.mark.asyncio
+async def test_custom_requirement_async_resolve():
+
+    class FromRequest(Requirement):
+        async def resolve(self, context):
+            return (await context.get('request'))[self.key]
+
+    def foo(bar: FromRequest('bar')):
+        return bar
+
+    context = AsyncContext()
+    context.add({'bar': 'foo'}, provides='request')
+    compare(await context.call(foo), expected='foo')
+
+
+@pytest.mark.asyncio
+async def test_custom_requirement_sync_resolve():
+
+    class FromRequest(Requirement):
+        def resolve(self, context):
+            return context.get('request')[self.key]
+
+    def foo(bar: FromRequest('bar')):
+        return bar
+
+    context = AsyncContext()
+    context.add({'bar': 'foo'}, provides='request')
+    compare(await context.call(foo), expected='foo')

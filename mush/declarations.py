@@ -28,6 +28,8 @@ def set_mush(obj, key, value):
 
 class Requirement:
 
+    resolve = None
+
     def __init__(self, source, default=missing):
         self.repr = name_or_repr(source)
 
@@ -269,8 +271,11 @@ def guess_requirements(obj):
     kw = {}
     for name, p in Signature.from_callable(obj).parameters.items():
         key = p.name if p.annotation is p.empty else p.annotation
-        default = missing if p.default is p.empty else p.default
-        requirement = Requirement(key, default=default)
+        if isinstance(p.annotation, Requirement):
+            requirement = p.annotation
+        else:
+            default = missing if p.default is p.empty else p.default
+            requirement = Requirement(key, default=default)
         if p.kind in {p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD}:
             args.append(requirement)
         elif p.kind is p.KEYWORD_ONLY:

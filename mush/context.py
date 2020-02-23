@@ -158,7 +158,10 @@ class Context:
         kw = {}
         resolving = self._resolve(obj, requires, args, kw, self)
         for requirement in resolving:
-            o = self.get(requirement.key, requirement.default)
+            if requirement.resolve:
+                o = requirement.resolve(self)
+            else:
+                o = self.get(requirement.key, requirement.default)
             resolving.send(o)
         return obj(*args, **kw)
 
