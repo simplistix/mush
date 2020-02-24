@@ -5,7 +5,7 @@ from functools import (
     WRAPPER_ASSIGNMENTS as FUNCTOOLS_ASSIGNMENTS,
     update_wrapper as functools_update_wrapper,
 )
-from inspect import Signature
+from inspect import signature
 from itertools import chain
 from typing import Type, Callable, NewType, Union, Any
 
@@ -30,9 +30,9 @@ class Requirement:
 
     resolve = None
 
-    def __init__(self, source, default=missing):
+    def __init__(self, source, default=missing, target=None):
         self.repr = name_or_repr(source)
-
+        self.target = target
         self.default = default
 
         self.ops = deque()
@@ -42,7 +42,7 @@ class Requirement:
         self.key: ResourceKey = source
 
     def __repr__(self):
-        return f'Requirement({self.repr}, default={self.default})'
+        return f'{type(self).__name__}({self.repr}, default={self.default})'
 
 
 class RequiresType(list):
@@ -65,13 +65,15 @@ class RequiresType(list):
             ((None, arg) for arg in args),
             kw.items(),
         ):
-            if not isinstance(requirement, Requirement):
-                requirement = Requirement(requirement)
-            self.append((target, requirement))
+            if isinstance(requirement, Requirement):
+                requirement.target = target
+            else:
+                requirement = Requirement(requirement, target=target)
+            self.append(requirement)
 
     def __repr__(self):
-        parts = (r.repr if t is None else f'{t}={r.repr}'
-                 for (t, r) in self)
+        parts = (r.repr if r.target is None else f'{r.target}={r.repr}'
+                 for r in self)
         return f"requires({', '.join(parts)})"
 
     def __call__(self, obj):
@@ -266,40 +268,71 @@ nothing = Nothing()
 result_type = returns_result_type()
 
 
-def guess_requirements(obj):
-    args = []
-    kw = {}
-    for name, p in Signature.from_callable(obj).parameters.items():
-        key = p.name if p.annotation is p.empty else p.annotation
-        if isinstance(p.annotation, Requirement):
-            requirement = p.annotation
+def _unpack_requires(by_name, by_index, requires_):
+
+    for i, requirement in enumerate(requires_):
+        if requirement.target is None:
+            try:
+                arg = by_index[i]
+            except IndexError:
+                # case where something takes *args
+                arg = i
         else:
-            default = missing if p.default is p.empty else p.default
-            requirement = Requirement(key, default=default)
-        if p.kind in {p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD}:
-            args.append(requirement)
-        elif p.kind is p.KEYWORD_ONLY:
-            kw[name] = requirement
-    return requires(*args, **kw)
+            arg = requirement.target
+        by_name[arg] = requirement
 
 
 def extract_requires(obj, explicit=None):
-    if explicit is None:
-        mush_declarations = getattr(obj, '__mush__', {})
-        requires_ = mush_declarations.get('requires', None)
-        if requires_ is None:
-            requires_ = guess_requirements(obj)
-    else:
-        requires_ = explicit
+    # from annotations
+    by_name = {}
+    for name, p in signature(obj).parameters.items():
+        if p.kind in (p.VAR_POSITIONAL, p.VAR_KEYWORD):
+            continue
 
-    if isinstance(requires_, requires):
-        pass
-    elif isinstance(requires_, (list, tuple)):
-        requires_ = requires(*requires_)
-    else:
-        requires_ = requires(requires_)
+        if isinstance(p.default, Requirement):
+            requirement = p.default
+        elif isinstance(p.annotation, Requirement):
+            requirement = p.annotation
+        else:
+            key = p.name if p.annotation is p.empty else p.annotation
+            default = missing if p.default is p.empty else p.default
+            requirement = Requirement(key, default=default)
 
-    return requires_ or nothing
+        if p.kind is p.KEYWORD_ONLY:
+            requirement.target = p.name
+        by_name[name] = requirement
+
+    by_index = list(by_name)
+
+    # from declarations
+    mush_declarations = getattr(obj, '__mush__', None)
+    if mush_declarations is not None:
+        requires_ = mush_declarations.get('requires')
+        if requires_ is not None:
+            _unpack_requires(by_name, by_index, requires_)
+
+    # explicit
+    if explicit is not None:
+        if isinstance(explicit, (list, tuple)):
+            requires_ = requires(*explicit)
+        elif not isinstance(explicit, requires):
+            requires_ = requires(explicit)
+        else:
+            requires_ = explicit
+        _unpack_requires(by_name, by_index, requires_)
+
+    if not by_name:
+        return nothing
+
+    args = []
+    kw = {}
+    for requirement in by_name.values():
+        if requirement.target is None:
+            args.append(requirement)
+        else:
+            kw[requirement.target] = requirement
+
+    return requires(*args, **kw)
 
 
 def extract_returns(obj: Callable, explicit: ReturnsType = None):

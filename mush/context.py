@@ -132,7 +132,7 @@ class Context:
         if requires.__class__ is not RequiresType:
             requires = extract_requires(obj, requires)
 
-        for target, requirement in requires:
+        for requirement in requires:
             o = yield requirement
 
             if o is not requirement.default:
@@ -146,10 +146,10 @@ class Context:
                 else:
                     raise ContextError('No %s in context' % requirement.repr)
 
-            if target is None:
+            if requirement.target is None:
                 args.append(o)
             else:
-                kw[target] = o
+                kw[requirement.target] = o
 
             yield
 

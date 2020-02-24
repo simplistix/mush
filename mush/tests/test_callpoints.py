@@ -21,12 +21,12 @@ class TestCallPoints(TestCase):
         compare(point.labels, set())
 
     def test_supplied_explicitly(self):
-        obj = object()
+        def foo(a1): pass
         rq = requires('foo')
         rt = returns('bar')
-        result = CallPoint(obj, rq, rt)(self.context)
+        result = CallPoint(foo, rq, rt)(self.context)
         compare(result, self.context.extract.return_value)
-        self.context.extract.assert_called_with(obj, rq, rt)
+        self.context.extract.assert_called_with(foo, rq, rt)
 
     def test_extract_from_decorations(self):
         rq = requires('foo')
@@ -34,7 +34,7 @@ class TestCallPoints(TestCase):
 
         @rq
         @rt
-        def foo(): pass
+        def foo(a1): pass
 
         result = CallPoint(foo)(self.context)
         compare(result, self.context.extract.return_value)
@@ -49,7 +49,7 @@ class TestCallPoints(TestCase):
             def __init__(self, func):
                 self.func = func
             def __call__(self):
-                return 'the '+self.func()
+                return self.func('the ')
 
         def my_dec(func):
             return update_wrapper(Wrapper(func), func)
@@ -57,8 +57,8 @@ class TestCallPoints(TestCase):
         @my_dec
         @rq
         @rt
-        def foo():
-            return 'answer'
+        def foo(prefix):
+            return prefix+'answer'
 
         self.context.extract.side_effect = lambda func, rq, rt: (func(), rq, rt)
         result = CallPoint(foo)(self.context)
@@ -67,7 +67,7 @@ class TestCallPoints(TestCase):
     def test_explicit_trumps_decorators(self):
         @requires('foo')
         @returns('bar')
-        def foo(): pass
+        def foo(a1): pass
 
         rq = requires('baz')
         rt = returns('bob')
@@ -82,7 +82,7 @@ class TestCallPoints(TestCase):
         compare(repr(foo)+" requires() returns_result_type()", repr(point))
 
     def test_repr_maximal(self):
-        def foo(): pass
+        def foo(a1): pass
         point = CallPoint(foo, requires('foo'), returns('bar'))
         point.labels.add('baz')
         point.labels.add('bob')
@@ -90,7 +90,7 @@ class TestCallPoints(TestCase):
                 repr(point))
 
     def test_convert_to_requires_and_returns(self):
-        def foo(): pass
+        def foo(baz): pass
         point = CallPoint(foo, requires='foo', returns='bar')
         self.assertTrue(isinstance(point.requires, requires))
         self.assertTrue(isinstance(point.returns, returns))
@@ -98,7 +98,7 @@ class TestCallPoints(TestCase):
                 repr(point))
 
     def test_convert_to_requires_and_returns_tuple(self):
-        def foo(): pass
+        def foo(a1, a2): pass
         point = CallPoint(foo,
                           requires=('foo', 'bar'),
                           returns=('baz', 'bob'))
@@ -108,7 +108,7 @@ class TestCallPoints(TestCase):
                 repr(point))
 
     def test_convert_to_requires_and_returns_list(self):
-        def foo(): pass
+        def foo(a1, a2): pass
         point = CallPoint(foo,
                           requires=['foo', 'bar'],
                           returns=['baz', 'bob'])

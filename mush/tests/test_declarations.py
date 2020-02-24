@@ -37,20 +37,20 @@ class TestRequires(TestCase):
         r = requires(Type1, Type2, x=Type3, y=Type4)
         compare(repr(r), 'requires(Type1, Type2, x=Type3, y=Type4)')
         compare(r, expected=[
-            (None, Requirement(Type1)),
-            (None, Requirement(Type2)),
-            ('x', Requirement(Type3)),
-            ('y', Requirement(Type4)),
+            Requirement(Type1),
+            Requirement(Type2),
+            Requirement(Type3, target='x'),
+            Requirement(Type4, target='y'),
         ])
 
     def test_strings(self):
         r = requires('1', '2', x='3', y='4')
         compare(repr(r), "requires('1', '2', x='3', y='4')")
         compare(r, expected=[
-            (None, Requirement('1')),
-            (None, Requirement('2')),
-            ('x', Requirement('3')),
-            ('y', Requirement('4')),
+            Requirement('1'),
+            Requirement('2'),
+            Requirement('3', target='x'),
+            Requirement('4', target='y'),
         ])
 
     def test_tuple_arg(self):
@@ -66,7 +66,7 @@ class TestRequires(TestCase):
         def foo():
             return 'bar'
 
-        compare(foo.__mush__['requires'], expected=[(None, Requirement(Type1))])
+        compare(foo.__mush__['requires'], expected=[Requirement(Type1)])
         compare(foo(), 'bar')
 
 
@@ -399,4 +399,33 @@ class TestExtractDeclarationsFromTypeAnnotations(object):
                                            Requirement('b', default=1),
                                            c='c',
                                            d=Requirement('d', default=None)),
+                      expected_rt=result_type)
+
+
+class TestDeclarationsFromMultipleSources:
+
+    def test_declarations_from_different_sources(self):
+        r1 = Requirement('a')
+        r2 = Requirement('b')
+        r3 = Requirement('c')
+
+        @requires(b=r2)
+        def foo(a: r1, b, c=r3):
+            pass
+
+        check_extract(foo,
+                      expected_rq=requires(r1, b=r2, c=r3),
+                      expected_rt=result_type)
+
+    def test_declaration_priorities(self):
+        r1 = Requirement('a')
+        r2 = Requirement('b')
+        r3 = Requirement('c')
+
+        @requires(a=r1)
+        def foo(a: r2 = r3, b: str = r2, c = r3):
+            pass
+
+        check_extract(foo,
+                      expected_rq=requires(r1, b=r2, c=r3),
                       expected_rt=result_type)

@@ -530,7 +530,7 @@ class RunnerTests(TestCase):
             pass # pragma: nocover
 
         def job4(): pass
-        def job5(): pass
+        def job5(foo, bar): pass
 
         runner = Runner()
         runner.add(job1, label='1')
@@ -556,7 +556,7 @@ class RunnerTests(TestCase):
             '',
             'Still to call:',
             repr(job4)+' requires() returns_result_type() <-- 4',
-            repr(job5)+" requires('foo', bar='baz') returns('bob')",
+            repr(job5)+" requires('foo', 'baz') returns('bob')",
         ))
         compare(text, actual=repr(s.raised))
         compare(text, actual=str(s.raised))

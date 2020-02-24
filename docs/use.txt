@@ -951,7 +951,7 @@ If you have a base runner such as this:
   def parse_args(parser):
       return parser.parse_args()
 
-  def load_config():
+  def load_config(config_url):
       return json.loads(urllib2.urlopen('...').read())
 
   def finalise_things():
