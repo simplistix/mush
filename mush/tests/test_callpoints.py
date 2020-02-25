@@ -5,7 +5,7 @@ from mock import Mock
 from testfixtures import compare
 
 from mush.callpoints import CallPoint
-from mush.declarations import requires, returns, update_wrapper
+from mush.declarations import requires, returns, update_wrapper, RequiresType
 
 
 class TestCallPoints(TestCase):
@@ -92,7 +92,7 @@ class TestCallPoints(TestCase):
     def test_convert_to_requires_and_returns(self):
         def foo(baz): pass
         point = CallPoint(foo, requires='foo', returns='bar')
-        self.assertTrue(isinstance(point.requires, requires))
+        self.assertTrue(isinstance(point.requires, RequiresType))
         self.assertTrue(isinstance(point.returns, returns))
         compare(repr(foo)+" requires('foo') returns('bar')",
                 repr(point))
@@ -102,7 +102,7 @@ class TestCallPoints(TestCase):
         point = CallPoint(foo,
                           requires=('foo', 'bar'),
                           returns=('baz', 'bob'))
-        self.assertTrue(isinstance(point.requires, requires))
+        self.assertTrue(isinstance(point.requires, RequiresType))
         self.assertTrue(isinstance(point.returns, returns))
         compare(repr(foo)+" requires('foo', 'bar') returns('baz', 'bob')",
                 repr(point))
@@ -112,7 +112,7 @@ class TestCallPoints(TestCase):
         point = CallPoint(foo,
                           requires=['foo', 'bar'],
                           returns=['baz', 'bob'])
-        self.assertTrue(isinstance(point.requires, requires))
+        self.assertTrue(isinstance(point.requires, RequiresType))
         self.assertTrue(isinstance(point.returns, returns))
         compare(repr(foo)+" requires('foo', 'bar') returns('baz', 'bob')",
                 repr(point))

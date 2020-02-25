@@ -46,31 +46,6 @@ class Requirement:
 
 
 class RequiresType(list):
-    """
-    Represents requirements for a particular callable.
-
-    The passed in `args` and `kw` should map to the types, including
-    any required :class:`~.declarations.how`, for the matching
-    arguments or keyword parameters the callable requires.
-
-    String names for resources must be used instead of types where the callable
-    returning those resources is configured to return the named resource.
-    """
-
-    def __init__(self, *args, **kw):
-        super().__init__()
-        check_type(*args)
-        check_type(*kw.values())
-        for target, requirement in chain(
-            ((None, arg) for arg in args),
-            kw.items(),
-        ):
-            if isinstance(requirement, Requirement):
-                requirement.target = target
-            else:
-                requirement = Requirement(requirement, target=target)
-            self.append(requirement)
-
     def __repr__(self):
         parts = (r.repr if r.target is None else f'{r.target}={r.repr}'
                  for r in self)
@@ -81,7 +56,30 @@ class RequiresType(list):
         return obj
 
 
-requires = RequiresType
+def requires(*args, **kw):
+    """
+    Represents requirements for a particular callable.
+
+    The passed in ``args`` and ``kw`` should map to the types, including
+    any required :class:`~.declarations.how`, for the matching
+    arguments or keyword parameters the callable requires.
+
+    String names for resources must be used instead of types where the callable
+    returning those resources is configured to return the named resource.
+    """
+    requires_ = RequiresType()
+    check_type(*args)
+    check_type(*kw.values())
+    for target, requirement in chain(
+        ((None, arg) for arg in args),
+        kw.items(),
+    ):
+        if isinstance(requirement, Requirement):
+            requirement.target = target
+        else:
+            requirement = Requirement(requirement, target=target)
+        requires_.append(requirement)
+    return requires_
 
 
 class ReturnsType(object):
@@ -252,7 +250,7 @@ def check_type(*objs):
             )
 
 
-class Nothing(requires, returns):
+class Nothing(RequiresType, returns):
 
     def process(self, result):
         return ()
@@ -282,7 +280,7 @@ def _unpack_requires(by_name, by_index, requires_):
         by_name[arg] = requirement
 
 
-def extract_requires(obj, explicit=None):
+def extract_requires(obj: Callable, explicit=None):
     # from annotations
     by_name = {}
     for name, p in signature(obj).parameters.items():
@@ -315,7 +313,7 @@ def extract_requires(obj, explicit=None):
     if explicit is not None:
         if isinstance(explicit, (list, tuple)):
             requires_ = requires(*explicit)
-        elif not isinstance(explicit, requires):
+        elif not isinstance(explicit, RequiresType):
             requires_ = requires(explicit)
         else:
             requires_ = explicit
@@ -324,15 +322,7 @@ def extract_requires(obj, explicit=None):
     if not by_name:
         return nothing
 
-    args = []
-    kw = {}
-    for requirement in by_name.values():
-        if requirement.target is None:
-            args.append(requirement)
-        else:
-            kw[requirement.target] = requirement
-
-    return requires(*args, **kw)
+    return RequiresType(by_name.values())
 
 
 def extract_returns(obj: Callable, explicit: ReturnsType = None):

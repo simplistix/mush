@@ -1,5 +1,8 @@
 from .context import Context
-from .declarations import nothing, extract_requires, extract_returns, RequiresType
+from .declarations import (
+    nothing, extract_requires, extract_returns,
+    requires as requires_function
+)
 from .resolvers import Lazy
 
 
@@ -13,7 +16,7 @@ class CallPoint(object):
         returns = extract_returns(obj, returns)
         if lazy:
             obj = Lazy(obj, requires, returns)
-            requires = RequiresType(Context)
+            requires = requires_function(Context)
             returns = nothing
         self.obj = obj
         self.requires = requires
