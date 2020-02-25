@@ -274,12 +274,12 @@ of the returns resources through to the :func:`pick` function:
 
 .. code-block:: python
 
-    from mush import Runner, attr, item, requires
+    from mush import Runner, requires, Value
 
     runner = Runner(some_attributes, some_items)
-    runner.add(pick, requires(fruit1=attr(Stuff, 'fruit'),
-                              fruit2=item(dict, 'fruit'),
-                              fruit3=item(attr(Stuff, 'tree'), 'fruit')))
+    runner.add(pick, requires(fruit1=Value(Stuff).fruit,
+                              fruit2=Value(dict)['fruit'],
+                              fruit3=Value(Stuff).tree['fruit']))
 
 So now we can pick fruit from some interesting places:
 
@@ -919,11 +919,13 @@ a remote web service:
 
 .. code-block:: python
 
+  from mush import Runner, Value
+
   def load_config() -> 'config':
       return json.loads(urllib2.urlopen('...').read())
 
-  def do_stuff(username: item('config', 'username'),
-               password: item('config', 'password')):
+  def do_stuff(username: Value('config')['username'],
+               password: Value('config')['password']):
       print('doing stuff as ' + username + ' with '+ password)
 
   runner = Runner(load_config, do_stuff)
@@ -944,6 +946,7 @@ If you have a base runner such as this:
 .. code-block:: python
 
   from argparse import ArgumentParser, Namespace
+  from mush import Runner, Value
 
   def base_args(parser):
       parser.add_argument('config_url')
@@ -960,7 +963,7 @@ If you have a base runner such as this:
   base_runner = Runner(ArgumentParser)
   base_runner.add(base_args, requires=ArgumentParser, label='args')
   base_runner.add(parse_args, requires=ArgumentParser)
-  point = base_runner.add(load_config, requires=attr(Namespace, 'config_url'),
+  point = base_runner.add(load_config, requires=Value(Namespace).config_url,
                           returns='config')
   point.add_label('body')
   base_runner.add(finalise_things, label='ending')
@@ -972,8 +975,8 @@ That runner might be used for a specific script as follows:
   def job_args(parser: ArgumentParser):
       parser.add_argument('--colour')
 
-  def do_stuff(username: item('config', 'username'),
-               colour: attr(Namespace, 'colour')):
+  def do_stuff(username: Value('config')['username'],
+               colour: Value(Namespace).colour):
       print(username + ' is '+ colour)
 
   runner = base_runner.clone()
@@ -1014,12 +1017,12 @@ For example, consider this runner:
 
 .. code-block:: python
 
-  from mush import Runner
+  from mush import Runner, Value
 
   def make_config() -> 'config':
       return {'foo': 'bar'}
 
-  def connect(foo: item('config', 'foo')):
+  def connect(foo = Value('config')['foo']):
       return 'connection'
 
   def process(connection):
@@ -1035,7 +1038,7 @@ To see how the configuration panned out, we would look at the :func:`repr`:
 >>> runner
 <Runner>
     <function make_config ...> requires() returns('config')
-    <function connect ...> requires('config'['foo']) returns_result_type() <-- config
+    <function connect ...> requires(Value('config')['foo']) returns_result_type() <-- config
     <function process ...> requires('connection') returns_result_type()
 </Runner>
 

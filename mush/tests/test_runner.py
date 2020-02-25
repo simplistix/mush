@@ -1,16 +1,16 @@
 from unittest import TestCase
 
 from mock import Mock, call
+from mush.context import ContextError
+from mush.declarations import (
+    requires, returns, returns_mapping,
+    replacement, original,
+    Value)
+from mush.runner import Runner
 from testfixtures import (
     ShouldRaise,
     compare
 )
-
-from mush.context import ContextError
-from mush.declarations import (
-    requires, attr, item, nothing, returns, returns_mapping,
-    replacement, original)
-from mush.runner import Runner
 
 
 def verify(runner, *expected):
@@ -612,7 +612,7 @@ class RunnerTests(TestCase):
             m.job2(obj)
         runner = Runner()
         runner.add(job1)
-        runner.add(job2, requires(attr(T, 'foo')))
+        runner.add(job2, requires(Value(T).foo))
         runner()
 
         compare([
@@ -634,7 +634,7 @@ class RunnerTests(TestCase):
             m.job2(obj)
         runner = Runner()
         runner.add(job1)
-        runner.add(job2, requires(attr(T, 'foo', 'bar')))
+        runner.add(job2, requires(Value(T).foo.bar))
         runner()
 
         compare([
@@ -654,7 +654,7 @@ class RunnerTests(TestCase):
             m.job2(obj)
         runner = Runner()
         runner.add(job1)
-        runner.add(job2, requires(item(MyDict, 'the_thing')))
+        runner.add(job2, requires(Value(MyDict)['the_thing']))
         runner()
         compare([
                 call.job1(),
@@ -673,7 +673,7 @@ class RunnerTests(TestCase):
             m.job2(obj)
         runner = Runner()
         runner.add(job1)
-        runner.add(job2, requires(item(MyDict, 'the_thing', 'other_thing')))
+        runner.add(job2, requires(Value(MyDict)['the_thing']['other_thing']))
         runner()
         compare([
                 call.job1(),
@@ -691,7 +691,7 @@ class RunnerTests(TestCase):
             m.job2(obj)
         runner = Runner()
         runner.add(job1)
-        runner.add(job2, requires(item(attr(T, 'foo'), 'baz')))
+        runner.add(job2, requires(Value(T).foo['baz']))
         runner()
 
         compare([

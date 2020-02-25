@@ -7,7 +7,7 @@ from functools import (
 )
 from inspect import signature
 from itertools import chain
-from typing import Type, Callable, NewType, Union, Any
+from typing import Type, Callable, NewType, Union, Any, Sequence, List, Optional
 
 from .markers import missing
 
@@ -28,27 +28,43 @@ def set_mush(obj, key, value):
 
 
 class Requirement:
+    """
+    The requirement for an individual parameter of a callable.
+    """
 
     resolve: RequirementResolver = None
 
-    def __init__(self, source, default=missing, target=None):
-        self.repr = name_or_repr(source)
-        self.target = target
-        self.default = default
+    def __init__(self, key, name=None, type_=None, default=missing, target=None):
+        self.key: ResourceKey = key
+        self.name: str = (key if isinstance(key, str) else None) if name is None else name
+        self.type: type = (key if not isinstance(key, str) else None) if type_ is None else type_
+        self.target: Optional[str] = target
+        self.default: Any = default
+        #: Any operations to be performed on the resource after it
+        #: has been obtained.
+        self.ops: List['Op'] = []
 
-        self.ops = deque()
-        while isinstance(source, how):
-            self.ops.appendleft(source.process)
-            source = source.type
-        self.key: ResourceKey = source
+    def value_repr(self):
+        key = name_or_repr(self.key)
+        if self.ops or self.default is not missing:
+            default = '' if self.default is missing else f', default={self.default!r}'
+            ops = ''.join(repr(o) for o in self.ops)
+            return f'Value({key}{default}){ops}'
+        return key
 
     def __repr__(self):
-        return f'{type(self).__name__}({self.repr}, default={self.default})'
+        attrs = []
+        for a in 'name', 'type_', 'target':
+            value = getattr(self, a.rstrip('_'))
+            if value is not None:
+                attrs.append(f", {a}={value!r}")
+        return f"{type(self).__name__}({self.value_repr()}{''.join(attrs)})"
 
 
 class RequiresType(list):
+
     def __repr__(self):
-        parts = (r.repr if r.target is None else f'{r.target}={r.repr}'
+        parts = (r.value_repr() if r.target is None else f'{r.target}={r.value_repr()}'
                  for r in self)
         return f"requires({', '.join(parts)})"
 
@@ -71,14 +87,17 @@ def requires(*args, **kw):
     requires_ = RequiresType()
     check_type(*args)
     check_type(*kw.values())
-    for target, requirement in chain(
+    for target, possible in chain(
         ((None, arg) for arg in args),
         kw.items(),
     ):
-        if isinstance(requirement, Requirement):
-            requirement.target = target
+        if isinstance(possible, Value):
+            possible = possible.requirement
+        if isinstance(possible, Requirement):
+            possible.target = target
+            requirement = possible
         else:
-            requirement = Requirement(requirement, target=target)
+            requirement = Requirement(possible, target=target)
         requires_.append(requirement)
     return requires_
 
@@ -169,78 +188,63 @@ original = DeclarationsFrom.original
 replacement = DeclarationsFrom.replacement
 
 
-class how(object):
-    """
-    The base class for type decorators that indicate which part of a
-    resource is required by a particular callable.
+class Op:
 
-    :param type: The resource type to be decorated.
-    :param names: Used to identify the part of the resource to extract.
-    """
-    type_pattern = '%(type)s'
-    name_pattern = ''
-
-    def __init__(self, type, *names):
-        check_type(type)
-        self.type = type
-        self.names = names
-
-    def __repr__(self):
-        txt = self.type_pattern % dict(type=name_or_repr(self.type))
-        for name in self.names:
-            txt += self.name_pattern % dict(name=name)
-        return txt
-
-    def process(self, o):
-        """
-        Extract the required part of the object passed in.
-        :obj:`missing` should be returned if the required part
-        cannot be extracted.
-        :obj:`missing` may be passed in and is usually be handled
-        by returning :obj:`missing` immediately.
-        """
-        return missing
+    def __init__(self, name):
+        self.name = name
 
 
-class attr(how):
-    """
-    A :class:`~.declarations.how` that indicates the callable requires the named
-    attribute from the decorated type.
-    """
-    name_pattern = '.%(name)s'
+class AttrOp(Op):
 
-    def process(self, o):
-        if o is missing:
-            return o
+    def __call__(self, o):
         try:
-            for name in self.names:
-                o = getattr(o, name)
+            return getattr(o, self.name)
         except AttributeError:
             return missing
-        else:
-            return o
+
+    def __repr__(self):
+        return f'.{self.name}'
 
 
-class item(how):
-    """
-    A :class:`~.declarations.how` that indicates the callable requires the named
-    item from the decorated type.
-    """
-    name_pattern = '[%(name)r]'
+class ItemOp(Op):
 
-    def process(self, o):
-        if o is missing:
-            return o
+    def __call__(self, o):
         try:
-            for name in self.names:
-                o = o[name]
+            return o[self.name]
         except KeyError:
             return missing
-        else:
-            return o
+
+    def __repr__(self):
+        return f'[{self.name!r}]'
 
 
-ok_types = (type, str, how, Requirement)
+class Value:
+    """
+    Declaration indicating that the specified resource key is required.
+
+    Values are generative, so they can be used to indicate attributes or
+    items from a resource are required.
+
+    A default may be specified, which will be used if the specified
+    resource is not available.
+    """
+
+    def __init__(self, key: ResourceKey, *, default: Any = missing):
+        self.requirement = Requirement(key, default=default)
+
+    def __getattr__(self, name):
+        self.requirement.ops.append(AttrOp(name))
+        return self
+
+    def __getitem__(self, name):
+        self.requirement.ops.append(ItemOp(name))
+        return self
+
+    def __repr__(self):
+        return self.requirement.value_repr()
+
+
+ok_types = (type, str, Value, Requirement)
 
 
 def check_type(*objs):
@@ -290,8 +294,12 @@ def extract_requires(obj: Callable, explicit=None):
 
         if isinstance(p.default, Requirement):
             requirement = p.default
+        elif isinstance(p.default, Value):
+            requirement = p.default.requirement
         elif isinstance(p.annotation, Requirement):
             requirement = p.annotation
+        elif isinstance(p.annotation, Value):
+            requirement = p.annotation.requirement
         else:
             key = p.name if p.annotation is p.empty else p.annotation
             default = missing if p.default is p.empty else p.default

@@ -4,10 +4,8 @@ from mock import Mock
 from mush.context import ResolvableValue
 from testfixtures import ShouldRaise, compare
 
-from mush import Context, ContextError
-from mush.declarations import (
-    nothing, requires, item, attr, returns, returns_mapping, Requirement, missing
-)
+from mush import Context, ContextError, requires, returns, nothing, returns_mapping
+from mush.declarations import Requirement, Value, missing
 
 
 class TheType(object):
@@ -153,9 +151,9 @@ class TestContext(TestCase):
         context = Context()
         context.add({}, TheType)
         with ShouldRaise(ContextError(
-                "No TheType['foo'] in context"
+                "No Value(TheType)['foo'] in context"
         )):
-            context.call(foo, requires(item(TheType, 'foo')))
+            context.call(foo, requires(Value(TheType)['foo']))
 
     def test_call_requires_accidental_tuple(self):
         def foo(obj): return obj
@@ -217,7 +215,7 @@ class TestContext(TestCase):
             return x
         context = Context()
         context.add(dict(bar='baz'), 'foo')
-        result = context.call(foo, requires(item('foo', 'bar')))
+        result = context.call(foo, requires(Value('foo')['bar']))
         compare(result, 'baz')
 
     def test_call_requires_attr(self):
@@ -226,7 +224,7 @@ class TestContext(TestCase):
         m = Mock()
         context = Context()
         context.add(m, 'foo')
-        result = context.call(foo, requires(attr('foo', 'bar')))
+        result = context.call(foo, requires(Value('foo').bar))
         compare(result, m.bar)
 
     def test_call_requires_item_attr(self):
@@ -235,23 +233,23 @@ class TestContext(TestCase):
         m = Mock()
         m.bar= dict(baz='bob')
         context = Context()
-        context.add(m, 'foo')
-        result = context.call(foo, requires(item(attr('foo', 'bar'), 'baz')))
+        context.add(m, provides='foo')
+        result = context.call(foo, requires(Value('foo').bar['baz']))
         compare(result, 'bob')
 
     def test_call_requires_optional_item_missing(self):
-        def foo(x: item('foo', 'bar') = 1):
+        def foo(x: str = Value('foo', default=1)['bar']):
             return x
         context = Context()
         result = context.call(foo)
         compare(result, 1)
 
     def test_call_requires_optional_item_present(self):
-        def foo(x=1):
+        def foo(x: str = Value('foo', default=1)['bar']):
             return x
         context = Context()
-        context.add(dict(bar='baz'), 'foo')
-        result = context.call(foo, requires((item('foo', 'bar'))))
+        context.add(dict(bar='baz'), provides='foo')
+        result = context.call(foo)
         compare(result, 'baz')
 
     def test_call_extract_requirements(self):

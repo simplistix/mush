@@ -138,13 +138,16 @@ class Context:
             if o is not requirement.default:
                 for op in requirement.ops:
                     o = op(o)
+                    if o is missing:
+                        o = requirement.default
+                        break
 
             if o is missing:
                 key = requirement.key
                 if isinstance(key, type) and issubclass(key, Context):
                     o = context
                 else:
-                    raise ContextError('No %s in context' % requirement.repr)
+                    raise ContextError('No %s in context' % requirement.value_repr())
 
             if requirement.target is None:
                 args.append(o)

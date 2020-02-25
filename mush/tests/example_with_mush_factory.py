@@ -1,4 +1,4 @@
-from mush import Runner, attr, item, requires
+from mush import Runner, requires, Value
 from argparse import ArgumentParser, Namespace
 
 from .example_with_mush_clone import (
@@ -21,14 +21,14 @@ def make_runner(do):
     runner.add(parse_args, requires=ArgumentParser)
     runner.add(parse_config, requires=Namespace)
     runner.add(setup_logging, requires(
-        log_path = item('config', 'log'),
-        quiet = attr(Namespace, 'quiet'),
-        verbose = attr(Namespace, 'verbose')
+        log_path=Value('config')['log'],
+        quiet=Value(Namespace).quiet,
+        verbose=Value(Namespace).verbose,
     ))
-    runner.add(DatabaseHandler, requires=item('config', 'db'))
+    runner.add(DatabaseHandler, requires=Value('config')['db'])
     runner.add(
         do,
-        requires(attr(DatabaseHandler, 'conn'), attr(Namespace, 'path'))
+        requires(Value(DatabaseHandler).conn, Value(Namespace).path)
     )
     return runner
 

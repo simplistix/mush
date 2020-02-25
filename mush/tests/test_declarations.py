@@ -1,16 +1,20 @@
 from functools import partial
 from unittest import TestCase
+
+import pytest
 from mock import Mock
 from testfixtures import compare, ShouldRaise
+
+from mush import Context
 from mush.markers import missing
 from mush.declarations import (
     requires, returns,
     returns_mapping, returns_sequence, returns_result_type,
-    how, item, attr, nothing,
+    nothing,
     extract_requires, extract_returns,
     result_type, Requirement,
-    update_wrapper
-)
+    update_wrapper,
+    Value, AttrOp)
 
 
 def check_extract(obj, expected_rq, expected_rt):
@@ -72,68 +76,85 @@ class TestRequires(TestCase):
 
 class TestRequirement:
 
-    def test_repr(self):
-        compare(repr(Requirement('foo', default=None)),
-                expected="Requirement('foo', default=None)")
+    def test_repr_minimal_name(self):
+        compare(repr(Requirement('foo')),
+                expected="Requirement('foo', name='foo')")
+
+    def test_repr_minimal_type(self):
+        compare(repr(Requirement(str)),
+                expected="Requirement(str, type_=<class 'str'>)")
+
+    def test_repr_maximal(self):
+        r = Requirement('foo', name='n', type_='ty', default=None, target='ta')
+        r.ops.append(AttrOp('bar'))
+        compare(repr(r),
+                expected="Requirement(Value('foo', default=None).bar, "
+                         "name='n', type_='ty', target='ta')")
 
 
-class TestItem(TestCase):
+def check_ops(value, data, *, expected):
+    for op in value.requirement.ops:
+        data = op(data)
+    compare(expected, actual=data)
+
+
+class TestItem:
 
     def test_single(self):
-        h = item(Type1, 'foo')
-        compare(repr(h), "Type1['foo']")
-        compare(h.process(dict(foo=1)), 1)
+        h = Value(Type1)['foo']
+        compare(repr(h), "Value(Type1)['foo']")
+        check_ops(h, {'foo': 1}, expected=1)
 
     def test_multiple(self):
-        h = item(Type1, 'foo', 'bar')
-        compare(repr(h), "Type1['foo']['bar']")
-        compare(h.process(dict(foo=dict(bar=1))), 1)
+        h = Value(Type1)['foo']['bar']
+        compare(repr(h), "Value(Type1)['foo']['bar']")
+        check_ops(h, {'foo': {'bar': 1}}, expected=1)
 
     def test_missing_obj(self):
-        h = item(Type1, 'foo', 'bar')
+        h = Value(Type1)['foo']['bar']
         with ShouldRaise(TypeError):
-            h.process(object())
+            check_ops(h, object(), expected=None)
 
     def test_missing_key(self):
-        h = item(Type1, 'foo', 'bar')
-        compare(h.process({}), missing)
+        h = Value(Type1)['foo']
+        check_ops(h, {}, expected=missing)
 
     def test_passed_missing(self):
-        h = item(Type1, 'foo', 'bar')
-        compare(h.process(missing), missing)
+        c = Context()
+        c.add({}, provides='key')
+        compare(c.call(lambda x: x, requires=Value('key', default=1)['foo']['bar']),
+                expected=1)
 
     def test_bad_type(self):
+        h = Value(Type1)['foo']['bar']
         with ShouldRaise(TypeError):
-            item([], 'foo', 'bar')
-
-
-class TestHow(TestCase):
-
-    def test_process_on_base(self):
-        compare(how('foo').process('bar'), missing)
+            check_ops(h, [], expected=None)
 
 
 class TestAttr(TestCase):
 
     def test_single(self):
-        h = attr(Type1, 'foo')
-        compare(repr(h), "Type1.foo")
+        h = Value(Type1).foo
+        compare(repr(h), "Value(Type1).foo")
         m = Mock()
-        compare(h.process(m), m.foo)
+        check_ops(h, m, expected=m.foo)
 
     def test_multiple(self):
-        h = attr(Type1, 'foo', 'bar')
-        compare(repr(h), "Type1.foo.bar")
+        h = Value(Type1).foo.bar
+        compare(repr(h), "Value(Type1).foo.bar")
         m = Mock()
-        compare(h.process(m), m.foo.bar)
+        check_ops(h, m, expected=m.foo.bar)
 
     def test_missing(self):
-        h = attr(Type1, 'foo', 'bar')
-        compare(h.process(object()), missing)
+        h = Value(Type1).foo
+        compare(repr(h), "Value(Type1).foo")
+        check_ops(h, object(), expected=missing)
 
     def test_passed_missing(self):
-        h = attr(Type1, 'foo', 'bar')
-        compare(h.process(missing), missing)
+        c = Context()
+        c.add(object(), provides='key')
+        compare(c.call(lambda x: x, requires=Value('key', default=1).foo.bar),
+                expected=1)
 
 
 class TestReturns(TestCase):
@@ -386,10 +407,9 @@ class TestExtractDeclarationsFromTypeAnnotations(object):
                       expected_rt=rt)
 
     def test_how_instance_in_annotations(self):
-        how_instance = item('config', 'db_url')
-        def foo(a: how_instance): pass
+        def foo(a: Value('config')['db_url']): pass
         check_extract(foo,
-                      expected_rq=requires(how_instance),
+                      expected_rq=requires(Value('config')['db_url']),
                       expected_rt=result_type)
 
     def test_default_requirements(self):
@@ -399,6 +419,25 @@ class TestExtractDeclarationsFromTypeAnnotations(object):
                                            Requirement('b', default=1),
                                            c='c',
                                            d=Requirement('d', default=None)),
+                      expected_rt=result_type)
+
+    def test_type_only(self):
+        class T: pass
+        def foo(a: T): pass
+        check_extract(foo,
+                      expected_rq=requires(Requirement(T)),
+                      expected_rt=result_type)
+
+    def test_type_plus_value(self):
+        def foo(a: str = Value('b')): pass
+        check_extract(foo,
+                      expected_rq=requires(Requirement('b')),
+                      expected_rt=result_type)
+
+    def test_type_plus_value_with_default(self):
+        def foo(a: str = Value('b', default=1)): pass
+        check_extract(foo,
+                      expected_rq=requires(Requirement('b', default=1)),
                       expected_rt=result_type)
 
 

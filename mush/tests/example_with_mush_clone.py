@@ -1,6 +1,6 @@
 from argparse import ArgumentParser, Namespace
 from configparser import RawConfigParser
-from mush import Runner, requires, attr, item
+from mush import Runner, requires, Value
 import logging, os, sqlite3, sys
 
 log = logging.getLogger()
@@ -43,9 +43,9 @@ base_runner = Runner(ArgumentParser)
 base_runner.add(base_options, label='args')
 base_runner.extend(parse_args, parse_config)
 base_runner.add(setup_logging, requires(
-    log_path = item('config', 'log'),
-    quiet = attr(Namespace, 'quiet'),
-    verbose = attr(Namespace, 'verbose')
+    log_path = Value('config')['log'],
+    quiet = Value(Namespace).quiet,
+    verbose = Value(Namespace).verbose,
 ))
 
 
@@ -62,9 +62,9 @@ def do(conn, path):
     
 main = base_runner.clone()
 main['args'].add(args, requires=ArgumentParser)
-main.add(DatabaseHandler, requires=item('config', 'db'))
+main.add(DatabaseHandler, requires=Value('config')['db'])
 main.add(do,
-         requires(attr(DatabaseHandler, 'conn'), attr(Namespace, 'path')))
+         requires(Value(DatabaseHandler).conn, Value(Namespace).path))
 
 if __name__ == '__main__':
     main()
