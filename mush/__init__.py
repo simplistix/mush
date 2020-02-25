@@ -4,6 +4,7 @@ from .declarations import (
     returns_result_type, returns_mapping, returns_sequence, returns,
     Value, nothing
 )
+from .extraction import extract_requires, extract_returns, update_wrapper
 from .plug import Plug
 from .context import Context, ContextError
 from .asyncio import AsyncContext
@@ -14,5 +15,6 @@ __all__ = [
     'requires',
     'returns_result_type', 'returns_mapping', 'returns_sequence', 'returns',
     'Value',
-    'Plug', 'nothing'
+    'Plug', 'nothing',
+    'update_wrapper',
 ]

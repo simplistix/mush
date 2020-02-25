@@ -1,13 +1,6 @@
-from collections import deque
 from enum import Enum, auto
-from functools import (
-    WRAPPER_UPDATES,
-    WRAPPER_ASSIGNMENTS as FUNCTOOLS_ASSIGNMENTS,
-    update_wrapper as functools_update_wrapper,
-)
-from inspect import signature
 from itertools import chain
-from typing import Type, Callable, NewType, Union, Any, Sequence, List, Optional
+from typing import Type, Callable, NewType, Union, Any, List, Optional
 
 from .markers import missing
 
@@ -42,7 +35,7 @@ class Requirement:
         self.default: Any = default
         #: Any operations to be performed on the resource after it
         #: has been obtained.
-        self.ops: List['Op'] = []
+        self.ops: List['ValueOp'] = []
 
     def value_repr(self):
         key = name_or_repr(self.key)
@@ -59,6 +52,62 @@ class Requirement:
             if value is not None:
                 attrs.append(f", {a}={value!r}")
         return f"{type(self).__name__}({self.value_repr()}{''.join(attrs)})"
+
+
+class Value:
+    """
+    Declaration indicating that the specified resource key is required.
+
+    Values are generative, so they can be used to indicate attributes or
+    items from a resource are required.
+
+    A default may be specified, which will be used if the specified
+    resource is not available.
+    """
+
+    def __init__(self, key: ResourceKey, *, default: Any = missing):
+        self.requirement = Requirement(key, default=default)
+
+    def __getattr__(self, name):
+        self.requirement.ops.append(ValueAttrOp(name))
+        return self
+
+    def __getitem__(self, name):
+        self.requirement.ops.append(ValueItemOp(name))
+        return self
+
+    def __repr__(self):
+        return self.requirement.value_repr()
+
+
+class ValueOp:
+
+    def __init__(self, name):
+        self.name = name
+
+
+class ValueAttrOp(ValueOp):
+
+    def __call__(self, o):
+        try:
+            return getattr(o, self.name)
+        except AttributeError:
+            return missing
+
+    def __repr__(self):
+        return f'.{self.name}'
+
+
+class ValueItemOp(ValueOp):
+
+    def __call__(self, o):
+        try:
+            return o[self.name]
+        except KeyError:
+            return missing
+
+    def __repr__(self):
+        return f'[{self.name!r}]'
 
 
 class RequiresType(list):
@@ -177,82 +226,9 @@ class returns(returns_result_type):
         return self.__class__.__name__ + '(' + args_repr + ')'
 
 
-class DeclarationsFrom(Enum):
-    #: Use declarations from the original callable.
-    original = auto()
-    #: Use declarations from the replacement callable.
-    replacement = auto()
-
-
-original = DeclarationsFrom.original
-replacement = DeclarationsFrom.replacement
-
-
-class Op:
-
-    def __init__(self, name):
-        self.name = name
-
-
-class AttrOp(Op):
-
-    def __call__(self, o):
-        try:
-            return getattr(o, self.name)
-        except AttributeError:
-            return missing
-
-    def __repr__(self):
-        return f'.{self.name}'
-
-
-class ItemOp(Op):
-
-    def __call__(self, o):
-        try:
-            return o[self.name]
-        except KeyError:
-            return missing
-
-    def __repr__(self):
-        return f'[{self.name!r}]'
-
-
-class Value:
-    """
-    Declaration indicating that the specified resource key is required.
-
-    Values are generative, so they can be used to indicate attributes or
-    items from a resource are required.
-
-    A default may be specified, which will be used if the specified
-    resource is not available.
-    """
-
-    def __init__(self, key: ResourceKey, *, default: Any = missing):
-        self.requirement = Requirement(key, default=default)
-
-    def __getattr__(self, name):
-        self.requirement.ops.append(AttrOp(name))
-        return self
-
-    def __getitem__(self, name):
-        self.requirement.ops.append(ItemOp(name))
-        return self
-
-    def __repr__(self):
-        return self.requirement.value_repr()
-
-
-ok_types = (type, str, Value, Requirement)
-
-
-def check_type(*objs):
-    for obj in objs:
-        if not isinstance(obj, ok_types):
-            raise TypeError(
-                repr(obj)+" is not a type or label"
-            )
+#: A singleton  indicating that a callable's return value should be
+#: stored based on the type of that return value.
+result_type = returns_result_type()
 
 
 class Nothing(RequiresType, returns):
@@ -266,103 +242,24 @@ class Nothing(RequiresType, returns):
 #: that anything returned from a callable should be ignored.
 nothing = Nothing()
 
-#: A singleton  indicating that a callable's return value should be
-#: stored based on the type of that return value.
-result_type = returns_result_type()
+
+class DeclarationsFrom(Enum):
+    original = auto()
+    replacement = auto()
 
 
-def _unpack_requires(by_name, by_index, requires_):
-
-    for i, requirement in enumerate(requires_):
-        if requirement.target is None:
-            try:
-                arg = by_index[i]
-            except IndexError:
-                # case where something takes *args
-                arg = i
-        else:
-            arg = requirement.target
-        by_name[arg] = requirement
+#: Use declarations from the original callable.
+original = DeclarationsFrom.original
+#: Use declarations from the replacement callable.
+replacement = DeclarationsFrom.replacement
 
 
-def extract_requires(obj: Callable, explicit=None):
-    # from annotations
-    by_name = {}
-    for name, p in signature(obj).parameters.items():
-        if p.kind in (p.VAR_POSITIONAL, p.VAR_KEYWORD):
-            continue
-
-        if isinstance(p.default, Requirement):
-            requirement = p.default
-        elif isinstance(p.default, Value):
-            requirement = p.default.requirement
-        elif isinstance(p.annotation, Requirement):
-            requirement = p.annotation
-        elif isinstance(p.annotation, Value):
-            requirement = p.annotation.requirement
-        else:
-            key = p.name if p.annotation is p.empty else p.annotation
-            default = missing if p.default is p.empty else p.default
-            requirement = Requirement(key, default=default)
-
-        if p.kind is p.KEYWORD_ONLY:
-            requirement.target = p.name
-        by_name[name] = requirement
-
-    by_index = list(by_name)
-
-    # from declarations
-    mush_declarations = getattr(obj, '__mush__', None)
-    if mush_declarations is not None:
-        requires_ = mush_declarations.get('requires')
-        if requires_ is not None:
-            _unpack_requires(by_name, by_index, requires_)
-
-    # explicit
-    if explicit is not None:
-        if isinstance(explicit, (list, tuple)):
-            requires_ = requires(*explicit)
-        elif not isinstance(explicit, RequiresType):
-            requires_ = requires(explicit)
-        else:
-            requires_ = explicit
-        _unpack_requires(by_name, by_index, requires_)
-
-    if not by_name:
-        return nothing
-
-    return RequiresType(by_name.values())
+ok_types = (type, str, Value, Requirement)
 
 
-def extract_returns(obj: Callable, explicit: ReturnsType = None):
-    if explicit is None:
-        mush_declarations = getattr(obj, '__mush__', {})
-        returns_ = mush_declarations.get('returns', None)
-        if returns_ is None:
-            annotations = getattr(obj, '__annotations__', {})
-            returns_ = annotations.get('return')
-    else:
-        returns_ = explicit
-
-    if returns_ is None or isinstance(returns_, ReturnsType):
-        pass
-    elif isinstance(returns_, (list, tuple)):
-        returns_ = returns(*returns_)
-    else:
-        returns_ = returns(returns_)
-
-    return returns_ or result_type
-
-
-WRAPPER_ASSIGNMENTS = FUNCTOOLS_ASSIGNMENTS + ('__mush__',)
-
-
-def update_wrapper(wrapper,
-                   wrapped,
-                   assigned=WRAPPER_ASSIGNMENTS,
-                   updated=WRAPPER_UPDATES):
-    """
-    An extended version of :func:`functools.update_wrapper` that
-    also preserves Mush's annotations.
-    """
-    return functools_update_wrapper(wrapper, wrapped, assigned, updated)
+def check_type(*objs):
+    for obj in objs:
+        if not isinstance(obj, ok_types):
+            raise TypeError(
+                repr(obj)+" is not a type or label"
+            )

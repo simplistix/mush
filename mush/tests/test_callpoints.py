@@ -5,7 +5,8 @@ from mock import Mock
 from testfixtures import compare
 
 from mush.callpoints import CallPoint
-from mush.declarations import requires, returns, update_wrapper, RequiresType
+from mush.declarations import requires, returns, RequiresType
+from mush.extraction import update_wrapper
 
 
 class TestCallPoints(TestCase):

@@ -6,15 +6,16 @@ from mock import Mock
 from testfixtures import compare, ShouldRaise
 
 from mush import Context
-from mush.markers import missing
 from mush.declarations import (
     requires, returns,
     returns_mapping, returns_sequence, returns_result_type,
     nothing,
-    extract_requires, extract_returns,
     result_type, Requirement,
-    update_wrapper,
-    Value, AttrOp)
+    Value,
+    ValueAttrOp
+)
+from mush.extraction import extract_requires, extract_returns, update_wrapper
+from mush.markers import missing
 
 
 def check_extract(obj, expected_rq, expected_rt):
@@ -86,7 +87,7 @@ class TestRequirement:
 
     def test_repr_maximal(self):
         r = Requirement('foo', name='n', type_='ty', default=None, target='ta')
-        r.ops.append(AttrOp('bar'))
+        r.ops.append(ValueAttrOp('bar'))
         compare(repr(r),
                 expected="Requirement(Value('foo', default=None).bar, "
                          "name='n', type_='ty', target='ta')")
@@ -428,16 +429,23 @@ class TestExtractDeclarationsFromTypeAnnotations(object):
                       expected_rq=requires(Requirement(T)),
                       expected_rt=result_type)
 
+    @pytest.mark.parametrize("type_", [str, int, dict, list])
+    def test_simple_type_only(self, type_):
+        def foo(a: type_): pass
+        check_extract(foo,
+                      expected_rq=requires(Requirement('a', type_=type_)),
+                      expected_rt=result_type)
+
     def test_type_plus_value(self):
         def foo(a: str = Value('b')): pass
         check_extract(foo,
-                      expected_rq=requires(Requirement('b')),
+                      expected_rq=requires(Requirement('b', name='b', type_=str)),
                       expected_rt=result_type)
 
     def test_type_plus_value_with_default(self):
         def foo(a: str = Value('b', default=1)): pass
         check_extract(foo,
-                      expected_rq=requires(Requirement('b', default=1)),
+                      expected_rq=requires(Requirement('b', name='b', type_=str, default=1)),
                       expected_rt=result_type)
 
 

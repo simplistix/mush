@@ -1,9 +1,8 @@
 import asyncio
 from functools import partial
 
-from mush import Context, ContextError
-from mush.declarations import ResourceKey, RequiresType, extract_requires
-from mush.markers import missing
+from mush import Context
+from mush.declarations import ResourceKey
 
 
 async def ensure_async(func, *args, **kw):

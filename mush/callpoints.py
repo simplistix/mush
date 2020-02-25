@@ -1,8 +1,8 @@
 from .context import Context
 from .declarations import (
-    nothing, extract_requires, extract_returns,
-    requires as requires_function
+    nothing, requires as requires_function
 )
+from .extraction import extract_requires, extract_returns
 from .resolvers import Lazy
 
 

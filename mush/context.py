@@ -1,8 +1,9 @@
 from typing import Optional
 
 from .declarations import (
-    extract_requires, RequiresType, ResourceKey, ResourceValue, ResourceResolver
+    RequiresType, ResourceKey, ResourceValue, ResourceResolver
 )
+from .extraction import extract_requires
 from .markers import missing
 
 NONE_TYPE = type(None)
