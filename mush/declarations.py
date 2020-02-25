@@ -134,8 +134,8 @@ def requires(*args, **kw):
     returning those resources is configured to return the named resource.
     """
     requires_ = RequiresType()
-    check_type(*args)
-    check_type(*kw.values())
+    valid_decoration_types(*args)
+    valid_decoration_types(*kw.values())
     for target, possible in chain(
         ((None, arg) for arg in args),
         kw.items(),
@@ -211,7 +211,7 @@ class returns(returns_result_type):
     """
 
     def __init__(self, *args):
-        check_type(*args)
+        valid_decoration_types(*args)
         self.args = args
 
     def process(self, obj):
@@ -254,12 +254,12 @@ original = DeclarationsFrom.original
 replacement = DeclarationsFrom.replacement
 
 
-ok_types = (type, str, Value, Requirement)
+VALID_DECORATION_TYPES = (type, str, Value, Requirement)
 
 
-def check_type(*objs):
+def valid_decoration_types(*objs):
     for obj in objs:
-        if not isinstance(obj, ok_types):
+        if not isinstance(obj, VALID_DECORATION_TYPES):
             raise TypeError(
                 repr(obj)+" is not a type or label"
             )
