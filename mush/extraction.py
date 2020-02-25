@@ -1,7 +1,8 @@
 from functools import (
     WRAPPER_ASSIGNMENTS as FUNCTOOLS_ASSIGNMENTS,
     WRAPPER_UPDATES,
-    update_wrapper as functools_update_wrapper
+    update_wrapper as functools_update_wrapper,
+    partial
 )
 from inspect import signature
 from typing import Callable
@@ -31,9 +32,14 @@ def _unpack_requires(by_name, by_index, requires_):
 
 def extract_requires(obj: Callable, explicit=None):
     # from annotations
+    is_partial = isinstance(obj, partial)
     by_name = {}
     for name, p in signature(obj).parameters.items():
         if p.kind in (p.VAR_POSITIONAL, p.VAR_KEYWORD):
+            continue
+
+        # https://bugs.python.org/issue39753:
+        if is_partial and p.name in obj.keywords:
             continue
 
         if isinstance(p.default, Requirement):
@@ -74,6 +80,13 @@ def extract_requires(obj: Callable, explicit=None):
 
     if not by_name:
         return nothing
+
+    needs_target = False
+    for requirement in by_name.values():
+        if requirement.target is not None:
+            needs_target = True
+        elif needs_target:
+            requirement.target = requirement.name
 
     return RequiresType(by_name.values())
 
