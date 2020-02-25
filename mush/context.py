@@ -1,7 +1,7 @@
 from typing import Optional
 
 from .declarations import (
-    extract_requires, RequiresType, ResourceKey, ResourceValue, Resolver
+    extract_requires, RequiresType, ResourceKey, ResourceValue, ResourceResolver
 )
 from .markers import missing
 
@@ -83,7 +83,7 @@ class Context:
     def add(self,
             resource: Optional[ResourceValue] = None,
             provides: Optional[ResourceKey] = None,
-            resolver: Optional[Resolver] = None):
+            resolver: Optional[ResourceResolver] = None):
         """
         Add a resource to the context.
 

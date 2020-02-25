@@ -13,7 +13,8 @@ from .markers import missing
 
 ResourceKey = NewType('ResourceKey', Union[Type, str])
 ResourceValue = NewType('ResourceValue', Any)
-Resolver = Callable[['Context', Any], ResourceValue]
+ResourceResolver = Callable[['Context', Any], ResourceValue]
+RequirementResolver = Callable[['Context'], ResourceValue]
 
 
 def name_or_repr(obj):
@@ -28,7 +29,7 @@ def set_mush(obj, key, value):
 
 class Requirement:
 
-    resolve = None
+    resolve: RequirementResolver = None
 
     def __init__(self, source, default=missing, target=None):
         self.repr = name_or_repr(source)
