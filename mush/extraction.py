@@ -61,7 +61,7 @@ def extract_requires(obj: Callable, explicit=None):
             requirement = p.annotation.requirement
             type_ = requirement.type
         else:
-            if not p.annotation is EMPTY:
+            if not (p.annotation is EMPTY or p.annotation in SIMPLE_TYPES):
                 key = p.annotation
             else:
                 key = p.name

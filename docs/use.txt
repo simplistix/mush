@@ -229,8 +229,9 @@ available:
 
 .. code-block:: python
 
-  from mush import Runner
+  from mush import Runner, returns
 
+  @returns('name')
   def my_name_is():
      return 'Slim Shady'
 

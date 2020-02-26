@@ -476,6 +476,13 @@ class TestExtractDeclarationsFromTypeAnnotations(object):
                       expected_rq=RequiresType((Requirement(T),)),
                       expected_rt=result_type)
 
+    @pytest.mark.parametrize("type_", [str, int, dict, list])
+    def test_simple_type_only(self, type_):
+        def foo(a: type_): pass
+        check_extract(foo,
+                      expected_rq=RequiresType((Requirement('a', type_=type_),)),
+                      expected_rt=result_type)
+
     def test_type_plus_value(self):
         def foo(a: str = Value('b')): pass
         check_extract(foo,
