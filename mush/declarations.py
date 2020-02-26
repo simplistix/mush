@@ -68,9 +68,17 @@ class Value:
     def __init__(self, key: ResourceKey, *, default: Any = missing):
         self.requirement = Requirement(key, default=default)
 
-    def __getattr__(self, name):
+    def attr(self, name):
+        """
+        If you need to get an attribute called either ``attr`` or ``item``
+        then you will need to call this method instead of using the
+        generating behaviour.
+        """
         self.requirement.ops.append(ValueAttrOp(name))
         return self
+
+    def __getattr__(self, name):
+        return self.attr(name)
 
     def __getitem__(self, name):
         self.requirement.ops.append(ValueItemOp(name))

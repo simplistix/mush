@@ -100,6 +100,21 @@ def check_ops(value, data, *, expected):
     compare(expected, actual=data)
 
 
+class TestValue:
+
+    @pytest.mark.parametrize("name", ['attr', 'requirement'])
+    def test_attr_special_name(self, name):
+        v = Value('foo')
+        assert v.attr(name) is v
+        compare(v.requirement.ops, [ValueAttrOp(name)])
+
+    @pytest.mark.parametrize("name", ['attr', 'requirement'])
+    def test_item_special_name(self, name):
+        v = Value('foo')
+        assert v[name] is v
+        compare(v.requirement.ops, [ValueItemOp(name)])
+
+
 class TestItem:
 
     def test_single(self):
