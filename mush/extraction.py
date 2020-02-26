@@ -4,7 +4,7 @@ from functools import (
     update_wrapper as functools_update_wrapper,
     partial
 )
-from inspect import signature
+from inspect import signature, Parameter
 from typing import Callable
 
 from .declarations import (
@@ -14,6 +14,10 @@ from .declarations import (
     nothing
 )
 from .markers import missing
+
+EMPTY = Parameter.empty
+#: For these types, prefer the name instead of the type.
+SIMPLE_TYPES = (str, int, dict, list)
 
 
 def _unpack_requires(by_name, by_index, requires_):
@@ -42,21 +46,33 @@ def extract_requires(obj: Callable, explicit=None):
         if is_partial and p.name in obj.keywords:
             continue
 
-        if isinstance(p.default, Requirement):
-            requirement = p.default
-        elif isinstance(p.default, Value):
-            requirement = p.default.requirement
+        type_ = p.annotation
+        default = p.default
+        if isinstance(default, Requirement):
+            requirement = default
+            default = EMPTY
+        elif isinstance(default, Value):
+            requirement = default.requirement
+            default = EMPTY
         elif isinstance(p.annotation, Requirement):
             requirement = p.annotation
+            type_ = requirement.type
         elif isinstance(p.annotation, Value):
             requirement = p.annotation.requirement
+            type_ = requirement.type
         else:
-            key = p.name if p.annotation is p.empty else p.annotation
-            default = missing if p.default is p.empty else p.default
-            requirement = Requirement(key, default=default)
+            if not p.annotation is EMPTY:
+                key = p.annotation
+            else:
+                key = p.name
+            requirement = Requirement(key)
 
+        requirement = requirement.clone()
+        if requirement.type is None and type_ is not EMPTY and isinstance(type_, type):
+            requirement.type = type_
+        if requirement.default is missing and default is not EMPTY:
+            requirement.default = default
         if p.kind is p.KEYWORD_ONLY:
-            requirement = requirement.clone()
             requirement.target = p.name
         by_name[name] = requirement
 

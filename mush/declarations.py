@@ -72,10 +72,13 @@ class Value:
 
     A default may be specified, which will be used if the specified
     resource is not available.
+
+    A type may also be explicitly specified, but you probably shouldn't
+    ever use this.
     """
 
-    def __init__(self, key: ResourceKey, *, default: Any = missing):
-        self.requirement = Requirement(key, default=default)
+    def __init__(self, key: ResourceKey, *, type_: type = None, default: Any = missing):
+        self.requirement = Requirement(key, type_=type_, default=default)
 
     def attr(self, name):
         """

@@ -479,15 +479,20 @@ class TestExtractDeclarationsFromTypeAnnotations(object):
     def test_type_plus_value(self):
         def foo(a: str = Value('b')): pass
         check_extract(foo,
-                      expected_rq=RequiresType((Requirement('b', name='b'),)),
+                      expected_rq=RequiresType((Requirement('b', name='b', type_=str),)),
                       expected_rt=result_type)
 
     def test_type_plus_value_with_default(self):
         def foo(a: str = Value('b', default=1)): pass
         check_extract(foo,
-                      expected_rq=RequiresType((Requirement('b', name='b', default=1),)),
+                      expected_rq=RequiresType((Requirement('b', name='b', type_=str, default=1),)),
                       expected_rt=result_type)
 
+    def test_value_annotation_plus_default(self):
+        def foo(a: Value('b', type_=str) = 1): pass
+        check_extract(foo,
+                      expected_rq=RequiresType((Requirement('b', name='b', type_=str, default=1),)),
+                      expected_rt=result_type)
 
 class TestDeclarationsFromMultipleSources:
 
@@ -520,7 +525,7 @@ class TestDeclarationsFromMultipleSources:
         check_extract(foo,
                       expected_rq=RequiresType((
                           Requirement('a', target='a'),
-                          Requirement('b', target='b'),
+                          Requirement('b', target='b', type_=str),
                           Requirement('c', target='c'),
                       )),
                       expected_rt=result_type)
