@@ -87,12 +87,9 @@ def extract_requires(obj: Callable, explicit=None):
 
     # explicit
     if explicit is not None:
-        if isinstance(explicit, (list, tuple)):
-            requires_ = requires(*explicit)
-        elif not isinstance(explicit, RequiresType):
-            requires_ = requires(explicit)
-        else:
-            requires_ = explicit
+        if not isinstance(explicit, (list, tuple)):
+            explicit = (explicit,)
+        requires_ = requires(*explicit)
         _unpack_requires(by_name, by_index, requires_)
 
     if not by_name:
