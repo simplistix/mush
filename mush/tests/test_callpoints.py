@@ -1,7 +1,7 @@
 from functools import update_wrapper
 from unittest import TestCase
 
-from mock import Mock
+from mock import Mock, call
 from testfixtures import compare
 
 from mush.callpoints import CallPoint
@@ -27,7 +27,8 @@ class TestCallPoints(TestCase):
         rt = returns('bar')
         result = CallPoint(foo, rq, rt)(self.context)
         compare(result, self.context.extract.return_value)
-        self.context.extract.assert_called_with(foo, rq, rt)
+        compare(tuple(self.context.extract.mock_calls[0].args),
+                expected=(foo, rq, rt))
 
     def test_extract_from_decorations(self):
         rq = requires('foo')
@@ -75,7 +76,8 @@ class TestCallPoints(TestCase):
 
         result = CallPoint(foo, requires=rq, returns=rt)(self.context)
         compare(result, self.context.extract.return_value)
-        self.context.extract.assert_called_with(foo, rq, rt)
+        compare(tuple(self.context.extract.mock_calls[0].args),
+                expected=(foo, rq, rt))
 
     def test_repr_minimal(self):
         def foo(): pass

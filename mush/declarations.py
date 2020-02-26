@@ -1,3 +1,4 @@
+from copy import copy
 from enum import Enum, auto
 from itertools import chain
 from typing import Type, Callable, NewType, Union, Any, List, Optional
@@ -36,6 +37,14 @@ class Requirement:
         #: Any operations to be performed on the resource after it
         #: has been obtained.
         self.ops: List['ValueOp'] = []
+
+    def clone(self):
+        """
+        Create a copy of this requirement, so it can be mutated
+        """
+        obj = copy(self)
+        obj.ops = list(self.ops)
+        return obj
 
     def value_repr(self):
         key = name_or_repr(self.key)
@@ -151,6 +160,7 @@ def requires(*args, **kw):
         if isinstance(possible, Value):
             possible = possible.requirement
         if isinstance(possible, Requirement):
+            possible = possible.clone()
             possible.target = target
             requirement = possible
         else:

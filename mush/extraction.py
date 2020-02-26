@@ -56,6 +56,7 @@ def extract_requires(obj: Callable, explicit=None):
             requirement = Requirement(key, default=default)
 
         if p.kind is p.KEYWORD_ONLY:
+            requirement = requirement.clone()
             requirement.target = p.name
         by_name[name] = requirement
 
@@ -82,11 +83,13 @@ def extract_requires(obj: Callable, explicit=None):
         return nothing
 
     needs_target = False
-    for requirement in by_name.values():
+    for name, requirement in by_name.items():
         if requirement.target is not None:
             needs_target = True
         elif needs_target:
+            requirement = requirement.clone()
             requirement.target = requirement.name
+            by_name[name] = requirement
 
     return RequiresType(by_name.values())
 

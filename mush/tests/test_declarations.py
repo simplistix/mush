@@ -1,6 +1,7 @@
 from functools import partial
 from unittest import TestCase
 
+import pytest
 from mock import Mock
 from testfixtures import compare, ShouldRaise
 
@@ -92,6 +93,13 @@ class TestRequirement:
         compare(repr(r),
                 expected="Requirement(Value('foo', default=None).bar, "
                          "name='n', type_='ty', target='ta')")
+
+    def test_clone(self):
+        r = Value('foo').bar.requirement
+        r_ = r.clone()
+        assert r_ is not r
+        assert r_.ops is not r.ops
+        compare(r_, expected=r)
 
 
 def check_ops(value, data, *, expected):
