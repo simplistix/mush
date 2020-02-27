@@ -29,14 +29,18 @@ class Requirement:
     resolve: RequirementResolver = None
 
     def __init__(self, key, name=None, type_=None, default=missing, target=None):
+        #: The resource key needed for this parameter.
         self.key: ResourceKey = key
-        self.name: str = (key if isinstance(key, str) else None) if name is None else name
-        self.type: type = (key if not isinstance(key, str) else None) if type_ is None else type_
-        self.target: Optional[str] = target
+        #: The name of this parameter in the callable's signature.
+        self.name: str = name
+        #: The type required for this parameter.
+        self.type: type = type_
+        #: The default for this parameter, should the required resource be unavailable.
         self.default: Any = default
         #: Any operations to be performed on the resource after it
         #: has been obtained.
         self.ops: List['ValueOp'] = []
+        self.target: Optional[str] = target
 
     def clone(self):
         """
@@ -77,7 +81,11 @@ class Value:
     ever use this.
     """
 
-    def __init__(self, key: ResourceKey, *, type_: type = None, default: Any = missing):
+    def __init__(self, key: ResourceKey=None, *, type_: type = None, default: Any = missing):
+        if isinstance(key, type):
+            if type_ is not None:
+                raise TypeError('type_ cannot be specified if key is a type')
+            type_ = key
         self.requirement = Requirement(key, type_=type_, default=default)
 
     def attr(self, name):
@@ -169,7 +177,8 @@ def requires(*args, **kw):
             possible.target = target
             requirement = possible
         else:
-            requirement = Requirement(possible, target=target)
+            type_ = None if isinstance(possible, str) else possible
+            requirement = Requirement(possible, name=target, type_=type_, target=target)
         requires_.append(requirement)
     return requires_
 

@@ -1,11 +1,11 @@
 from functools import update_wrapper
 from unittest import TestCase
 
-from mock import Mock, call
+from mock import Mock
 from testfixtures import compare
 
 from mush.callpoints import CallPoint
-from mush.declarations import requires, returns, RequiresType
+from mush.declarations import requires, returns, RequiresType, Requirement
 from mush.extraction import update_wrapper
 
 
@@ -28,7 +28,9 @@ class TestCallPoints(TestCase):
         result = CallPoint(foo, rq, rt)(self.context)
         compare(result, self.context.extract.return_value)
         compare(tuple(self.context.extract.mock_calls[0].args),
-                expected=(foo, rq, rt))
+                expected=(foo,
+                          RequiresType((Requirement('foo', name='a1'),)),
+                          rt))
 
     def test_extract_from_decorations(self):
         rq = requires('foo')
@@ -40,7 +42,10 @@ class TestCallPoints(TestCase):
 
         result = CallPoint(foo)(self.context)
         compare(result, self.context.extract.return_value)
-        self.context.extract.assert_called_with(foo, rq, rt)
+        compare(tuple(self.context.extract.mock_calls[0].args),
+                expected=(foo,
+                          RequiresType((Requirement('foo', name='a1'),)),
+                          returns('bar')))
 
     def test_extract_from_decorated_class(self):
 
@@ -64,20 +69,21 @@ class TestCallPoints(TestCase):
 
         self.context.extract.side_effect = lambda func, rq, rt: (func(), rq, rt)
         result = CallPoint(foo)(self.context)
-        compare(result, expected=('the answer', rq, rt))
+        compare(result, expected=('the answer',
+                                  RequiresType((Requirement('foo', name='prefix'),)),
+                                  rt))
 
     def test_explicit_trumps_decorators(self):
         @requires('foo')
         @returns('bar')
         def foo(a1): pass
 
-        rq = requires('baz')
-        rt = returns('bob')
-
-        result = CallPoint(foo, requires=rq, returns=rt)(self.context)
+        result = CallPoint(foo, requires('baz'), returns('bob'))(self.context)
         compare(result, self.context.extract.return_value)
         compare(tuple(self.context.extract.mock_calls[0].args),
-                expected=(foo, rq, rt))
+                expected=(foo,
+                          RequiresType((Requirement('baz', name='a1'),)),
+                          returns('bob')))
 
     def test_repr_minimal(self):
         def foo(): pass

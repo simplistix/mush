@@ -20,18 +20,25 @@ EMPTY = Parameter.empty
 SIMPLE_TYPES = (str, int, dict, list)
 
 
-def _unpack_requires(by_name, by_index, requires_):
+def _apply_requires(by_name, by_index, requires_):
 
-    for i, requirement in enumerate(requires_):
-        if requirement.target is None:
+    for i, r in enumerate(requires_):
+        if r.target is None:
             try:
-                arg = by_index[i]
+                name = by_index[i]
             except IndexError:
                 # case where something takes *args
-                arg = i
+                by_name[i] = r.clone()
+                continue
         else:
-            arg = requirement.target
-        by_name[arg] = requirement
+            name = r.target
+
+        existing = by_name[name]
+        existing.key = existing.key if r.key is None else r.key
+        existing.type = existing.type if r.type is None else r.type
+        existing.default = existing.default if r.default is missing else r.default
+        existing.ops = existing.ops if not r.ops else r.ops
+        existing.target = existing.target if r.target is None else r.target
 
 
 def extract_requires(obj: Callable, explicit=None):
@@ -46,34 +53,56 @@ def extract_requires(obj: Callable, explicit=None):
         if is_partial and p.name in obj.keywords:
             continue
 
-        type_ = p.annotation
-        default = p.default
+        name = p.name
+        if isinstance(p.annotation, type) and not p.annotation is EMPTY:
+            type_ = p.annotation
+        else:
+            type_ = None
+        key = None
+        default = missing if p.default is EMPTY else p.default
+        ops = []
+
+        requirement = None
         if isinstance(default, Requirement):
             requirement = default
-            default = EMPTY
+            default = missing
         elif isinstance(default, Value):
             requirement = default.requirement
-            default = EMPTY
+            default = missing
         elif isinstance(p.annotation, Requirement):
             requirement = p.annotation
-            type_ = requirement.type
         elif isinstance(p.annotation, Value):
             requirement = p.annotation.requirement
-            type_ = requirement.type
-        else:
-            if not (p.annotation is EMPTY or p.annotation in SIMPLE_TYPES):
-                key = p.annotation
-            else:
-                key = p.name
-            requirement = Requirement(key)
 
-        requirement = requirement.clone()
-        if requirement.type is None and type_ is not EMPTY and isinstance(type_, type):
-            requirement.type = type_
-        if requirement.default is missing and default is not EMPTY:
-            requirement.default = default
+        if requirement is None:
+            requirement = Requirement(key)
+            if isinstance(p.annotation, str):
+                key = p.annotation
+            elif type_ is None or issubclass(type_, SIMPLE_TYPES):
+                key = name
+            else:
+                key = type_
+        else:
+            requirement = requirement.clone()
+            type_ = type_ if requirement.type is None else requirement.type
+            if requirement.key is not None:
+                key = requirement.key
+            elif type_ is None or issubclass(type_, SIMPLE_TYPES):
+                key = name
+            else:
+                key = type_
+            default = requirement.default if requirement.default is not missing else default
+            ops = requirement.ops
+
+        requirement.key = key
+        requirement.name = name
+        requirement.type = type_
+        requirement.default = default
+        requirement.ops = ops
+
         if p.kind is p.KEYWORD_ONLY:
             requirement.target = p.name
+
         by_name[name] = requirement
 
     by_index = list(by_name)
@@ -83,26 +112,24 @@ def extract_requires(obj: Callable, explicit=None):
     if mush_declarations is not None:
         requires_ = mush_declarations.get('requires')
         if requires_ is not None:
-            _unpack_requires(by_name, by_index, requires_)
+            _apply_requires(by_name, by_index, requires_)
 
     # explicit
     if explicit is not None:
         if not isinstance(explicit, (list, tuple)):
             explicit = (explicit,)
         requires_ = requires(*explicit)
-        _unpack_requires(by_name, by_index, requires_)
+        _apply_requires(by_name, by_index, requires_)
 
     if not by_name:
         return nothing
 
     needs_target = False
-    for name, requirement in by_name.items():
+    for requirement in by_name.values():
         if requirement.target is not None:
             needs_target = True
         elif needs_target:
-            requirement = requirement.clone()
             requirement.target = requirement.name
-            by_name[name] = requirement
 
     return RequiresType(by_name.values())
 
