@@ -122,6 +122,12 @@ class TestValue:
         assert v[name] is v
         compare(v.requirement.ops, [ValueItemOp(name)])
 
+    def test_no_special_name_via_getattr(self):
+        v = Value('foo')
+        with ShouldRaise(AttributeError):
+            assert v.__len__
+        compare(v.requirement.ops, [])
+
 
 class TestItem:
 

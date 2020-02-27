@@ -90,6 +90,8 @@ class Value:
         return self
 
     def __getattr__(self, name):
+        if name.startswith('__'):
+            raise AttributeError(name)
         return self.attr(name)
 
     def __getitem__(self, name):
