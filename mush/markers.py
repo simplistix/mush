@@ -8,4 +8,6 @@ class Marker(object):
 
 
 not_specified = Marker('not_specified')
+
+#: A sentinel object to indicate that a value is missing.
 missing = Marker('missing')
