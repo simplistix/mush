@@ -1,8 +1,9 @@
 import asyncio
 from functools import partial
+from typing import Type
 
 from mush import Context
-from mush.declarations import ResourceKey
+from mush.declarations import ResourceKey, Requirement
 
 
 async def ensure_async(func, *args, **kw):
@@ -28,8 +29,8 @@ class SyncContext:
 
 class AsyncContext(Context):
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, default_requirement_type: Type[Requirement] = Requirement):
+        super().__init__(default_requirement_type)
         self._sync_context = SyncContext(self, asyncio.get_event_loop())
 
     def _context_for(self, obj):

@@ -354,6 +354,19 @@ class TestContext(TestCase):
         compare(c1.get('b'), expected=None)
         compare(c1.get('c'), expected='c')
 
+    def test_nest_with_overridden_default_requirement_type(self):
+        class FromRequest(Requirement): pass
+        c1 = Context(default_requirement_type=FromRequest)
+        c2 = c1.nest()
+        assert c2.default_requirement_type is FromRequest
+
+    def test_nest_with_explicit_default_requirement_type(self):
+        class Requirement1(Requirement): pass
+        class Requirement2(Requirement): pass
+        c1 = Context(default_requirement_type=Requirement1)
+        c2 = c1.nest(default_requirement_type=Requirement2)
+        assert c2.default_requirement_type is Requirement2
+
     def test_custom_requirement(self):
 
         class FromRequest(Requirement):
@@ -380,3 +393,16 @@ class TestContext(TestCase):
         context.add({}, provides='request')
         with ShouldRaise(ContextError("No 'bar' in context")):
             compare(context.call(foo))
+
+    def test_default_custom_requirement(self):
+
+        class FromRequest(Requirement):
+            def resolve(self, context):
+                return context.get('request')[self.key]
+
+        def foo(bar):
+            return bar
+
+        context = Context(default_requirement_type=FromRequest)
+        context.add({'bar': 'foo'}, provides='request')
+        compare(context.call(foo), expected='foo')

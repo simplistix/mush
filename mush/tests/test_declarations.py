@@ -550,6 +550,26 @@ class TestExtractDeclarationsFromTypeAnnotations(object):
                       expected_rq=RequiresType((Requirement(key='a', name='a'),)),
                       expected_rt=result_type)
 
+    def test_default_requirement_type(self):
+        def foo(x: str = None): pass
+
+        class FromRequest(Requirement): pass
+
+        rq = extract_requires(foo, default_requirement_type=FromRequest)
+        compare(rq, strict=True, expected=RequiresType((
+            FromRequest(key='x', name='x', type_=str, default=None),
+        )))
+
+    def test_default_requirement_not_used(self):
+        def foo(x: str = Value(default=None)): pass
+
+        class FromRequest(Requirement): pass
+
+        rq = extract_requires(foo, default_requirement_type=FromRequest)
+        compare(rq, strict=True, expected=RequiresType((
+            Requirement(key='x', name='x', type_=str, default=None),
+        )))
+
 
 class TestDeclarationsFromMultipleSources:
 

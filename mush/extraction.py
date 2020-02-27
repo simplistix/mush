@@ -5,7 +5,7 @@ from functools import (
     partial
 )
 from inspect import signature, Parameter
-from typing import Callable
+from typing import Callable, Type
 
 from .declarations import (
     Value,
@@ -41,7 +41,9 @@ def _apply_requires(by_name, by_index, requires_):
         existing.target = existing.target if r.target is None else r.target
 
 
-def extract_requires(obj: Callable, explicit=None):
+def extract_requires(obj: Callable,
+                     explicit: RequiresType=None,
+                     default_requirement_type: Type[Requirement] = Requirement):
     # from annotations
     is_partial = isinstance(obj, partial)
     by_name = {}
@@ -75,7 +77,7 @@ def extract_requires(obj: Callable, explicit=None):
             requirement = p.annotation.requirement
 
         if requirement is None:
-            requirement = Requirement(key)
+            requirement = default_requirement_type(key)
             if isinstance(p.annotation, str):
                 key = p.annotation
             elif type_ is None or issubclass(type_, SIMPLE_TYPES):

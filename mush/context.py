@@ -1,8 +1,8 @@
-from typing import Optional
+from typing import Optional, Type
 
 from .declarations import (
-    RequiresType, ResourceKey, ResourceValue, ResourceResolver
-)
+    RequiresType, ResourceKey, ResourceValue, ResourceResolver,
+    Requirement)
 from .extraction import extract_requires
 from .markers import missing
 
@@ -78,7 +78,8 @@ class Context:
 
     _parent = None
 
-    def __init__(self):
+    def __init__(self, default_requirement_type: Type[Requirement] = Requirement):
+        self.default_requirement_type = default_requirement_type
         self._store = {}
 
     def add(self,
@@ -127,11 +128,10 @@ class Context:
             self.add(obj, type)
         return result
 
-    @staticmethod
-    def _resolve(obj, requires, args, kw, context):
+    def _resolve(self, obj, requires, args, kw, context):
 
         if requires.__class__ is not RequiresType:
-            requires = extract_requires(obj, requires)
+            requires = extract_requires(obj, requires, self.default_requirement_type)
 
         for requirement in requires:
             o = yield requirement
@@ -191,7 +191,9 @@ class Context:
             return resolvable.resolver(self, default)
         return resolvable.value
 
-    def nest(self):
-        nested = type(self)()
+    def nest(self, default_requirement_type: Type[Requirement] = None):
+        if default_requirement_type is None:
+            default_requirement_type = self.default_requirement_type
+        nested = self.__class__(default_requirement_type)
         nested._parent = self
         return nested
