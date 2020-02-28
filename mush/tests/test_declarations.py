@@ -1,4 +1,5 @@
 from functools import partial
+from typing import Tuple
 from unittest import TestCase
 
 import pytest
@@ -60,12 +61,17 @@ class TestRequires(TestCase):
             Requirement('4', name='y', target='y'),
         ])
 
+    def test_typing(self):
+        r = requires(Tuple[str])
+        compare(repr(r), "requires(typing.Tuple[str])")
+        compare(r, expected=[Requirement(Tuple[str], type_=Tuple[str])])
+
     def test_tuple_arg(self):
-        with ShouldRaise(TypeError("('1', '2') is not a type or label")):
+        with ShouldRaise(TypeError("('1', '2') is not a valid decoration type")):
             requires(('1', '2'))
 
     def test_tuple_kw(self):
-        with ShouldRaise(TypeError("('1', '2') is not a type or label")):
+        with ShouldRaise(TypeError("('1', '2') is not a valid decoration type")):
             requires(foo=('1', '2'))
 
     def test_decorator_paranoid(self):
@@ -204,6 +210,11 @@ class TestReturns(TestCase):
         compare(repr(r), "returns('bar')")
         compare(dict(r.process('foo')), {'bar': 'foo'})
 
+    def test_typing(self):
+        r = returns(Tuple[str])
+        compare(repr(r), 'returns(typing.Tuple[str])')
+        compare(dict(r.process('foo')), {Tuple[str]: 'foo'})
+
     def test_sequence(self):
         r = returns(Type1, 'bar')
         compare(repr(r), "returns(Type1, 'bar')")
@@ -220,7 +231,7 @@ class TestReturns(TestCase):
 
     def test_bad_type(self):
         with ShouldRaise(TypeError(
-            '[] is not a type or label'
+            '[] is not a valid decoration type'
         )):
             @returns([])
             def foo(): pass

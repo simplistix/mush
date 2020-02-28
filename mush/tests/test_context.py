@@ -161,7 +161,7 @@ class TestContext(TestCase):
         with ShouldRaise(TypeError(
                 "(<class 'mush.tests.test_context.TheType'>, "
                 "<class 'mush.tests.test_context.TheType'>) "
-                "is not a type or label"
+                "is not a valid decoration type"
         )):
             context.call(foo, requires((TheType, TheType)))
 
@@ -335,6 +335,15 @@ class TestContext(TestCase):
         context = Context()
         context.add('bar', provides='foo')
         compare(context.get('foo'), expected='bar')
+
+    def test_get_type(self):
+        context = Context()
+        context.add(['bar'], provides=List[str])
+        compare(context.get(List[str]), expected=['bar'])
+        compare(context.get(List[int]), expected=None)
+        compare(context.get(List), expected=None)
+        # nb: this might be surprising:
+        compare(context.get(list), expected=None)
 
     def test_get_missing(self):
         context = Context()

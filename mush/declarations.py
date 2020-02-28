@@ -1,7 +1,7 @@
 from copy import copy
 from enum import Enum, auto
 from itertools import chain
-from typing import Type, Callable, NewType, Union, Any, List, Optional
+from typing import Type, Callable, NewType, Union, Any, List, Optional, _type_check
 
 from .markers import missing
 
@@ -291,7 +291,14 @@ VALID_DECORATION_TYPES = (type, str, Value, Requirement)
 
 def valid_decoration_types(*objs):
     for obj in objs:
-        if not isinstance(obj, VALID_DECORATION_TYPES):
-            raise TypeError(
-                repr(obj)+" is not a type or label"
-            )
+        if isinstance(obj, VALID_DECORATION_TYPES):
+            continue
+        try:
+            _type_check(obj, '')
+        except TypeError:
+            pass
+        else:
+            continue
+        raise TypeError(
+            repr(obj)+" is not a valid decoration type"
+        )
