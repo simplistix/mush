@@ -163,7 +163,7 @@ class TestItem:
     def test_passed_missing(self):
         c = Context()
         c.add({}, provides='key')
-        compare(c.call(lambda x: x, requires=Value('key', default=1)['foo']['bar']),
+        compare(c.call(lambda x: x, requires(Value('key', default=1)['foo']['bar'])),
                 expected=1)
 
     def test_bad_type(self):
@@ -194,7 +194,7 @@ class TestAttr(TestCase):
     def test_passed_missing(self):
         c = Context()
         c.add(object(), provides='key')
-        compare(c.call(lambda x: x, requires=Value('key', default=1).foo.bar),
+        compare(c.call(lambda x: x, requires(Value('key', default=1).foo.bar)),
                 expected=1)
 
 

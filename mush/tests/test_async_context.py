@@ -1,9 +1,14 @@
 import asyncio
+from typing import Tuple
+
 import pytest
 
 from mush import AsyncContext, Context, requires, returns
-from mush.declarations import Requirement
+from mush.context import ResolvableValue
+from mush.declarations import Requirement, RequiresType
 from testfixtures import compare
+
+from mush.tests.test_context import TheType
 
 
 @pytest.mark.asyncio
@@ -117,6 +122,23 @@ async def test_call_sync_requires_async_context():
 
 
 @pytest.mark.asyncio
+async def test_call_default_mush():
+    context = AsyncContext()
+    def foo(): pass
+    await context.call(foo)
+    compare(foo.__mush__['requires_final'], expected=RequiresType())
+
+
+@pytest.mark.asyncio
+async def test_call_no_mush():
+    context = AsyncContext()
+    def foo():
+        pass
+    await context.call(foo, mush=False)
+    assert not hasattr(foo, '__mush__')
+
+
+@pytest.mark.asyncio
 async def test_extract_is_async():
     context = AsyncContext()
     def it():
@@ -147,6 +169,33 @@ async def test_extract_sync():
     result = context.extract(it, requires(Context), returns('baz'))
     compare(await result, expected='foobar')
     compare(await context.get('baz'), expected='foobar')
+
+
+@pytest.mark.asyncio
+async def test_extract_minimal():
+    o = TheType()
+    def foo() -> TheType:
+        return o
+    context = AsyncContext()
+    result = await context.extract(foo)
+    assert result is o
+    compare({TheType: ResolvableValue(o)}, actual=context._store)
+    compare(foo.__mush__['returns_final'], expected=returns(TheType))
+
+
+@pytest.mark.asyncio
+async def test_extract_maximal():
+    def foo(*args):
+        return args
+    context = AsyncContext()
+    context.add('a')
+    result = await context.extract(foo, requires(str), returns(Tuple[str]), mush=False)
+    compare(result, expected=('a',))
+    compare({
+        str: ResolvableValue('a'),
+        Tuple[str]: ResolvableValue(('a',)),
+    }, actual=context._store)
+    assert not hasattr(foo, '__mush__')
 
 
 @pytest.mark.asyncio

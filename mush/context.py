@@ -1,9 +1,9 @@
-from typing import Optional, Type
+from typing import Optional, Type, Callable
 
 from .declarations import (
     RequiresType, ResourceKey, ResourceValue, ResourceResolver,
-    Requirement)
-from .extraction import extract_requires
+    Requirement, set_mush, ReturnsType)
+from .extraction import extract_requires, extract_returns
 from .markers import missing
 
 NONE_TYPE = type(None)
@@ -122,16 +122,36 @@ class Context:
             bits.append('\n')
         return '<Context: {%s}>' % ''.join(bits)
 
-    def extract(self, obj, requires, returns):
-        result = self.call(obj, requires)
+    def _process(self, obj, result, returns, mush):
+        if returns is None:
+            returns = getattr(obj, '__mush__', {}).get('returns_final')
+            if returns is None:
+                returns = extract_returns(obj, explicit=None)
+                if mush:
+                    set_mush(obj, 'returns_final', returns)
+
         for type, obj in returns.process(result):
             self.add(obj, type)
+
+    def extract(self,
+                obj: Callable,
+                requires: RequiresType = None,
+                returns: ReturnsType = None,
+                mush: bool = True):
+        result = self.call(obj, requires)
+        self._process(obj, result, returns, mush)
         return result
 
-    def _resolve(self, obj, requires, args, kw, context):
+    def _resolve(self, obj, requires, args, kw, context, mush):
 
-        if requires.__class__ is not RequiresType:
-            requires = extract_requires(obj, requires, self.default_requirement_type)
+        if requires is None:
+            requires = getattr(obj, '__mush__', {}).get('requires_final')
+            if requires is None:
+                requires = extract_requires(obj,
+                                            explicit=None,
+                                            default_requirement_type=self.default_requirement_type)
+                if mush:
+                    set_mush(obj, 'requires_final', requires)
 
         for requirement in requires:
             o = yield requirement
@@ -157,10 +177,10 @@ class Context:
 
             yield
 
-    def call(self, obj, requires=None):
+    def call(self, obj: Callable, requires: RequiresType = None, *, mush: bool = True):
         args = []
         kw = {}
-        resolving = self._resolve(obj, requires, args, kw, self)
+        resolving = self._resolve(obj, requires, args, kw, self, mush)
         for requirement in resolving:
             if requirement.resolve:
                 o = requirement.resolve(self)

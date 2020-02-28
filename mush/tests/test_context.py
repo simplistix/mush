@@ -1,3 +1,4 @@
+from typing import Tuple, List
 from unittest import TestCase
 
 from mock import Mock
@@ -5,7 +6,7 @@ from mush.context import ResolvableValue
 from testfixtures import ShouldRaise, compare
 
 from mush import Context, ContextError, requires, returns, nothing, returns_mapping
-from mush.declarations import Requirement, Value, missing
+from mush.declarations import Requirement, Value, missing, RequiresType
 
 
 class TheType(object):
@@ -266,6 +267,58 @@ class TestContext(TestCase):
         context = Context()
         result = context.call(foo)
         compare(result, expected=None)
+
+    def test_call_default_mush(self):
+        context = Context()
+        def foo(): pass
+        context.call(foo)
+        compare(foo.__mush__['requires_final'], expected=RequiresType())
+
+    def test_call_explict_mush(self):
+        context = Context()
+        def foo():
+            pass
+        context.call(foo, mush=True)
+        compare(foo.__mush__['requires_final'], expected=RequiresType())
+
+    def test_call_explict_mush_plus_explicit_requires(self):
+        context = Context()
+        context.add('a')
+        def foo(*args):
+            return args
+        result = context.call(foo, requires(str), mush=True)
+        compare(result, ('a',))
+        assert not hasattr(foo, '__mush__')
+
+    def test_call_no_mush(self):
+        context = Context()
+        def foo():
+            pass
+        context.call(foo, mush=False)
+        assert not hasattr(foo, '__mush__')
+
+    def test_extract_minimal(self):
+        o = TheType()
+        def foo() -> TheType:
+            return o
+        context = Context()
+        result = context.extract(foo)
+        assert result is o
+        compare({TheType: ResolvableValue(o)}, actual=context._store)
+        compare(foo.__mush__['returns_final'], expected=returns(TheType))
+
+    def test_extract_maximal(self):
+        def foo(*args):
+            return args
+        context = Context()
+        context.add('a')
+        result = context.extract(foo, requires(str), returns(Tuple[str]), mush=False)
+        compare(result, expected=('a',))
+        compare({
+            str: ResolvableValue('a'),
+            Tuple[str]: ResolvableValue(('a',)),
+        }, actual=context._store)
+        assert not hasattr(foo, '__mush__')
 
     def test_returns_single(self):
         def foo():

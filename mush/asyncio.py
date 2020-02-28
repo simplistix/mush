@@ -1,9 +1,9 @@
 import asyncio
 from functools import partial
-from typing import Type
+from typing import Type, Callable
 
 from mush import Context
-from mush.declarations import ResourceKey, Requirement
+from mush.declarations import ResourceKey, Requirement, RequiresType, ReturnsType
 
 
 async def ensure_async(func, *args, **kw):
@@ -43,10 +43,10 @@ class AsyncContext(Context):
             return await ensure_async(r, self._context_for(r), default)
         return resolvable.value
 
-    async def call(self, obj, requires=None):
+    async def call(self, obj: Callable, requires: RequiresType = None, *, mush: bool = True):
         args = []
         kw = {}
-        resolving = self._resolve(obj, requires, args, kw, self._context_for(obj))
+        resolving = self._resolve(obj, requires, args, kw, self._context_for(obj), mush)
         for requirement in resolving:
             r = requirement.resolve
             if r is not None:
@@ -56,8 +56,11 @@ class AsyncContext(Context):
             resolving.send(o)
         return await ensure_async(obj, *args, **kw)
 
-    async def extract(self, obj, requires, returns):
+    async def extract(self,
+                      obj: Callable,
+                      requires: RequiresType = None,
+                      returns: ReturnsType = None,
+                      mush: bool = True):
         result = await self.call(obj, requires)
-        for type, obj in returns.process(result):
-            self.add(obj, type)
+        self._process(obj, result, returns, mush)
         return result
