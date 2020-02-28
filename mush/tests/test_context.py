@@ -268,34 +268,20 @@ class TestContext(TestCase):
         result = context.call(foo)
         compare(result, expected=None)
 
-    def test_call_default_mush(self):
+    def test_call_caches_requires(self):
         context = Context()
         def foo(): pass
         context.call(foo)
-        compare(foo.__mush__['requires_final'], expected=RequiresType())
+        compare(context._requires_cache[foo], expected=RequiresType())
 
-    def test_call_explict_mush(self):
-        context = Context()
-        def foo():
-            pass
-        context.call(foo, mush=True)
-        compare(foo.__mush__['requires_final'], expected=RequiresType())
-
-    def test_call_explict_mush_plus_explicit_requires(self):
+    def test_call_explict_explicit_requires_no_cache(self):
         context = Context()
         context.add('a')
         def foo(*args):
             return args
-        result = context.call(foo, requires(str), mush=True)
+        result = context.call(foo, requires(str))
         compare(result, ('a',))
-        assert not hasattr(foo, '__mush__')
-
-    def test_call_no_mush(self):
-        context = Context()
-        def foo():
-            pass
-        context.call(foo, mush=False)
-        assert not hasattr(foo, '__mush__')
+        compare(context._requires_cache, expected={})
 
     def test_extract_minimal(self):
         o = TheType()
@@ -305,20 +291,22 @@ class TestContext(TestCase):
         result = context.extract(foo)
         assert result is o
         compare({TheType: ResolvableValue(o)}, actual=context._store)
-        compare(foo.__mush__['returns_final'], expected=returns(TheType))
+        compare(context._requires_cache[foo], expected=RequiresType())
+        compare(context._returns_cache[foo], expected=returns(TheType))
 
     def test_extract_maximal(self):
         def foo(*args):
             return args
         context = Context()
         context.add('a')
-        result = context.extract(foo, requires(str), returns(Tuple[str]), mush=False)
+        result = context.extract(foo, requires(str), returns(Tuple[str]))
         compare(result, expected=('a',))
         compare({
             str: ResolvableValue('a'),
             Tuple[str]: ResolvableValue(('a',)),
         }, actual=context._store)
-        assert not hasattr(foo, '__mush__')
+        compare(context._requires_cache, expected={})
+        compare(context._returns_cache, expected={})
 
     def test_returns_single(self):
         def foo():
@@ -428,6 +416,12 @@ class TestContext(TestCase):
         c1 = Context(default_requirement_type=Requirement1)
         c2 = c1.nest(default_requirement_type=Requirement2)
         assert c2.default_requirement_type is Requirement2
+
+    def test_nest_keeps_declarations_cache(self):
+        c1 = Context()
+        c2 = c1.nest()
+        assert c2._requires_cache is c1._requires_cache
+        assert c2._returns_cache is c1._returns_cache
 
     def test_custom_requirement(self):
 

@@ -43,10 +43,10 @@ class AsyncContext(Context):
             return await ensure_async(r, self._context_for(r), default)
         return resolvable.value
 
-    async def call(self, obj: Callable, requires: RequiresType = None, *, mush: bool = True):
+    async def call(self, obj: Callable, requires: RequiresType = None):
         args = []
         kw = {}
-        resolving = self._resolve(obj, requires, args, kw, self._context_for(obj), mush)
+        resolving = self._resolve(obj, requires, args, kw, self._context_for(obj))
         for requirement in resolving:
             r = requirement.resolve
             if r is not None:
@@ -59,8 +59,7 @@ class AsyncContext(Context):
     async def extract(self,
                       obj: Callable,
                       requires: RequiresType = None,
-                      returns: ReturnsType = None,
-                      mush: bool = True):
+                      returns: ReturnsType = None):
         result = await self.call(obj, requires)
-        self._process(obj, result, returns, mush)
+        self._process(obj, result, returns)
         return result
