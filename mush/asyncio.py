@@ -20,9 +20,21 @@ class SyncFromAsyncContext:
     def __init__(self, context, loop):
         self.context = context
         self.loop = loop
+        self.remove = context.remove
+        self.add = context.add
 
     def get(self, key: ResourceKey, default=None):
         coro = self.context.get(key, default)
+        future = asyncio.run_coroutine_threadsafe(coro, self.loop)
+        return future.result()
+
+    def call(self, obj: Callable, requires: RequiresType = None):
+        coro = self.context.call(obj, requires)
+        future = asyncio.run_coroutine_threadsafe(coro, self.loop)
+        return future.result()
+
+    def extract(self, obj: Callable, requires: RequiresType = None, returns: ReturnsType = None):
+        coro = self.context.extract(obj, requires, returns)
         future = asyncio.run_coroutine_threadsafe(coro, self.loop)
         return future.result()
 

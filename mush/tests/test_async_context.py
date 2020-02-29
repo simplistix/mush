@@ -3,7 +3,7 @@ from typing import Tuple
 
 import pytest
 
-from mush import Context, requires, returns
+from mush import Context, Value, requires, returns
 from mush.asyncio import Context
 from mush.context import ResolvableValue
 from mush.declarations import Requirement, RequiresType
@@ -208,7 +208,7 @@ async def test_custom_requirement_async_resolve():
 
 
 @pytest.mark.asyncio
-async def test_custom_requirement_sync_resolve():
+async def test_custom_requirement_sync_resolve_get():
 
     class FromRequest(Requirement):
         def resolve(self, context):
@@ -220,6 +220,64 @@ async def test_custom_requirement_sync_resolve():
     context = Context()
     context.add({'bar': 'foo'}, provides='request')
     compare(await context.call(foo), expected='foo')
+
+
+@pytest.mark.asyncio
+async def test_custom_requirement_sync_resolve_call():
+
+    async def baz(request: dict = Value('request')):
+        return request['bar']
+
+    class Syncer(Requirement):
+        def resolve(self, context):
+            return context.call(self.key)
+
+    def foo(bar: Syncer(baz)):
+        return bar
+
+    context = Context()
+    context.add({'bar': 'foo'}, provides='request')
+    compare(await context.call(foo), expected='foo')
+
+
+@pytest.mark.asyncio
+async def test_custom_requirement_sync_resolve_extract():
+
+    @returns('response')
+    async def baz(request: dict = Value('request')):
+        return request['bar']
+
+    class Syncer(Requirement):
+        def resolve(self, context):
+            return context.extract(self.key)
+
+    def foo(bar: Syncer(baz)):
+        return bar
+
+    context = Context()
+    context.add({'bar': 'foo'}, provides='request')
+    compare(await context.call(foo), expected='foo')
+    compare(await context.get('response'), expected='foo')
+
+
+@pytest.mark.asyncio
+async def test_custom_requirement_sync_resolve_add_remove():
+
+    class Syncer(Requirement):
+        def resolve(self, context):
+            request = context.get('request')
+            context.remove('request')
+            context.add(request['bar'], provides='response')
+            return request['bar']
+
+    def foo(bar: Syncer('request')):
+        return bar
+
+    context = Context()
+    context.add({'bar': 'foo'}, provides='request')
+    compare(await context.call(foo), expected='foo')
+    compare(await context.get('request'), expected=None)
+    compare(await context.get('response'), expected='foo')
 
 
 @pytest.mark.asyncio
