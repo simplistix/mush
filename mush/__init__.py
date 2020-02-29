@@ -7,11 +7,11 @@ from .declarations import (
 from .extraction import extract_requires, extract_returns, update_wrapper
 from .markers import missing
 from .plug import Plug
+from .resolvers import Call
 from .context import Context, ContextError
-from .asyncio import AsyncContext
 
 __all__ = [
-    'Context', 'AsyncContext', 'ContextError',
+    'Context', 'ContextError',
     'Runner',
     'requires',
     'returns_result_type', 'returns_mapping', 'returns_sequence', 'returns',
@@ -19,4 +19,5 @@ __all__ = [
     'Plug', 'nothing',
     'update_wrapper',
     'missing',
+    'Call'
 ]

@@ -2,7 +2,7 @@ import asyncio
 from functools import partial
 from typing import Type, Callable
 
-from mush import Context
+from mush import Context as SyncContext
 from mush.declarations import ResourceKey, Requirement, RequiresType, ReturnsType
 
 
@@ -15,7 +15,7 @@ async def ensure_async(func, *args, **kw):
     return await loop.run_in_executor(None, func, *args)
 
 
-class SyncContext:
+class SyncFromAsyncContext:
 
     def __init__(self, context, loop):
         self.context = context
@@ -27,11 +27,11 @@ class SyncContext:
         return future.result()
 
 
-class AsyncContext(Context):
+class Context(SyncContext):
 
     def __init__(self, default_requirement_type: Type[Requirement] = Requirement):
         super().__init__(default_requirement_type)
-        self._sync_context = SyncContext(self, asyncio.get_event_loop())
+        self._sync_context = SyncFromAsyncContext(self, asyncio.get_event_loop())
 
     def _context_for(self, obj):
         return self if asyncio.iscoroutinefunction(obj) else self._sync_context
