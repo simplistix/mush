@@ -6,6 +6,4 @@ if TYPE_CHECKING:
 
 ResourceKey = NewType('ResourceKey', Union[Hashable, Callable])
 ResourceValue = NewType('ResourceValue', Any)
-ResourceResolver = Callable[['Context', Any], ResourceValue]
-RequirementResolver = Callable[['Context'], ResourceValue]
 RequirementModifier = Callable[['Requirement'], 'Requirement']

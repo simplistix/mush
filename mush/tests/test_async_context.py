@@ -5,58 +5,11 @@ import pytest
 
 from mush import Context, Value, requires, returns
 from mush.asyncio import Context
-from mush.context import ResolvableValue
 from mush.declarations import RequiresType
 from mush.requirements import Requirement
 from testfixtures import compare
 
 from mush.tests.test_context import TheType
-
-
-@pytest.mark.asyncio
-async def test_get_is_async():
-    context = Context()
-    result = context.get('foo', default='bar')
-    assert asyncio.iscoroutine(result)
-    compare(await result, expected='bar')
-
-
-@pytest.mark.asyncio
-async def test_get_async_resolver():
-    async def resolver(*args):
-        return 'bar'
-    context = Context()
-    context.add(provides='foo', resolver=resolver)
-    compare(await context.get('foo'), expected='bar')
-
-
-@pytest.mark.asyncio
-async def test_get_async_resolver_calls_back_into_async():
-    async def resolver(context, default):
-        return await context.get('baz')
-    context = Context()
-    context.add('bar', provides='baz')
-    context.add(provides='foo', resolver=resolver)
-    compare(await context.get('foo'), expected='bar')
-
-
-@pytest.mark.asyncio
-async def test_get_sync_resolver():
-    def resolver(*args):
-        return 'bar'
-    context = Context()
-    context.add(provides='foo', resolver=resolver)
-    compare(await context.get('foo'), expected='bar')
-
-
-@pytest.mark.asyncio
-async def test_get_sync_resolver_calls_back_into_async():
-    def resolver(context, default):
-        return context.get('baz')
-    context = Context()
-    context.add('bar', provides='baz')
-    context.add(provides='foo', resolver=resolver)
-    compare(await context.get('foo'), expected='bar')
 
 
 @pytest.mark.asyncio
@@ -83,7 +36,7 @@ async def test_call_async_requires_context():
     context = Context()
     context.add('bar', provides='baz')
     async def it(context: Context):
-        return await context.get('baz')
+        return context.get('baz')
     compare(await context.call(it), expected='bar')
 
 
@@ -92,7 +45,7 @@ async def test_call_async_requires_async_context():
     context = Context()
     context.add('bar', provides='baz')
     async def it(context: Context):
-        return await context.get('baz')
+        return context.get('baz')
     compare(await context.call(it), expected='bar')
 
 
@@ -139,7 +92,7 @@ async def test_extract_is_async():
     result = context.extract(it, requires(), returns('baz'))
     assert asyncio.iscoroutine(result)
     compare(await result, expected='bar')
-    compare(await context.get('baz'), expected='bar')
+    compare(context.get('baz'), expected='bar')
 
 
 @pytest.mark.asyncio
@@ -147,10 +100,10 @@ async def test_extract_async():
     context = Context()
     context.add('foo', provides='bar')
     async def it(context):
-        return await context.get('bar')+'bar'
+        return context.get('bar')+'bar'
     result = context.extract(it, requires(Context), returns('baz'))
     compare(await result, expected='foobar')
-    compare(await context.get('baz'), expected='foobar')
+    compare(context.get('baz'), expected='foobar')
 
 
 @pytest.mark.asyncio
@@ -161,7 +114,7 @@ async def test_extract_sync():
         return context.get('bar')+'bar'
     result = context.extract(it, requires(Context), returns('baz'))
     compare(await result, expected='foobar')
-    compare(await context.get('baz'), expected='foobar')
+    compare(context.get('baz'), expected='foobar')
 
 
 @pytest.mark.asyncio
@@ -172,7 +125,7 @@ async def test_extract_minimal():
     context = Context()
     result = await context.extract(foo)
     assert result is o
-    compare({TheType: ResolvableValue(o)}, actual=context._store)
+    compare({TheType: o}, actual=context._store)
     compare(context._requires_cache[foo], expected=RequiresType())
     compare(context._returns_cache[foo], expected=returns(TheType))
 
@@ -186,8 +139,8 @@ async def test_extract_maximal():
     result = await context.extract(foo, requires(str), returns(Tuple[str]))
     compare(result, expected=('a',))
     compare({
-        str: ResolvableValue('a'),
-        Tuple[str]: ResolvableValue(('a',)),
+        str: 'a',
+        Tuple[str]: ('a',),
     }, actual=context._store)
     compare(context._requires_cache, expected={})
     compare(context._returns_cache, expected={})
@@ -198,7 +151,7 @@ async def test_custom_requirement_async_resolve():
 
     class FromRequest(Requirement):
         async def resolve(self, context):
-            return (await context.get('request'))[self.key]
+            return (context.get('request'))[self.key]
 
     def foo(bar: FromRequest('bar')):
         return bar
@@ -258,7 +211,7 @@ async def test_custom_requirement_sync_resolve_extract():
     context = Context()
     context.add({'bar': 'foo'}, provides='request')
     compare(await context.call(foo), expected='foo')
-    compare(await context.get('response'), expected='foo')
+    compare(context.get('response'), expected='foo')
 
 
 @pytest.mark.asyncio
@@ -277,8 +230,8 @@ async def test_custom_requirement_sync_resolve_add_remove():
     context = Context()
     context.add({'bar': 'foo'}, provides='request')
     compare(await context.call(foo), expected='foo')
-    compare(await context.get('request'), expected=None)
-    compare(await context.get('response'), expected='foo')
+    compare(context.get('request'), expected=None)
+    compare(context.get('response'), expected='foo')
 
 
 @pytest.mark.asyncio
@@ -286,7 +239,7 @@ async def test_default_custom_requirement():
 
     class FromRequest(Requirement):
         async def resolve(self, context):
-            return (await context.get('request'))[self.key]
+            return (context.get('request'))[self.key]
 
     def default_requirement_type(requirement):
         if requirement.__class__ is Requirement:

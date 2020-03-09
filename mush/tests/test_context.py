@@ -2,7 +2,6 @@ from typing import Tuple, List
 from unittest import TestCase
 
 from mock import Mock
-from mush.context import ResolvableValue
 from testfixtures import ShouldRaise, compare
 
 from mush import (
@@ -24,7 +23,7 @@ class TestContext(TestCase):
         context = Context()
         context.add(obj)
 
-        compare(context._store, expected={TheType: ResolvableValue(obj)})
+        compare(context._store, expected={TheType: obj})
         expected = (
             "<Context: {\n"
             "    <class 'mush.tests.test_context.TheType'>: <TheType obj>\n"
@@ -41,7 +40,7 @@ class TestContext(TestCase):
         expected = ("<Context: {\n"
                     "    'my label': <TheType obj>\n"
                     "}>")
-        compare(context._store, expected={'my label': ResolvableValue(obj)})
+        compare(context._store, expected={'my label': obj})
         self.assertEqual(repr(context), expected)
         self.assertEqual(str(context), expected)
 
@@ -50,7 +49,7 @@ class TestContext(TestCase):
         obj = TheType()
         context = Context()
         context.add(obj, provides=T2)
-        compare(context._store, expected={T2: ResolvableValue(obj)})
+        compare(context._store, expected={T2: obj})
         expected = ("<Context: {\n"
                     "    " + repr(T2) + ": <TheType obj>\n"
                     "}>")
@@ -62,34 +61,6 @@ class TestContext(TestCase):
         with ShouldRaise(ValueError('Cannot add None to context')):
             context.add()
         compare(context._store, expected={})
-
-    def test_resolver_but_no_provides(self):
-        context = Context()
-        with ShouldRaise(TypeError('Both provides and resolver must be supplied')):
-            context.add(resolver=lambda: None)
-        compare(context._store, expected={})
-    
-    def test_resolver(self):
-        m = Mock()
-        context = Context()
-        context.add(provides='foo', resolver=m)
-        m.assert_not_called()
-        assert context.get('foo') is m.return_value
-        m.assert_called_with(context, None)
-
-    def test_resolver_and_resource(self):
-        m = Mock()
-        context = Context()
-        with ShouldRaise(TypeError('resource cannot be supplied when using a resolver')):
-            context.add('bar', provides='foo', resolver=m)
-        compare(context._store, expected={})
-
-    def test_resolver_with_default(self):
-        m = Mock()
-        context = Context()
-        context.add(provides='foo',
-                    resolver=lambda context, default=None: context.get('foo-bar', default))
-        assert context.get('foo', default=m) is m
 
     def test_clash(self):
         obj1 = TheType()
@@ -115,7 +86,7 @@ class TestContext(TestCase):
     def test_add_none_with_type(self):
         context = Context()
         context.add(None, TheType)
-        compare(context._store, expected={TheType: ResolvableValue(None)})
+        compare(context._store, expected={TheType: None})
 
     def test_call_basic(self):
         def foo():
@@ -131,7 +102,7 @@ class TestContext(TestCase):
         context.add('bar', 'baz')
         result = context.call(foo, requires('baz'))
         compare(result, 'bar')
-        compare({'baz': ResolvableValue('bar')}, actual=context._store)
+        compare({'baz': 'bar'}, actual=context._store)
 
     def test_call_requires_type(self):
         def foo(obj):
@@ -140,7 +111,7 @@ class TestContext(TestCase):
         context.add('bar', TheType)
         result = context.call(foo, requires(TheType))
         compare(result, 'bar')
-        compare({TheType: ResolvableValue('bar')}, actual=context._store)
+        compare({TheType: 'bar'}, actual=context._store)
 
     def test_call_requires_missing(self):
         def foo(obj): return obj
@@ -177,8 +148,8 @@ class TestContext(TestCase):
         context.add('bar', 'baz')
         result = context.call(foo, requires(y='baz', x=TheType))
         compare(result, ('foo', 'bar'))
-        compare({TheType: ResolvableValue('foo'),
-                 'baz': ResolvableValue('bar')},
+        compare({TheType: 'foo',
+                 'baz': 'bar'},
                 actual=context._store)
 
     def test_call_requires_optional_present(self):
@@ -188,7 +159,7 @@ class TestContext(TestCase):
         context.add(2, TheType)
         result = context.call(foo, requires(TheType))
         compare(result, 2)
-        compare({TheType: ResolvableValue(2)}, actual=context._store)
+        compare({TheType: 2}, actual=context._store)
 
     def test_call_requires_optional_missing(self):
         def foo(x: TheType = 1):
@@ -212,7 +183,7 @@ class TestContext(TestCase):
         context.add(2, 'foo')
         result = context.call(foo)
         compare(result, 2)
-        compare({'foo': ResolvableValue(2)}, actual=context._store)
+        compare({'foo': 2}, actual=context._store)
 
     def test_call_requires_item(self):
         def foo(x):
@@ -293,7 +264,7 @@ class TestContext(TestCase):
         context = Context()
         result = context.extract(foo)
         assert result is o
-        compare({TheType: ResolvableValue(o)}, actual=context._store)
+        compare({TheType: o}, actual=context._store)
         compare(context._requires_cache[foo], expected=RequiresType())
         compare(context._returns_cache[foo], expected=returns(TheType))
 
@@ -305,8 +276,8 @@ class TestContext(TestCase):
         result = context.extract(foo, requires(str), returns(Tuple[str]))
         compare(result, expected=('a',))
         compare({
-            str: ResolvableValue('a'),
-            Tuple[str]: ResolvableValue(('a',)),
+            str: 'a',
+            Tuple[str]: ('a',),
         }, actual=context._store)
         compare(context._requires_cache, expected={})
         compare(context._returns_cache, expected={})
@@ -317,7 +288,7 @@ class TestContext(TestCase):
         context = Context()
         result = context.extract(foo, nothing, returns(TheType))
         compare(result, 'bar')
-        compare({TheType: ResolvableValue('bar')}, actual=context._store)
+        compare({TheType: 'bar'}, actual=context._store)
 
     def test_returns_sequence(self):
         def foo():
@@ -325,7 +296,7 @@ class TestContext(TestCase):
         context = Context()
         result = context.extract(foo, nothing, returns('foo', 'bar'))
         compare(result, (1, 2))
-        compare({'foo': ResolvableValue(1), 'bar': ResolvableValue(2)},
+        compare({'foo': 1, 'bar': 2},
                 actual=context._store)
 
     def test_returns_mapping(self):
@@ -334,7 +305,7 @@ class TestContext(TestCase):
         context = Context()
         result = context.extract(foo, nothing, returns_mapping())
         compare(result, {'foo': 1, 'bar': 2})
-        compare({'foo': ResolvableValue(1), 'bar': ResolvableValue(2)},
+        compare({'foo': 1, 'bar': 2},
                 actual=context._store)
 
     def test_ignore_return(self):

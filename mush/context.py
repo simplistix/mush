@@ -1,10 +1,9 @@
-from typing import Optional, Type, Callable
+from typing import Optional, Callable
 
 from .declarations import RequiresType, ReturnsType
 from .extraction import extract_requires, extract_returns, default_requirement_type
 from .markers import missing
-from .requirements import Requirement, Value
-from .types import ResourceKey, ResourceValue, ResourceResolver, RequirementModifier
+from .types import ResourceKey, ResourceValue, RequirementModifier
 
 NONE_TYPE = type(None)
 
@@ -60,19 +59,6 @@ def type_key(type_tuple):
     return type.__name__
 
 
-class ResolvableValue:
-    __slots__ = ('value', 'resolver')
-
-    def __init__(self, value, resolver=None):
-        self.value = value
-        self.resolver = resolver
-
-    def __repr__(self):
-        if self.resolver is None:
-            return repr(self.value)
-        return repr(self.resolver)
-
-
 class Context:
     "Stores resources for a particular run."
 
@@ -86,24 +72,19 @@ class Context:
 
     def add(self,
             resource: Optional[ResourceValue] = None,
-            provides: Optional[ResourceKey] = None,
-            resolver: Optional[ResourceResolver] = None):
+            provides: Optional[ResourceKey] = None):
         """
         Add a resource to the context.
 
         Optionally specify what the resource provides.
         """
-        if resolver is not None and (provides is None or resource is not None):
-            if resource is not None:
-                raise TypeError('resource cannot be supplied when using a resolver')
-            raise TypeError('Both provides and resolver must be supplied')
         if provides is None:
             provides = type(resource)
         if provides is NONE_TYPE:
             raise ValueError('Cannot add None to context')
         if provides in self._store:
             raise ContextError(f'Context already contains {provides!r}')
-        self._store[provides] = ResolvableValue(resource, resolver)
+        self._store[provides] = resource
 
     def remove(self, key: ResourceKey, *, strict: bool = True):
         """
@@ -181,27 +162,19 @@ class Context:
             resolving.send(requirement.resolve(self))
         return obj(*args, **kw)
 
-    def _get(self, key, default):
-        context = self
-        resolvable = None
-
-        while resolvable is None and context is not None:
-            resolvable = context._store.get(key, None)
-            if resolvable is None:
-                context = context._parent
-            elif context is not self:
-                self._store[key] = resolvable
-
-        if resolvable is None:
-            return ResolvableValue(default)
-
-        return resolvable
-
     def get(self, key: ResourceKey, default=None):
-        resolvable = self._get(key, default)
-        if resolvable.resolver is not None:
-            return resolvable.resolver(self, default)
-        return resolvable.value
+        context = self
+
+        while context is not None:
+            value = context._store.get(key, missing)
+            if value is missing:
+                context = context._parent
+            else:
+                if context is not self:
+                    self._store[key] = value
+                return value
+
+        return default
 
     def nest(self, requirement_modifier: RequirementModifier = None):
         if requirement_modifier is None:

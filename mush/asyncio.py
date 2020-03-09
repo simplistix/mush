@@ -1,11 +1,11 @@
 import asyncio
 from functools import partial
-from typing import Type, Callable
+from typing import Callable
 
-from . import Context as SyncContext, Value as SyncValue
+from . import Context as SyncContext
 from .declarations import RequiresType, ReturnsType
-from .requirements import Requirement
-from .types import ResourceKey
+from .extraction import default_requirement_type
+from .types import RequirementModifier
 
 
 async def ensure_async(func, *args, **kw):
@@ -17,12 +17,6 @@ async def ensure_async(func, *args, **kw):
     return await loop.run_in_executor(None, func, *args)
 
 
-class Value(SyncValue):
-
-    async def resolve(self, context):
-        return await context.get(self.key, self.default)
-
-
 class SyncFromAsyncContext:
 
     def __init__(self, context, loop):
@@ -30,11 +24,7 @@ class SyncFromAsyncContext:
         self.loop = loop
         self.remove = context.remove
         self.add = context.add
-
-    def get(self, key: ResourceKey, default=None):
-        coro = self.context.get(key, default)
-        future = asyncio.run_coroutine_threadsafe(coro, self.loop)
-        return future.result()
+        self.get = context.get
 
     def call(self, obj: Callable, requires: RequiresType = None):
         coro = self.context.call(obj, requires)
@@ -47,12 +37,6 @@ class SyncFromAsyncContext:
         return future.result()
 
 
-def default_requirement_type(requirement):
-    if requirement.__class__ is Requirement:
-        requirement.__class__ = Value
-    return requirement
-
-
 class Context(SyncContext):
 
     def __init__(self, requirement_modifier: RequirementModifier = default_requirement_type):
@@ -61,13 +45,6 @@ class Context(SyncContext):
 
     def _context_for(self, obj):
         return self if asyncio.iscoroutinefunction(obj) else self._sync_context
-
-    async def get(self, key: ResourceKey, default=None):
-        resolvable = self._get(key, default)
-        r = resolvable.resolver
-        if r is not None:
-            return await ensure_async(r, self._context_for(r), default)
-        return resolvable.value
 
     async def call(self, obj: Callable, requires: RequiresType = None):
         args = []
