@@ -47,10 +47,16 @@ class SyncFromAsyncContext:
         return future.result()
 
 
+def default_requirement_type(requirement):
+    if requirement.__class__ is Requirement:
+        requirement.__class__ = Value
+    return requirement
+
+
 class Context(SyncContext):
 
-    def __init__(self, default_requirement_type: Type[Requirement] = Value):
-        super().__init__(default_requirement_type)
+    def __init__(self, requirement_modifier: RequirementModifier = default_requirement_type):
+        super().__init__(requirement_modifier)
         self._sync_context = SyncFromAsyncContext(self, asyncio.get_event_loop())
 
     def _context_for(self, obj):

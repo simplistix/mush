@@ -562,24 +562,19 @@ class TestExtractDeclarationsFromTypeAnnotations(object):
                       expected_rq=RequiresType((r(Value(key='a'), name='a'),)),
                       expected_rt=result_type)
 
-    def test_default_requirement_type(self):
+    def test_requirement_modifier(self):
         def foo(x: str = None): pass
 
         class FromRequest(Requirement): pass
 
-        rq = extract_requires(foo, default_requirement_type=FromRequest)
+        def modifier(requirement):
+            if requirement.__class__ is Requirement:
+                requirement.__class__ = FromRequest
+            return requirement
+
+        rq = extract_requires(foo, modifier=modifier)
         compare(rq, strict=True, expected=RequiresType((
             FromRequest(key='x', name='x', type_=str, default=None),
-        )))
-
-    def test_default_requirement_not_used(self):
-        def foo(x: str = Value(default=None)): pass
-
-        class FromRequest(Requirement): pass
-
-        rq = extract_requires(foo, default_requirement_type=FromRequest)
-        compare(rq, strict=True, expected=RequiresType((
-            r(Value(key='x'), name='x', type=str, default=None),
         )))
 
 

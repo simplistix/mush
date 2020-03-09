@@ -284,14 +284,18 @@ async def test_custom_requirement_sync_resolve_add_remove():
 @pytest.mark.asyncio
 async def test_default_custom_requirement():
 
-
     class FromRequest(Requirement):
         async def resolve(self, context):
             return (await context.get('request'))[self.key]
 
+    def default_requirement_type(requirement):
+        if requirement.__class__ is Requirement:
+            requirement.__class__ = FromRequest
+        return requirement
+
     def foo(bar):
         return bar
 
-    context = Context(FromRequest)
+    context = Context(default_requirement_type)
     context.add({'bar': 'foo'}, provides='request')
     compare(await context.call(foo), expected='foo')

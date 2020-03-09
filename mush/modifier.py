@@ -48,7 +48,7 @@ class Modifier(object):
             raise ValueError('%r already points to %r' % (
                 label, self.runner.labels[label]
             ))
-        callpoint = CallPoint(obj, requires, returns, lazy)
+        callpoint = CallPoint(self.runner, obj, requires, returns, lazy)
 
         if label:
             self.add_label(label, callpoint)

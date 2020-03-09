@@ -14,6 +14,7 @@ from .declarations import (
 )
 from .requirements import Requirement, Value
 from .markers import missing
+from .types import RequirementModifier
 
 EMPTY = Parameter.empty
 #: For these types, prefer the name instead of the type.
@@ -41,9 +42,15 @@ def _apply_requires(by_name, by_index, requires_):
         existing.target = existing.target if r.target is None else r.target
 
 
+def default_requirement_type(requirement):
+    if requirement.__class__ is Requirement:
+        requirement.__class__ = Value
+    return requirement
+
+
 def extract_requires(obj: Callable,
                      explicit: RequiresType = None,
-                     default_requirement_type: Type[Requirement] = Value):
+                     modifier: RequirementModifier = default_requirement_type):
     # from annotations
     is_partial = isinstance(obj, partial)
     by_name = {}
@@ -123,10 +130,8 @@ def extract_requires(obj: Callable,
 
     needs_target = False
     for name, requirement in by_name.items():
-        if requirement.__class__ is Requirement:
-            requirement_ = default_requirement_type()
-            requirement_.__dict__.update(requirement.__dict__)
-            requirement = requirement_
+        requirement_ = modifier(requirement)
+        if requirement_ is not requirement:
             by_name[name] = requirement
         if requirement.target is not None:
             needs_target = True

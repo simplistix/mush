@@ -135,3 +135,16 @@ class Value(Requirement):
 
     def resolve(self, context):
         return context.get(self.key, self.default)
+
+
+class Lazy(Requirement):
+
+    runner = None
+
+    def resolve(self, context):
+        result = context.get(self.key, missing)
+        if result is missing:
+            obj, requires = self.runner.lazy[self.key]
+            result = context.call(obj, requires)
+            context.add(result, provides=self.key)
+        return result

@@ -6,9 +6,8 @@ from testfixtures import compare
 
 from mush.callpoints import CallPoint
 from mush.declarations import requires, returns, RequiresType
-from .. import Value
 from mush.extraction import update_wrapper
-from .helpers import r
+from mush.requirements import Requirement
 
 
 class TestCallPoints(TestCase):
@@ -18,7 +17,7 @@ class TestCallPoints(TestCase):
 
     def test_passive_attributes(self):
         # these are managed by Modifiers
-        point = CallPoint(self.context)
+        point = CallPoint(self.context, Mock())
         compare(point.previous, None)
         compare(point.next, None)
         compare(point.labels, set())
@@ -27,11 +26,11 @@ class TestCallPoints(TestCase):
         def foo(a1): pass
         rq = requires('foo')
         rt = returns('bar')
-        result = CallPoint(foo, rq, rt)(self.context)
+        result = CallPoint(self.context, foo, rq, rt)(self.context)
         compare(result, self.context.extract.return_value)
         compare(tuple(self.context.extract.mock_calls[0].args),
                 expected=(foo,
-                          RequiresType([r(Value('foo'), name='a1')]),
+                          RequiresType([Requirement('foo', name='a1')]),
                           rt))
 
     def test_extract_from_decorations(self):
@@ -42,11 +41,11 @@ class TestCallPoints(TestCase):
         @rt
         def foo(a1): pass
 
-        result = CallPoint(foo)(self.context)
+        result = CallPoint(self.context, foo)(self.context)
         compare(result, self.context.extract.return_value)
         compare(tuple(self.context.extract.mock_calls[0].args),
                 expected=(foo,
-                          RequiresType([r(Value('foo'), name='a1')]),
+                          RequiresType([Requirement('foo', name='a1')]),
                           returns('bar')))
 
     def test_extract_from_decorated_class(self):
@@ -70,9 +69,9 @@ class TestCallPoints(TestCase):
             return prefix+'answer'
 
         self.context.extract.side_effect = lambda func, rq, rt: (func(), rq, rt)
-        result = CallPoint(foo)(self.context)
+        result = CallPoint(self.context, foo)(self.context)
         compare(result, expected=('the answer',
-                                  RequiresType([r(Value('foo'), name='prefix')]),
+                                  RequiresType([Requirement('foo', name='prefix')]),
                                   rt))
 
     def test_explicit_trumps_decorators(self):
@@ -80,21 +79,22 @@ class TestCallPoints(TestCase):
         @returns('bar')
         def foo(a1): pass
 
-        result = CallPoint(foo, requires('baz'), returns('bob'))(self.context)
+        point = CallPoint(self.context, foo, requires('baz'), returns('bob'))
+        result = point(self.context)
         compare(result, self.context.extract.return_value)
         compare(tuple(self.context.extract.mock_calls[0].args),
                 expected=(foo,
-                          RequiresType([r(Value('baz'), name='a1')]),
+                          RequiresType([Requirement('baz', name='a1')]),
                           returns('bob')))
 
     def test_repr_minimal(self):
         def foo(): pass
-        point = CallPoint(foo)
+        point = CallPoint(self.context, foo)
         compare(repr(foo)+" requires() returns_result_type()", repr(point))
 
     def test_repr_maximal(self):
         def foo(a1): pass
-        point = CallPoint(foo, requires('foo'), returns('bar'))
+        point = CallPoint(self.context, foo, requires('foo'), returns('bar'))
         point.labels.add('baz')
         point.labels.add('bob')
         compare(repr(foo)+" requires('foo') returns('bar') <-- baz, bob",
@@ -102,7 +102,7 @@ class TestCallPoints(TestCase):
 
     def test_convert_to_requires_and_returns(self):
         def foo(baz): pass
-        point = CallPoint(foo, requires='foo', returns='bar')
+        point = CallPoint(self.context, foo, requires='foo', returns='bar')
         self.assertTrue(isinstance(point.requires, RequiresType))
         self.assertTrue(isinstance(point.returns, returns))
         compare(repr(foo)+" requires('foo') returns('bar')",
@@ -110,7 +110,8 @@ class TestCallPoints(TestCase):
 
     def test_convert_to_requires_and_returns_tuple(self):
         def foo(a1, a2): pass
-        point = CallPoint(foo,
+        point = CallPoint(self.context,
+                          foo,
                           requires=('foo', 'bar'),
                           returns=('baz', 'bob'))
         self.assertTrue(isinstance(point.requires, RequiresType))
@@ -120,7 +121,8 @@ class TestCallPoints(TestCase):
 
     def test_convert_to_requires_and_returns_list(self):
         def foo(a1, a2): pass
-        point = CallPoint(foo,
+        point = CallPoint(self.context,
+                          foo,
                           requires=['foo', 'bar'],
                           returns=['baz', 'bob'])
         self.assertTrue(isinstance(point.requires, RequiresType))

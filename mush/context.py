@@ -1,10 +1,10 @@
 from typing import Optional, Type, Callable
 
 from .declarations import RequiresType, ReturnsType
-from .extraction import extract_requires, extract_returns
+from .extraction import extract_requires, extract_returns, default_requirement_type
 from .markers import missing
 from .requirements import Requirement, Value
-from .types import ResourceKey, ResourceValue, ResourceResolver
+from .types import ResourceKey, ResourceValue, ResourceResolver, RequirementModifier
 
 NONE_TYPE = type(None)
 
@@ -78,8 +78,8 @@ class Context:
 
     _parent = None
 
-    def __init__(self, default_requirement_type: Type[Requirement] = Value):
-        self.default_requirement_type = default_requirement_type
+    def __init__(self, requirement_modifier: RequirementModifier = default_requirement_type):
+        self._requirement_modifier = requirement_modifier
         self._store = {}
         self._requires_cache = {}
         self._returns_cache = {}
@@ -146,7 +146,7 @@ class Context:
             if requires is None:
                 requires = extract_requires(obj,
                                             explicit=None,
-                                            default_requirement_type=self.default_requirement_type)
+                                            modifier=self._requirement_modifier)
                 self._requires_cache[obj] = requires
 
         for requirement in requires:
@@ -203,10 +203,10 @@ class Context:
             return resolvable.resolver(self, default)
         return resolvable.value
 
-    def nest(self, default_requirement_type: Type[Requirement] = None):
-        if default_requirement_type is None:
-            default_requirement_type = self.default_requirement_type
-        nested = self.__class__(default_requirement_type)
+    def nest(self, requirement_modifier: RequirementModifier = None):
+        if requirement_modifier is None:
+            requirement_modifier = self._requirement_modifier
+        nested = self.__class__(requirement_modifier)
         nested._parent = self
         nested._requires_cache = self._requires_cache
         nested._returns_cache = self._returns_cache

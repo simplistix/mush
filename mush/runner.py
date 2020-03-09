@@ -3,10 +3,11 @@ from typing import Callable
 from .callpoints import CallPoint
 from .context import Context, ContextError
 from .declarations import DeclarationsFrom
-from .extraction import extract_requires, extract_returns
+from .extraction import extract_requires, extract_returns, default_requirement_type
 from .markers import not_specified
 from .modifier import Modifier
 from .plug import Plug
+from .requirements import Lazy
 
 
 class Runner(object):
@@ -20,7 +21,16 @@ class Runner(object):
 
     def __init__(self, *objects):
         self.labels = {}
+        self.lazy = {}
         self.extend(*objects)
+
+    def modify_requirement(self, requirement):
+        if requirement.key in self.lazy:
+            requirement.__class__ = Lazy
+            requirement.runner = self
+        else:
+            requirement = default_requirement_type(requirement)
+        return requirement
 
     def add(self, obj, requires=None, returns=None, label=None, lazy=False):
         """
@@ -66,7 +76,7 @@ class Runner(object):
 
         while point:
             if added_using is None or added_using in point.added_using:
-                cloned_point = CallPoint(point.obj, point.requires, point.returns)
+                cloned_point = CallPoint(self, point.obj, point.requires, point.returns)
                 cloned_point.labels = set(point.labels)
                 for label in cloned_point.labels:
                     self.labels[label] = cloned_point
@@ -191,7 +201,7 @@ class Runner(object):
                 else:
                     returns = point.returns
 
-                new_point = CallPoint(replacement, requires, returns)
+                new_point = CallPoint(self, replacement, requires, returns)
 
                 if point.previous is None:
                     self.start = new_point

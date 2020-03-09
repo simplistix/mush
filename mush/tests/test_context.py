@@ -408,17 +408,17 @@ class TestContext(TestCase):
         compare(c1.get('c'), expected='c')
 
     def test_nest_with_overridden_default_requirement_type(self):
-        class FromRequest(Requirement): pass
-        c1 = Context(default_requirement_type=FromRequest)
+        def modifier(): pass
+        c1 = Context(modifier)
         c2 = c1.nest()
-        assert c2.default_requirement_type is FromRequest
+        assert c2._requirement_modifier is modifier
 
     def test_nest_with_explicit_default_requirement_type(self):
-        class Requirement1(Requirement): pass
-        class Requirement2(Requirement): pass
-        c1 = Context(default_requirement_type=Requirement1)
-        c2 = c1.nest(default_requirement_type=Requirement2)
-        assert c2.default_requirement_type is Requirement2
+        def modifier1(): pass
+        def modifier2(): pass
+        c1 = Context(modifier1)
+        c2 = c1.nest(modifier2)
+        assert c2._requirement_modifier is modifier2
 
     def test_nest_keeps_declarations_cache(self):
         c1 = Context()
@@ -448,7 +448,7 @@ class TestContext(TestCase):
         def foo(bar: FromRequest('bar')):
             pass
 
-        context = Context(default_requirement_type=FromRequest)
+        context = Context()
         context.add({}, provides='request')
         with ShouldRaise(ContextError("No 'bar' in context")):
             compare(context.call(foo))
@@ -462,6 +462,11 @@ class TestContext(TestCase):
         def foo(bar):
             return bar
 
-        context = Context(default_requirement_type=FromRequest)
+        def modifier(requirement):
+            if requirement.__class__ is Requirement:
+                requirement.__class__ = FromRequest
+            return requirement
+
+        context = Context(requirement_modifier=modifier)
         context.add({'bar': 'foo'}, provides='request')
         compare(context.call(foo), expected='foo')

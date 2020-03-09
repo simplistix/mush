@@ -1,9 +1,12 @@
-from .context import Context
 from .declarations import (
-    nothing, requires as requires_function
+    nothing, returns as returns_declaration
+
 )
 from .extraction import extract_requires, extract_returns
-from .resolvers import Lazy
+
+
+def do_nothing():
+    pass
 
 
 class CallPoint(object):
@@ -11,13 +14,15 @@ class CallPoint(object):
     next = None
     previous = None
 
-    def __init__(self, obj, requires=None, returns=None, lazy=False):
-        requires = extract_requires(obj, requires)
+    def __init__(self, runner, obj, requires=None, returns=None, lazy=False):
+        requires = extract_requires(obj, requires, runner.modify_requirement)
         returns = extract_returns(obj, returns)
         if lazy:
-            obj = Lazy(obj, requires, returns)
-            requires = requires_function(Context)
-            returns = nothing
+            if not (type(returns) is returns_declaration and len(returns.args) == 1):
+                raise TypeError('a single return type must be explicitly specified')
+            runner.lazy[returns.args[0]] = obj, requires
+            obj = do_nothing
+            requires = returns = nothing
         self.obj = obj
         self.requires = requires
         self.returns = returns
