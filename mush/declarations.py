@@ -2,6 +2,7 @@ from enum import Enum, auto
 from itertools import chain
 from typing import _type_check
 
+from .markers import missing
 from .requirements import Requirement, Value, name_or_repr
 
 
@@ -9,6 +10,13 @@ def set_mush(obj, key, value):
     if not hasattr(obj, '__mush__'):
         obj.__mush__ = {}
     obj.__mush__[key] = value
+
+
+def get_mush(obj, key, default):
+    __mush__ = getattr(obj, '__mush__', missing)
+    if __mush__ is missing:
+        return default
+    return __mush__.get(key, default)
 
 
 class RequiresType(list):

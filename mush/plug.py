@@ -1,4 +1,4 @@
-from .declarations import set_mush
+from .declarations import set_mush, get_mush
 
 
 class ignore(object):
@@ -67,5 +67,5 @@ class Plug(object):
             if not name.startswith('_'):
                 obj = getattr(self, name)
                 if callable(obj):
-                    action = getattr(obj, '__mush__', {}).get('plug', default_action)
+                    action = get_mush(obj, 'plug', default_action)
                     action.apply(runner, obj)

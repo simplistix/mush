@@ -10,7 +10,8 @@ from typing import Callable, Type
 from .declarations import (
     requires, RequiresType, ReturnsType,
     returns, result_type,
-    nothing
+    nothing,
+    get_mush
 )
 from .requirements import Requirement, Value
 from .markers import missing
@@ -112,11 +113,9 @@ def extract_requires(obj: Callable,
     by_index = list(by_name)
 
     # from declarations
-    mush_declarations = getattr(obj, '__mush__', None)
-    if mush_declarations is not None:
-        requires_ = mush_declarations.get('requires')
-        if requires_ is not None:
-            _apply_requires(by_name, by_index, requires_)
+    mush_requires = get_mush(obj, 'requires', None)
+    if mush_requires is not None:
+        _apply_requires(by_name, by_index, mush_requires)
 
     # explicit
     if explicit is not None:
@@ -143,8 +142,7 @@ def extract_requires(obj: Callable,
 
 def extract_returns(obj: Callable, explicit: ReturnsType = None):
     if explicit is None:
-        mush_declarations = getattr(obj, '__mush__', {})
-        returns_ = mush_declarations.get('returns', None)
+        returns_ = get_mush(obj, 'returns', None)
         if returns_ is None:
             annotations = getattr(obj, '__annotations__', {})
             returns_ = annotations.get('return')
