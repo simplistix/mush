@@ -6,7 +6,8 @@ import pytest
 from mush import Context, Value, requires, returns
 from mush.asyncio import Context
 from mush.context import ResolvableValue
-from mush.declarations import Requirement, RequiresType
+from mush.declarations import RequiresType
+from mush.requirements import Requirement
 from testfixtures import compare
 
 from mush.tests.test_context import TheType

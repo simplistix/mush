@@ -5,9 +5,12 @@ from mock import Mock
 from mush.context import ResolvableValue
 from testfixtures import ShouldRaise, compare
 
-from mush import Context, ContextError, requires, returns, nothing, returns_mapping
-from mush.declarations import Requirement, Value, missing, RequiresType
-
+from mush import (
+    Context, ContextError, requires, returns, nothing, returns_mapping,
+    Value, missing
+)
+from mush.declarations import RequiresType
+from mush.requirements import Requirement
 
 class TheType(object):
     def __repr__(self):
@@ -199,7 +202,7 @@ class TestContext(TestCase):
             return x
         context = Context()
         context.add(2, provides='x')
-        result = context.call(foo, requires(x=Requirement('y', default=3)))
+        result = context.call(foo, requires(x=Value('y', default=3)))
         compare(result, expected=3)
 
     def test_call_requires_optional_string(self):

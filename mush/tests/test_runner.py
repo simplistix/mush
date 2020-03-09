@@ -4,8 +4,8 @@ from mock import Mock, call
 from mush.context import ContextError
 from mush.declarations import (
     requires, returns, returns_mapping,
-    replacement, original,
-    Value)
+    replacement, original)
+from mush import Value
 from mush.runner import Runner
 from testfixtures import (
     ShouldRaise,

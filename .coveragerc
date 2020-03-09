@@ -10,3 +10,6 @@ exclude_lines =
   # stuff that we don't worry about
   pass
   __name__ == '__main__'
+
+  # circular references needed for type checking:
+  if TYPE_CHECKING:

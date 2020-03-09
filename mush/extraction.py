@@ -8,11 +8,11 @@ from inspect import signature, Parameter
 from typing import Callable, Type
 
 from .declarations import (
-    Value,
-    requires, Requirement, RequiresType, ReturnsType,
+    requires, RequiresType, ReturnsType,
     returns, result_type,
     nothing
 )
+from .requirements import Requirement, Value
 from .markers import missing
 
 EMPTY = Parameter.empty
@@ -42,8 +42,8 @@ def _apply_requires(by_name, by_index, requires_):
 
 
 def extract_requires(obj: Callable,
-                     explicit: RequiresType=None,
-                     default_requirement_type: Type[Requirement] = Requirement):
+                     explicit: RequiresType = None,
+                     default_requirement_type: Type[Requirement] = Value):
     # from annotations
     is_partial = isinstance(obj, partial)
     by_name = {}
@@ -68,16 +68,11 @@ def extract_requires(obj: Callable,
         if isinstance(default, Requirement):
             requirement = default
             default = missing
-        elif isinstance(default, Value):
-            requirement = default.requirement
-            default = missing
         elif isinstance(p.annotation, Requirement):
             requirement = p.annotation
-        elif isinstance(p.annotation, Value):
-            requirement = p.annotation.requirement
 
         if requirement is None:
-            requirement = default_requirement_type(key)
+            requirement = Requirement(key)
             if isinstance(p.annotation, str):
                 key = p.annotation
             elif type_ is None or issubclass(type_, SIMPLE_TYPES):
@@ -127,7 +122,12 @@ def extract_requires(obj: Callable,
         return nothing
 
     needs_target = False
-    for requirement in by_name.values():
+    for name, requirement in by_name.items():
+        if requirement.__class__ is Requirement:
+            requirement_ = default_requirement_type()
+            requirement_.__dict__.update(requirement.__dict__)
+            requirement = requirement_
+            by_name[name] = requirement
         if requirement.target is not None:
             needs_target = True
         elif needs_target:

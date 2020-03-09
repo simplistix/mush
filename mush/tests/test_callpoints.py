@@ -5,8 +5,10 @@ from mock import Mock
 from testfixtures import compare
 
 from mush.callpoints import CallPoint
-from mush.declarations import requires, returns, RequiresType, Requirement
+from mush.declarations import requires, returns, RequiresType
+from .. import Value
 from mush.extraction import update_wrapper
+from .helpers import r
 
 
 class TestCallPoints(TestCase):
@@ -29,7 +31,7 @@ class TestCallPoints(TestCase):
         compare(result, self.context.extract.return_value)
         compare(tuple(self.context.extract.mock_calls[0].args),
                 expected=(foo,
-                          RequiresType((Requirement('foo', name='a1'),)),
+                          RequiresType([r(Value('foo'), name='a1')]),
                           rt))
 
     def test_extract_from_decorations(self):
@@ -44,7 +46,7 @@ class TestCallPoints(TestCase):
         compare(result, self.context.extract.return_value)
         compare(tuple(self.context.extract.mock_calls[0].args),
                 expected=(foo,
-                          RequiresType((Requirement('foo', name='a1'),)),
+                          RequiresType([r(Value('foo'), name='a1')]),
                           returns('bar')))
 
     def test_extract_from_decorated_class(self):
@@ -70,7 +72,7 @@ class TestCallPoints(TestCase):
         self.context.extract.side_effect = lambda func, rq, rt: (func(), rq, rt)
         result = CallPoint(foo)(self.context)
         compare(result, expected=('the answer',
-                                  RequiresType((Requirement('foo', name='prefix'),)),
+                                  RequiresType([r(Value('foo'), name='prefix')]),
                                   rt))
 
     def test_explicit_trumps_decorators(self):
@@ -82,7 +84,7 @@ class TestCallPoints(TestCase):
         compare(result, self.context.extract.return_value)
         compare(tuple(self.context.extract.mock_calls[0].args),
                 expected=(foo,
-                          RequiresType((Requirement('baz', name='a1'),)),
+                          RequiresType([r(Value('baz'), name='a1')]),
                           returns('bob')))
 
     def test_repr_minimal(self):

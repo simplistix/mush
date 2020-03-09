@@ -1,143 +1,14 @@
-from copy import copy
 from enum import Enum, auto
 from itertools import chain
-from typing import Type, Callable, NewType, Union, Any, List, Optional, _type_check
+from typing import _type_check
 
-from .markers import missing
-
-ResourceKey = NewType('ResourceKey', Union[Type, str])
-ResourceValue = NewType('ResourceValue', Any)
-ResourceResolver = Callable[['Context', Any], ResourceValue]
-RequirementResolver = Callable[['Context'], ResourceValue]
-
-
-def name_or_repr(obj):
-    return getattr(obj, '__name__', None) or repr(obj)
+from .requirements import Requirement, Value, name_or_repr
 
 
 def set_mush(obj, key, value):
     if not hasattr(obj, '__mush__'):
         obj.__mush__ = {}
     obj.__mush__[key] = value
-
-
-class Requirement:
-    """
-    The requirement for an individual parameter of a callable.
-    """
-
-    resolve: RequirementResolver = None
-
-    def __init__(self, key, name=None, type_=None, default=missing, target=None):
-        #: The resource key needed for this parameter.
-        self.key: ResourceKey = key
-        #: The name of this parameter in the callable's signature.
-        self.name: str = name
-        #: The type required for this parameter.
-        self.type: type = type_
-        #: The default for this parameter, should the required resource be unavailable.
-        self.default: Any = default
-        #: Any operations to be performed on the resource after it
-        #: has been obtained.
-        self.ops: List['ValueOp'] = []
-        self.target: Optional[str] = target
-
-    def clone(self):
-        """
-        Create a copy of this requirement, so it can be mutated
-        """
-        obj = copy(self)
-        obj.ops = list(self.ops)
-        return obj
-
-    def value_repr(self):
-        key = name_or_repr(self.key)
-        if self.ops or self.default is not missing:
-            default = '' if self.default is missing else f', default={self.default!r}'
-            ops = ''.join(repr(o) for o in self.ops)
-            return f'Value({key}{default}){ops}'
-        return key
-
-    def __repr__(self):
-        attrs = []
-        for a in 'name', 'type_', 'target':
-            value = getattr(self, a.rstrip('_'))
-            if value is not None:
-                attrs.append(f", {a}={value!r}")
-        return f"{type(self).__name__}({self.value_repr()}{''.join(attrs)})"
-
-
-class Value:
-    """
-    Declaration indicating that the specified resource key is required.
-
-    Values are generative, so they can be used to indicate attributes or
-    items from a resource are required.
-
-    A default may be specified, which will be used if the specified
-    resource is not available.
-
-    A type may also be explicitly specified, but you probably shouldn't
-    ever use this.
-    """
-
-    def __init__(self, key: ResourceKey=None, *, type_: type = None, default: Any = missing):
-        if isinstance(key, type):
-            if type_ is not None:
-                raise TypeError('type_ cannot be specified if key is a type')
-            type_ = key
-        self.requirement = Requirement(key, type_=type_, default=default)
-
-    def attr(self, name):
-        """
-        If you need to get an attribute called either ``attr`` or ``item``
-        then you will need to call this method instead of using the
-        generating behaviour.
-        """
-        self.requirement.ops.append(ValueAttrOp(name))
-        return self
-
-    def __getattr__(self, name):
-        if name.startswith('__'):
-            raise AttributeError(name)
-        return self.attr(name)
-
-    def __getitem__(self, name):
-        self.requirement.ops.append(ValueItemOp(name))
-        return self
-
-    def __repr__(self):
-        return self.requirement.value_repr()
-
-
-class ValueOp:
-
-    def __init__(self, name):
-        self.name = name
-
-
-class ValueAttrOp(ValueOp):
-
-    def __call__(self, o):
-        try:
-            return getattr(o, self.name)
-        except AttributeError:
-            return missing
-
-    def __repr__(self):
-        return f'.{self.name}'
-
-
-class ValueItemOp(ValueOp):
-
-    def __call__(self, o):
-        try:
-            return o[self.name]
-        except KeyError:
-            return missing
-
-    def __repr__(self):
-        return f'[{self.name!r}]'
 
 
 class RequiresType(list):
@@ -170,15 +41,15 @@ def requires(*args, **kw):
         ((None, arg) for arg in args),
         kw.items(),
     ):
-        if isinstance(possible, Value):
-            possible = possible.requirement
         if isinstance(possible, Requirement):
             possible = possible.clone()
             possible.target = target
             requirement = possible
         else:
-            type_ = None if isinstance(possible, str) else possible
-            requirement = Requirement(possible, name=target, type_=type_, target=target)
+            requirement = Value(possible)
+            requirement.type = None if isinstance(possible, str) else possible
+            requirement.name = target
+            requirement.target = target
         requires_.append(requirement)
     return requires_
 
@@ -286,7 +157,7 @@ original = DeclarationsFrom.original
 replacement = DeclarationsFrom.replacement
 
 
-VALID_DECORATION_TYPES = (type, str, Value, Requirement)
+VALID_DECORATION_TYPES = (type, str, Requirement)
 
 
 def valid_decoration_types(*objs):

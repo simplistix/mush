@@ -1,11 +1,10 @@
 from typing import Optional, Type, Callable
 
-from .declarations import (
-    RequiresType, ResourceKey, ResourceValue, ResourceResolver,
-    Requirement, ReturnsType
-)
+from .declarations import RequiresType, ReturnsType
 from .extraction import extract_requires, extract_returns
 from .markers import missing
+from .requirements import Requirement, Value
+from .types import ResourceKey, ResourceValue, ResourceResolver
 
 NONE_TYPE = type(None)
 
@@ -79,7 +78,7 @@ class Context:
 
     _parent = None
 
-    def __init__(self, default_requirement_type: Type[Requirement] = Requirement):
+    def __init__(self, default_requirement_type: Type[Requirement] = Value):
         self.default_requirement_type = default_requirement_type
         self._store = {}
         self._requires_cache = {}
@@ -179,11 +178,7 @@ class Context:
         kw = {}
         resolving = self._resolve(obj, requires, args, kw, self)
         for requirement in resolving:
-            if requirement.resolve:
-                o = requirement.resolve(self)
-            else:
-                o = self.get(requirement.key, requirement.default)
-            resolving.send(o)
+            resolving.send(requirement.resolve(self))
         return obj(*args, **kw)
 
     def _get(self, key, default):

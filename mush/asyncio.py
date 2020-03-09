@@ -2,8 +2,10 @@ import asyncio
 from functools import partial
 from typing import Type, Callable
 
-from mush import Context as SyncContext
-from mush.declarations import ResourceKey, Requirement, RequiresType, ReturnsType
+from . import Context as SyncContext, Value as SyncValue
+from .declarations import RequiresType, ReturnsType
+from .requirements import Requirement
+from .types import ResourceKey
 
 
 async def ensure_async(func, *args, **kw):
@@ -13,6 +15,12 @@ async def ensure_async(func, *args, **kw):
         func = partial(func, **kw)
     loop = asyncio.get_event_loop()
     return await loop.run_in_executor(None, func, *args)
+
+
+class Value(SyncValue):
+
+    async def resolve(self, context):
+        return await context.get(self.key, self.default)
 
 
 class SyncFromAsyncContext:
@@ -41,7 +49,7 @@ class SyncFromAsyncContext:
 
 class Context(SyncContext):
 
-    def __init__(self, default_requirement_type: Type[Requirement] = Requirement):
+    def __init__(self, default_requirement_type: Type[Requirement] = Value):
         super().__init__(default_requirement_type)
         self._sync_context = SyncFromAsyncContext(self, asyncio.get_event_loop())
 
@@ -61,10 +69,7 @@ class Context(SyncContext):
         resolving = self._resolve(obj, requires, args, kw, self._context_for(obj))
         for requirement in resolving:
             r = requirement.resolve
-            if r is not None:
-                o = await ensure_async(r, self._context_for(r))
-            else:
-                o = await self.get(requirement.key, requirement.default)
+            o = await ensure_async(r, self._context_for(r))
             resolving.send(o)
         return await ensure_async(obj, *args, **kw)
 
