@@ -3,10 +3,9 @@ from typing import Tuple
 from unittest import TestCase
 
 import pytest
-from mock import Mock
 from testfixtures import compare, ShouldRaise
 
-from mush import Context, Value
+from mush import Value
 from mush.declarations import (
     requires, returns,
     returns_mapping, returns_sequence, returns_result_type,
@@ -14,9 +13,8 @@ from mush.declarations import (
     result_type, RequiresType
 )
 from mush.extraction import extract_requires, extract_returns, update_wrapper
-from mush.markers import missing
-from mush.requirements import Requirement, AttrOp, ItemOp
-from .helpers import r, PY_36
+from mush.requirements import Requirement, ItemOp
+from .helpers import r, PY_36, Type1, Type2, Type3, Type4
 
 
 def check_extract(obj, expected_rq, expected_rt):
@@ -24,12 +22,6 @@ def check_extract(obj, expected_rq, expected_rt):
     rt = extract_returns(obj, None)
     compare(rq, expected=expected_rq, strict=True)
     compare(rt, expected=expected_rt, strict=True)
-
-
-class Type1(object): pass
-class Type2(object): pass
-class Type3(object): pass
-class Type4(object): pass
 
 
 class TestRequires(TestCase):
@@ -80,129 +72,6 @@ class TestRequires(TestCase):
 
         compare(foo.__mush__['requires'], expected=[Value(Type1)])
         compare(foo(), 'bar')
-
-
-def check_ops(value, data, *, expected):
-    for op in value.ops:
-        data = op(data)
-    compare(expected, actual=data)
-
-
-class TestRequirement:
-
-    def test_repr_minimal(self):
-        compare(repr(Requirement('foo')),
-                expected="Requirement('foo')")
-
-    def test_repr_maximal(self):
-        r = Requirement('foo', name='n', type_='ty', default=None, target='ta')
-        r.ops.append(AttrOp('bar'))
-        compare(repr(r),
-                expected="Requirement('foo', default=None, "
-                         "name='n', type_='ty', target='ta').bar")
-
-    def test_clone(self):
-        r = Value('foo').bar.requirement
-        r_ = r.clone()
-        assert r_ is not r
-        assert r_.ops is not r.ops
-        compare(r_, expected=r)
-
-    special_names = ['attr', 'ops', 'target']
-
-    @pytest.mark.parametrize("name", special_names)
-    def test_attr_special_name(self, name):
-        v = Requirement('foo')
-        assert getattr(v, name) is not self
-        assert v.attr(name) is v
-        compare(v.ops, expected=[AttrOp(name)])
-
-    @pytest.mark.parametrize("name", special_names)
-    def test_item_special_name(self, name):
-        v = Requirement('foo')
-        assert v[name] is v
-        compare(v.ops, expected=[ItemOp(name)])
-
-    def test_no_special_name_via_getattr(self):
-        v = Requirement('foo')
-        with ShouldRaise(AttributeError):
-            assert v.__len__
-        compare(v.ops, [])
-
-    def test_resolve(self):
-        r = Requirement()
-        with ShouldRaise(NotImplementedError):
-            r.resolve(None)
-
-
-class TestValue:
-
-    def test_type_from_key(self):
-        v = Value(str)
-        compare(v.requirement.type, expected=str)
-
-    def test_key_and_type_cannot_disagree(self):
-        with ShouldRaise(TypeError('type_ cannot be specified if key is a type')):
-            Value(key=str, type_=int)
-
-
-class TestItem:
-
-    def test_single(self):
-        h = Value(Type1)['foo']
-        compare(repr(h), expected="Value(Type1)['foo']")
-        check_ops(h, {'foo': 1}, expected=1)
-
-    def test_multiple(self):
-        h = Value(Type1)['foo']['bar']
-        compare(repr(h), expected="Value(Type1)['foo']['bar']")
-        check_ops(h, {'foo': {'bar': 1}}, expected=1)
-
-    def test_missing_obj(self):
-        h = Value(Type1)['foo']['bar']
-        with ShouldRaise(TypeError):
-            check_ops(h, object(), expected=None)
-
-    def test_missing_key(self):
-        h = Value(Type1)['foo']
-        check_ops(h, {}, expected=missing)
-
-    def test_passed_missing(self):
-        c = Context()
-        c.add({}, provides='key')
-        compare(c.call(lambda x: x, requires(Value('key', default=1)['foo']['bar'])),
-                expected=1)
-
-    def test_bad_type(self):
-        h = Value(Type1)['foo']['bar']
-        with ShouldRaise(TypeError):
-            check_ops(h, [], expected=None)
-
-
-class TestAttr(TestCase):
-
-    def test_single(self):
-        h = Value(Type1).foo
-        compare(repr(h), "Value(Type1).foo")
-        m = Mock()
-        check_ops(h, m, expected=m.foo)
-
-    def test_multiple(self):
-        h = Value(Type1).foo.bar
-        compare(repr(h), "Value(Type1).foo.bar")
-        m = Mock()
-        check_ops(h, m, expected=m.foo.bar)
-
-    def test_missing(self):
-        h = Value(Type1).foo
-        compare(repr(h), "Value(Type1).foo")
-        check_ops(h, object(), expected=missing)
-
-    def test_passed_missing(self):
-        c = Context()
-        c.add(object(), provides='key')
-        compare(c.call(lambda x: x, requires(Value('key', default=1).foo.bar)),
-                expected=1)
 
 
 class TestReturns(TestCase):
