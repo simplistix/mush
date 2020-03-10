@@ -17,7 +17,7 @@ async def ensure_async(func, *args, **kw):
     return await loop.run_in_executor(None, func, *args)
 
 
-class SyncFromAsyncContext:
+class AsyncFromSyncContext:
 
     def __init__(self, context, loop):
         self.context = context
@@ -41,7 +41,7 @@ class Context(SyncContext):
 
     def __init__(self, requirement_modifier: RequirementModifier = default_requirement_type):
         super().__init__(requirement_modifier)
-        self._sync_context = SyncFromAsyncContext(self, asyncio.get_event_loop())
+        self._sync_context = AsyncFromSyncContext(self, asyncio.get_event_loop())
 
     def _context_for(self, obj):
         return self if asyncio.iscoroutinefunction(obj) else self._sync_context
