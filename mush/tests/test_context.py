@@ -10,12 +10,7 @@ from mush import (
 from mush.context import ResourceError
 from mush.declarations import RequiresType
 from mush.requirements import Requirement
-from .helpers import r
-
-
-class TheType(object):
-    def __repr__(self):
-        return '<TheType obj>'
+from .helpers import r, TheType
 
 
 class TestContext(TestCase):
@@ -28,7 +23,7 @@ class TestContext(TestCase):
         compare(context._store, expected={TheType: obj})
         expected = (
             "<Context: {\n"
-            "    <class 'mush.tests.test_context.TheType'>: <TheType obj>\n"
+            "    <class 'mush.tests.helpers.TheType'>: <TheType obj>\n"
             "}>"
         )
         self.assertEqual(repr(context), expected)
@@ -142,8 +137,8 @@ class TestContext(TestCase):
         def foo(obj): return obj
         context = Context()
         with ShouldRaise(TypeError(
-                "(<class 'mush.tests.test_context.TheType'>, "
-                "<class 'mush.tests.test_context.TheType'>) "
+                "(<class 'mush.tests.helpers.TheType'>, "
+                "<class 'mush.tests.helpers.TheType'>) "
                 "is not a valid decoration type"
         )):
             context.call(foo, requires((TheType, TheType)))

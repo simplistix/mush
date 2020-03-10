@@ -18,3 +18,8 @@ class Type1(object): pass
 class Type2(object): pass
 class Type3(object): pass
 class Type4(object): pass
+
+
+class TheType(object):
+    def __repr__(self):
+        return '<TheType obj>'

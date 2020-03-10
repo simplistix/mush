@@ -11,7 +11,7 @@ from mush.declarations import RequiresType
 from mush.requirements import Requirement, AnyOf
 from testfixtures import compare
 
-from mush.tests.test_context import TheType
+from .helpers import TheType
 
 
 @pytest.fixture()
