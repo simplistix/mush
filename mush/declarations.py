@@ -174,10 +174,9 @@ def valid_decoration_types(*objs):
             continue
         try:
             _type_check(obj, '')
+            continue
         except TypeError:
             pass
-        else:
-            continue
         raise TypeError(
             repr(obj)+" is not a valid decoration type"
         )

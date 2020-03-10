@@ -129,6 +129,11 @@ class TestRequirement:
             assert v.__len__
         compare(v.ops, [])
 
+    def test_resolve(self):
+        r = Requirement()
+        with ShouldRaise(NotImplementedError):
+            r.resolve(None)
+
 
 class TestValue:
 
