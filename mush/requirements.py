@@ -91,7 +91,12 @@ class Requirement:
             value = getattr(self, a.rstrip('_'))
             if value is not None and value != self.key:
                 attrs.append(f", {a}={value!r}")
-        return self.value_repr(''.join(attrs), from_repr=True)
+
+        key = name_or_repr(self.key)
+        default = '' if self.default is missing else f', default={self.default!r}'
+        ops = ''.join(repr(o) for o in self.ops)
+
+        return f"{type(self).__name__}({key}{default}{''.join(attrs)}){ops}"
 
     def attr(self, name):
         """

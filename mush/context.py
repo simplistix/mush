@@ -3,60 +3,23 @@ from typing import Optional, Callable
 from .declarations import RequiresType, ReturnsType
 from .extraction import extract_requires, extract_returns, default_requirement_type
 from .markers import missing
+from .requirements import Requirement
 from .types import ResourceKey, ResourceValue, RequirementModifier
 
 NONE_TYPE = type(None)
 
 
-class ContextError(Exception):
+class ResourceError(Exception):
     """
-    Errors likely caused by incorrect building of a runner.
+    An exception raised when there is a problem with a `ResourceKey`.
     """
-    def __init__(self, text, point=None, context=None):
-        self.text = text
-        self.point = point
-        self.context = context
 
-    def __str__(self):
-        rows = []
-        if self.point:
-            point = self.point.previous
-            while point:
-                rows.append(repr(point))
-                point = point.previous
-            if rows:
-                rows.append('Already called:')
-                rows.append('')
-                rows.append('')
-                rows.reverse()
-                rows.append('')
-
-            rows.append('While calling: '+repr(self.point))
-        if self.context is not None:
-            rows.append('with '+repr(self.context)+':')
-            rows.append('')
-
-        rows.append(self.text)
-
-        if self.point:
-            point = self.point.next
-            if point:
-                rows.append('')
-                rows.append('Still to call:')
-            while point:
-                rows.append(repr(point))
-                point = point.next
-
-        return '\n'.join(rows)
-
-    __repr__ = __str__
-
-
-def type_key(type_tuple):
-    type, _ = type_tuple
-    if isinstance(type, str):
-        return type
-    return type.__name__
+    def __init__(self, message: str, key: ResourceKey, requirement: Requirement = None):
+        super().__init__(message)
+        #: The key for the problematic resource.
+        self.key: ResourceKey = key
+        #: The requirement that caused this exception.
+        self.requirement: Requirement = requirement
 
 
 class Context:
@@ -83,23 +46,23 @@ class Context:
         if provides is NONE_TYPE:
             raise ValueError('Cannot add None to context')
         if provides in self._store:
-            raise ContextError(f'Context already contains {provides!r}')
+            raise ResourceError(f'Context already contains {provides!r}', provides)
         self._store[provides] = resource
 
     def remove(self, key: ResourceKey, *, strict: bool = True):
         """
         Remove the specified resource key from the context.
 
-        If ``strict``, then a :class:`ContextError` will be raised if the
+        If ``strict``, then a :class:`ResourceError` will be raised if the
         specified resource is not present in the context.
         """
         if strict and key not in self._store:
-            raise ContextError(f'Context does not contain {key!r}')
+            raise ResourceError(f'Context does not contain {key!r}', key)
         self._store.pop(key, None)
 
     def __repr__(self):
         bits = []
-        for type, value in sorted(self._store.items(), key=type_key):
+        for type, value in sorted(self._store.items(), key=lambda o: repr(o)):
             bits.append('\n    %r: %r' % (type, value))
         if bits:
             bits.append('\n')
@@ -145,7 +108,8 @@ class Context:
                 if isinstance(key, type) and issubclass(key, Context):
                     o = context
                 else:
-                    raise ContextError('No %s in context' % requirement.value_repr())
+                    raise ResourceError(f'No {requirement!r} in context',
+                                        key, requirement)
 
             if requirement.target is None:
                 args.append(o)

@@ -1,11 +1,10 @@
 from unittest import TestCase
 
 from mock import Mock, call
-from mush.context import ContextError
 from mush.declarations import (
     requires, returns, returns_mapping,
     replacement, original)
-from mush import Value
+from mush import Value, ContextError
 from mush.runner import Runner
 from testfixtures import (
     ShouldRaise,
@@ -514,7 +513,7 @@ class RunnerTests(TestCase):
             'While calling: '+repr(job)+' requires(T) returns_result_type()',
             'with <Context: {}>:',
             '',
-            'No T in context',
+            "No Value(T, name='arg') in context",
         ))
         compare(text, actual=repr(s.raised))
         compare(text, actual=str(s.raised))
@@ -552,7 +551,7 @@ class RunnerTests(TestCase):
             'While calling: '+repr(job3)+' requires(T) returns_result_type()',
             'with <Context: {}>:',
             '',
-            'No T in context',
+            "No Value(T, name='arg') in context",
             '',
             'Still to call:',
             repr(job4)+' requires() returns_result_type() <-- 4',
@@ -567,7 +566,7 @@ class RunnerTests(TestCase):
         runner = Runner(job)
         with ShouldRaise(ContextError) as s:
             runner()
-        compare(s.raised.text, expected="No 'arg' in context")
+        compare(s.raised.text, expected="No Value('arg') in context")
 
     def test_already_in_context(self):
         class T(object): pass

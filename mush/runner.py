@@ -1,7 +1,7 @@
 from typing import Callable
 
 from .callpoints import CallPoint
-from .context import Context, ContextError
+from .context import Context, ResourceError
 from .declarations import DeclarationsFrom
 from .extraction import extract_requires, extract_returns, default_requirement_type
 from .markers import not_specified
@@ -265,7 +265,7 @@ class Runner(object):
 
             try:
                 result = point(context)
-            except ContextError as e:
+            except ResourceError as e:
                 raise ContextError(str(e), point, context)
 
             if getattr(result, '__enter__', None):
@@ -288,3 +288,45 @@ class Runner(object):
         return '<Runner>%s</Runner>' % ''.join(bits)
 
 
+class ContextError(Exception):
+    """
+    Errors likely caused by incorrect building of a runner.
+    """
+    def __init__(self, text: str, point: CallPoint=None, context: Context = None):
+        self.text: str = text
+        self.point: CallPoint = point
+        self.context: Context = context
+
+    def __str__(self):
+        rows = []
+        if self.point:
+            point = self.point.previous
+            while point:
+                rows.append(repr(point))
+                point = point.previous
+            if rows:
+                rows.append('Already called:')
+                rows.append('')
+                rows.append('')
+                rows.reverse()
+                rows.append('')
+
+            rows.append('While calling: '+repr(self.point))
+        if self.context is not None:
+            rows.append('with '+repr(self.context)+':')
+            rows.append('')
+
+        rows.append(self.text)
+
+        if self.point:
+            point = self.point.next
+            if point:
+                rows.append('')
+                rows.append('Still to call:')
+            while point:
+                rows.append(repr(point))
+                point = point.next
+
+        return '\n'.join(rows)
+
+    __repr__ = __str__

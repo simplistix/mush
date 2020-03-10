@@ -5,11 +5,13 @@ from mock import Mock
 from testfixtures import ShouldRaise, compare
 
 from mush import (
-    Context, ContextError, requires, returns, nothing, returns_mapping,
-    Value, missing
+    Context, requires, returns, nothing, returns_mapping, Value, missing
 )
+from mush.context import ResourceError
 from mush.declarations import RequiresType
 from mush.requirements import Requirement
+from .helpers import r
+
 
 class TheType(object):
     def __repr__(self):
@@ -67,7 +69,8 @@ class TestContext(TestCase):
         obj2 = TheType()
         context = Context()
         context.add(obj1, TheType)
-        with ShouldRaise(ContextError('Context already contains '+repr(TheType))):
+        with ShouldRaise(ResourceError('Context already contains '+repr(TheType),
+                                       key=TheType)):
             context.add(obj2, TheType)
 
     def test_clash_string_type(self):
@@ -75,7 +78,8 @@ class TestContext(TestCase):
         obj2 = TheType()
         context = Context()
         context.add(obj1, provides='my label')
-        with ShouldRaise(ContextError("Context already contains 'my label'")):
+        with ShouldRaise(ResourceError("Context already contains 'my label'",
+                                       key='my label')):
             context.add(obj2, provides='my label')
 
     def test_add_none(self):
@@ -116,8 +120,10 @@ class TestContext(TestCase):
     def test_call_requires_missing(self):
         def foo(obj): return obj
         context = Context()
-        with ShouldRaise(ContextError(
-                "No TheType in context"
+        with ShouldRaise(ResourceError(
+            "No Value(TheType) in context",
+            key=TheType,
+            requirement=Value(TheType),
         )):
             context.call(foo, requires(TheType))
 
@@ -125,8 +131,10 @@ class TestContext(TestCase):
         def foo(obj): return obj
         context = Context()
         context.add({}, TheType)
-        with ShouldRaise(ContextError(
-                "No Value(TheType)['foo'] in context"
+        with ShouldRaise(ResourceError(
+            "No Value(TheType)['foo'] in context",
+            key=TheType,
+            requirement=Value(TheType)['foo'],
         )):
             context.call(foo, requires(Value(TheType)['foo']))
 
@@ -337,7 +345,8 @@ class TestContext(TestCase):
 
     def test_remove_not_there_strict(self):
         context = Context()
-        with ShouldRaise(ContextError("Context does not contain 'foo'")):
+        with ShouldRaise(ResourceError("Context does not contain 'foo'",
+                                       key='foo')):
             context.remove('foo')
         compare(context._store, expected={})
 
@@ -421,7 +430,9 @@ class TestContext(TestCase):
 
         context = Context()
         context.add({}, provides='request')
-        with ShouldRaise(ContextError("No 'bar' in context")):
+        with ShouldRaise(ResourceError("No FromRequest('bar') in context",
+                                       key='bar',
+                                       requirement=r(FromRequest('bar'), name='bar'))):
             compare(context.call(foo))
 
     def test_default_custom_requirement(self):
