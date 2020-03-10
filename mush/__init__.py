@@ -5,7 +5,7 @@ from .declarations import (
 from .extraction import extract_requires, extract_returns, update_wrapper
 from .markers import missing
 from .plug import Plug
-from .requirements import Value, Call, AnyOf, Like
+from .requirements import Requirement, Value, Call, AnyOf, Like
 from .runner import Runner, ContextError
 
 __all__ = [
@@ -15,6 +15,7 @@ __all__ = [
     'ContextError',
     'Like',
     'Plug',
+    'Requirement',
     'ResourceError',
     'Runner',
     'Value',
