@@ -9,7 +9,9 @@ from .types import RequirementModifier
 
 
 async def ensure_async(func, *args, **kw):
-    if asyncio.iscoroutinefunction(func):
+    if getattr(func, '__nonblocking__', False):
+        return func(*args, **kw)
+    elif asyncio.iscoroutinefunction(func):
         return await func(*args, **kw)
     if kw:
         func = partial(func, **kw)

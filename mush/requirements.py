@@ -2,7 +2,7 @@ from copy import copy
 from typing import Any, Optional, List, TYPE_CHECKING
 
 from .types import ResourceKey
-from .markers import missing
+from .markers import missing, nonblocking
 
 if TYPE_CHECKING:
     from .context import Context
@@ -133,7 +133,8 @@ class Value(Requirement):
             type_ = key
         super().__init__(key, type_=type_, default=default)
 
-    def resolve(self, context):
+    @nonblocking
+    def resolve(self, context: 'Context'):
         return context.get(self.key, self.default)
 
 
