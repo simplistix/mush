@@ -192,3 +192,20 @@ class AnyOf(Requirement):
             if value is not missing:
                 return value
         return self.default
+
+
+class Like(Requirement):
+    """
+    A requirements that is resolved by the specified class or
+    any of its base classes.
+    """
+
+    @nonblocking
+    def resolve(self, context: 'Context'):
+        for key in self.key.__mro__:
+            if key is object:
+                break
+            value = context.get(key, missing)
+            if value is not missing:
+                return value
+        return self.default

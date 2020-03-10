@@ -8,7 +8,7 @@ from mock import Mock
 from mush import Context, Value, requires, returns
 from mush.asyncio import Context
 from mush.declarations import RequiresType
-from mush.requirements import Requirement, AnyOf
+from mush.requirements import Requirement, AnyOf, Like
 from testfixtures import compare
 
 from .helpers import TheType
@@ -185,6 +185,19 @@ async def test_anyof_resolve_does_not_run_in_thread(no_threads):
             return x[0]
 
         compare(await context.call(bob), expected='foo')
+
+
+@pytest.mark.asyncio
+async def test_like_resolve_does_not_run_in_thread(no_threads):
+    with no_threads:
+        o = TheType()
+        context = Context()
+        context.add(o)
+
+        async def bob(x: str = Like(TheType)):
+            return x
+
+        assert await context.call(bob) is o
 
 
 @pytest.mark.asyncio
