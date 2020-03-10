@@ -175,3 +175,20 @@ class Call(Requirement):
             if self.cache:
                 context.add(result, provides=self.key)
         return result
+
+
+class AnyOf(Requirement):
+    """
+    A requirement that is resolved by any of the specified keys.
+    """
+
+    def __init__(self, *keys, default=missing):
+        super().__init__(keys, default=default)
+
+    @nonblocking
+    def resolve(self, context: 'Context'):
+        for key in self.key:
+            value = context.get(key, missing)
+            if value is not missing:
+                return value
+        return self.default

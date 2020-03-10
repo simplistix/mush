@@ -8,7 +8,7 @@ from mock import Mock
 from mush import Context, Value, requires, returns
 from mush.asyncio import Context
 from mush.declarations import RequiresType
-from mush.requirements import Requirement
+from mush.requirements import Requirement, AnyOf
 from testfixtures import compare
 
 from mush.tests.test_context import TheType
@@ -173,6 +173,18 @@ async def test_value_resolve_does_not_run_in_thread(no_threads):
             return baz+'bar'
 
         compare(await context.call(it), expected='foobar')
+
+
+@pytest.mark.asyncio
+async def test_anyof_resolve_does_not_run_in_thread(no_threads):
+    with no_threads:
+        context = Context()
+        context.add(('foo', ))
+
+        async def bob(x: str = AnyOf(tuple, Tuple[str])):
+            return x[0]
+
+        compare(await context.call(bob), expected='foo')
 
 
 @pytest.mark.asyncio

@@ -1,11 +1,12 @@
+from typing import Tuple
 from unittest.case import TestCase
 
 import pytest
 from mock import Mock
 from testfixtures import compare, ShouldRaise
 
-from mush import Context, Call, Value, missing, requires
-from mush.requirements import Requirement, AttrOp, ItemOp
+from mush import Context, Call, Value, missing, requires, ResourceError
+from mush.requirements import Requirement, AttrOp, ItemOp, AnyOf
 from .helpers import Type1
 
 
@@ -182,3 +183,42 @@ class TestCall:
             return x+'c'
 
         compare(context.call(bob), expected='bc')
+
+
+class TestAnyOf:
+
+    def test_first(self):
+        context = Context()
+        context.add(('foo', ))
+        context.add(('bar', ), provides=Tuple[str])
+
+        def bob(x: str = AnyOf(tuple, Tuple[str])):
+            return x[0]
+
+        compare(context.call(bob), expected='foo')
+
+    def test_second(self):
+        context = Context()
+        context.add(('bar', ), provides=Tuple[str])
+
+        def bob(x: str = AnyOf(tuple, Tuple[str])):
+            return x[0]
+
+        compare(context.call(bob), expected='bar')
+
+    def test_none(self):
+        context = Context()
+
+        def bob(x: str = AnyOf(tuple, Tuple[str])):
+            pass
+
+        with ShouldRaise(ResourceError):
+            context.call(bob)
+
+    def test_default(self):
+        context = Context()
+
+        def bob(x: str = AnyOf(tuple, Tuple[str], default=(42,))):
+            return x[0]
+
+        compare(context.call(bob), expected=42)
