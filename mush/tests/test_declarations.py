@@ -16,7 +16,7 @@ from mush.declarations import (
 from mush.extraction import extract_requires, extract_returns, update_wrapper
 from mush.markers import missing
 from mush.requirements import Requirement, AttrOp, ItemOp
-from .helpers import r
+from .helpers import r, PY_36
 
 
 def check_extract(obj, expected_rq, expected_rt):
@@ -61,7 +61,8 @@ class TestRequires(TestCase):
 
     def test_typing(self):
         r_ = requires(Tuple[str])
-        compare(repr(r_), "requires(typing.Tuple[str])")
+        text = 'Tuple' if PY_36 else 'typing.Tuple[str]'
+        compare(repr(r_), f"requires({text})")
         compare(r_, expected=[r(Value(Tuple[str]), type=Tuple[str])])
 
     def test_tuple_arg(self):
@@ -213,7 +214,8 @@ class TestReturns(TestCase):
 
     def test_typing(self):
         r = returns(Tuple[str])
-        compare(repr(r), 'returns(typing.Tuple[str])')
+        text = 'Tuple' if PY_36 else 'typing.Tuple[str]'
+        compare(repr(r), f'returns({text})')
         compare(dict(r.process('foo')), {Tuple[str]: 'foo'})
 
     def test_sequence(self):
