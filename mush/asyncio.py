@@ -2,7 +2,7 @@ import asyncio
 from functools import partial
 from typing import Callable
 
-from . import Context as SyncContext
+from . import Context as SyncContext, Call as SyncCall, missing
 from .declarations import RequiresType, ReturnsType
 from .extraction import default_requirement_type
 from .types import RequirementModifier
@@ -65,3 +65,17 @@ class Context(SyncContext):
         result = await self.call(obj, requires)
         self._process(obj, result, returns)
         return result
+
+
+class Call(SyncCall):
+
+    async def resolve(self, context):
+        result = context.get(self.key, missing)
+        if result is missing:
+            result = await context.call(self.key)
+            if self.cache:
+                context.add(result, provides=self.key)
+        return result
+
+
+__all__ = ['Context', 'Call']
