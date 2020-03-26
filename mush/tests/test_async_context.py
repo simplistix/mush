@@ -1,9 +1,7 @@
 import asyncio
-from contextlib import contextmanager
 from typing import Tuple
 
 import pytest
-from mock import Mock
 
 from mush import Context, Value, requires, returns
 from mush.asyncio import Context
@@ -11,22 +9,7 @@ from mush.declarations import RequiresType
 from mush.requirements import Requirement, AnyOf, Like
 from testfixtures import compare
 
-from .helpers import TheType
-
-
-@pytest.fixture()
-def no_threads():
-    # pytest-asyncio does things so we need to do this mock *in* the test:
-    @contextmanager
-    def raise_on_threads():
-        loop = asyncio.get_event_loop()
-        original = loop.run_in_executor
-        loop.run_in_executor = Mock(side_effect=Exception('bad'))
-        try:
-            yield
-        finally:
-            loop.run_in_executor = original
-    return raise_on_threads()
+from .helpers import TheType, no_threads
 
 
 @pytest.mark.asyncio
@@ -164,8 +147,8 @@ async def test_extract_maximal():
 
 
 @pytest.mark.asyncio
-async def test_value_resolve_does_not_run_in_thread(no_threads):
-    with no_threads:
+async def test_value_resolve_does_not_run_in_thread():
+    with no_threads():
         context = Context()
         context.add('foo', provides='baz')
 
@@ -176,8 +159,8 @@ async def test_value_resolve_does_not_run_in_thread(no_threads):
 
 
 @pytest.mark.asyncio
-async def test_anyof_resolve_does_not_run_in_thread(no_threads):
-    with no_threads:
+async def test_anyof_resolve_does_not_run_in_thread():
+    with no_threads():
         context = Context()
         context.add(('foo', ))
 
@@ -188,8 +171,8 @@ async def test_anyof_resolve_does_not_run_in_thread(no_threads):
 
 
 @pytest.mark.asyncio
-async def test_like_resolve_does_not_run_in_thread(no_threads):
-    with no_threads:
+async def test_like_resolve_does_not_run_in_thread():
+    with no_threads():
         o = TheType()
         context = Context()
         context.add(o)
