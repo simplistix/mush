@@ -13,6 +13,17 @@ not_specified = Marker('not_specified')
 missing = Marker('missing')
 
 
+def set_mush(obj, key, value):
+    if not hasattr(obj, '__mush__'):
+        obj.__mush__ = {}
+    obj.__mush__[key] = value
+
+
+def get_mush(obj, key, default):
+    __mush__ = getattr(obj, '__mush__', missing)
+    if __mush__ is missing:
+        return default
+    return __mush__.get(key, default)
 def nonblocking(obj):
     """
     A decorator to mark a method as not requiring running

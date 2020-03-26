@@ -10,11 +10,10 @@ from typing import Callable, Type
 from .declarations import (
     requires, RequiresType, ReturnsType,
     returns, result_type,
-    nothing,
-    get_mush
+    nothing
 )
 from .requirements import Requirement, Value
-from .markers import missing
+from .markers import missing, get_mush
 from .types import RequirementModifier
 
 EMPTY = Parameter.empty

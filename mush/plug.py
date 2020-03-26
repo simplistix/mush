@@ -1,4 +1,4 @@
-from .declarations import set_mush, get_mush
+from .markers import set_mush, get_mush
 
 
 class ignore(object):
