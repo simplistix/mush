@@ -5,18 +5,8 @@ from typing import Callable
 from . import Context as SyncContext, Call as SyncCall, missing
 from .declarations import RequiresType, ReturnsType
 from .extraction import default_requirement_type
+from .markers import get_mush, AsyncType
 from .types import RequirementModifier
-
-
-async def ensure_async(func, *args, **kw):
-    if getattr(func, '__nonblocking__', False):
-        return func(*args, **kw)
-    elif asyncio.iscoroutinefunction(func):
-        return await func(*args, **kw)
-    if kw:
-        func = partial(func, **kw)
-    loop = asyncio.get_event_loop()
-    return await loop.run_in_executor(None, func, *args)
 
 
 class AsyncFromSyncContext:
@@ -44,6 +34,31 @@ class Context(SyncContext):
     def __init__(self, requirement_modifier: RequirementModifier = default_requirement_type):
         super().__init__(requirement_modifier)
         self._sync_context = AsyncFromSyncContext(self, asyncio.get_event_loop())
+        self._async_cache = {}
+
+    async def _ensure_async(self, func, *args, **kw):
+        async_type = self._async_cache.get(func)
+        if async_type is None:
+            if asyncio.iscoroutinefunction(func):
+                async_type = AsyncType.async_
+            else:
+                async_type = get_mush(func, 'async', default=None)
+                if async_type is None:
+                    if isinstance(func, type):
+                        async_type = AsyncType.nonblocking
+                    else:
+                        async_type = AsyncType.blocking
+            self._async_cache[func] = async_type
+            
+        if async_type is AsyncType.nonblocking:
+            return func(*args, **kw)
+        elif async_type is AsyncType.blocking:
+            if kw:
+                func = partial(func, **kw)
+            loop = asyncio.get_event_loop()
+            return await loop.run_in_executor(None, func, *args)
+        else:
+            return await func(*args, **kw)
 
     def _context_for(self, obj):
         return self if asyncio.iscoroutinefunction(obj) else self._sync_context
@@ -54,9 +69,9 @@ class Context(SyncContext):
         resolving = self._resolve(obj, requires, args, kw, self._context_for(obj))
         for requirement in resolving:
             r = requirement.resolve
-            o = await ensure_async(r, self._context_for(r))
+            o = await self._ensure_async(r, self._context_for(r))
             resolving.send(o)
-        return await ensure_async(obj, *args, **kw)
+        return await self._ensure_async(obj, *args, **kw)
 
     async def extract(self,
                       obj: Callable,

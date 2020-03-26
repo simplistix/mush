@@ -2,14 +2,14 @@ import asyncio
 from typing import Tuple
 
 import pytest
+from testfixtures import compare, ShouldRaise
 
-from mush import Context, Value, requires, returns
+from mush import Value, requires, returns, Context as SyncContext, blocking, nonblocking
 from mush.asyncio import Context
 from mush.declarations import RequiresType
 from mush.requirements import Requirement, AnyOf, Like
-from testfixtures import compare
-
-from .helpers import TheType, no_threads
+from .helpers import TheType, no_threads, must_run_in_thread
+from ..markers import AsyncType
 
 
 @pytest.mark.asyncio
@@ -19,7 +19,8 @@ async def test_call_is_async():
         return 'bar'
     result = context.call(it)
     assert asyncio.iscoroutine(result)
-    compare(await result, expected='bar')
+    with must_run_in_thread(it):
+        compare(await result, expected='bar')
 
 
 @pytest.mark.asyncio
@@ -28,14 +29,15 @@ async def test_call_async():
     context.add('1', provides='a')
     async def it(a, b='2'):
         return a+b
-    compare(await context.call(it), expected='12')
+    with no_threads():
+        compare(await context.call(it), expected='12')
 
 
 @pytest.mark.asyncio
 async def test_call_async_requires_context():
     context = Context()
     context.add('bar', provides='baz')
-    async def it(context: Context):
+    async def it(context: SyncContext):
         return context.get('baz')
     compare(await context.call(it), expected='bar')
 
@@ -55,7 +57,8 @@ async def test_call_sync():
     context.add('foo', provides='baz')
     def it(*, baz):
         return baz+'bar'
-    compare(await context.call(it), expected='foobar')
+    with must_run_in_thread(it):
+        compare(await context.call(it), expected='foobar')
 
 
 @pytest.mark.asyncio
@@ -77,11 +80,75 @@ async def test_call_sync_requires_async_context():
 
 
 @pytest.mark.asyncio
+async def test_call_class_defaults_to_non_blocking():
+    context = Context()
+    with no_threads():
+        obj = await context.call(TheType)
+    assert isinstance(obj, TheType)
+
+
+@pytest.mark.asyncio
+async def test_call_class_explicitly_marked_as_blocking():
+    @blocking
+    class BlockingType: pass
+    context = Context()
+    with must_run_in_thread(BlockingType):
+        obj = await context.call(BlockingType)
+    assert isinstance(obj, BlockingType)
+
+
+@pytest.mark.asyncio
+async def test_call_function_defaults_to_blocking():
+    def foo():
+        return 42
+    context = Context()
+    with must_run_in_thread(foo):
+        compare(await context.call(foo), expected=42)
+
+
+@pytest.mark.asyncio
+async def test_call_function_explicitly_marked_as_non_blocking():
+    @nonblocking
+    def foo():
+        return 42
+    context = Context()
+    with no_threads():
+        compare(await context.call(foo), expected=42)
+
+
+@pytest.mark.asyncio
+async def test_call_async_function_explicitly_marked_as_non_blocking():
+    # sure, I mean, whatever...
+    @nonblocking
+    async def foo():
+        return 42
+    context = Context()
+    with no_threads():
+        compare(await context.call(foo), expected=42)
+
+
+@pytest.mark.asyncio
+async def test_call_async_function_explicitly_marked_as_blocking():
+    with ShouldRaise(TypeError('cannot mark an async function as blocking')):
+        @blocking
+        async def foo(): pass
+
+
+@pytest.mark.asyncio
 async def test_call_cache_requires():
     context = Context()
     def foo(): pass
     await context.call(foo)
     compare(context._requires_cache[foo], expected=RequiresType())
+
+
+@pytest.mark.asyncio
+async def test_call_caches_asyncness():
+    async def foo():
+        return 42
+    context = Context()
+    await context.call(foo)
+    compare(context._async_cache[foo], expected=AsyncType.async_)
 
 
 @pytest.mark.asyncio

@@ -3,7 +3,7 @@ from .declarations import (
     requires, returns_result_type, returns_mapping, returns_sequence, returns, nothing
 )
 from .extraction import extract_requires, extract_returns, update_wrapper
-from .markers import missing
+from .markers import missing, nonblocking, blocking
 from .plug import Plug
 from .requirements import Requirement, Value, Call, AnyOf, Like
 from .runner import Runner, ContextError
@@ -19,7 +19,9 @@ __all__ = [
     'ResourceError',
     'Runner',
     'Value',
+    'blocking',
     'missing',
+    'nonblocking',
     'nothing',
     'requires',
     'returns',

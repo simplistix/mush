@@ -1,3 +1,7 @@
+import asyncio
+from enum import Enum, auto
+
+
 class Marker(object):
 
     def __init__(self, name):
@@ -24,12 +28,29 @@ def get_mush(obj, key, default):
     if __mush__ is missing:
         return default
     return __mush__.get(key, default)
+
+
+class AsyncType(Enum):
+    blocking = auto()
+    nonblocking = auto()
+    async_ = auto()
+
+
 def nonblocking(obj):
     """
-    A decorator to mark a method as not requiring running
+    A decorator to mark a callable as not requiring running
     in a thread, even though it's not async.
     """
-    # Not using set_mush / get_mush to try and keep this as
-    # quick as possible
-    obj.__nonblocking__ = True
+    set_mush(obj, 'async', AsyncType.nonblocking)
+    return obj
+
+
+def blocking(obj):
+    """
+    A decorator to explicitly mark a callable as requiring running
+    in a thread.
+    """
+    if asyncio.iscoroutinefunction(obj):
+        raise TypeError('cannot mark an async function as blocking')
+    set_mush(obj, 'async', AsyncType.blocking)
     return obj

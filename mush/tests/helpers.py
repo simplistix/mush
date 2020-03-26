@@ -1,6 +1,7 @@
 import asyncio
 import sys
 from contextlib import contextmanager
+from functools import partial
 
 from mock import Mock
 
@@ -39,6 +40,25 @@ def no_threads():
     finally:
         loop.run_in_executor = original
 
-
+@contextmanager
 def must_run_in_thread(func):
-    pass
+    seen = set()
+    loop = asyncio.get_event_loop()
+    original = loop.run_in_executor
+
+    def recording_run_in_executor(executor, func, *args):
+        if isinstance(func, partial):
+            to_record = func.func
+        else:
+            # get the underlying method for bound methods:
+            to_record = getattr(func, '__func__', func)
+        seen.add(to_record)
+        return original(executor, func, *args)
+
+    loop.run_in_executor = recording_run_in_executor
+    try:
+        yield
+    finally:
+        loop.run_in_executor = original
+
+    assert func in seen, f'{func} was not run in a thread'
