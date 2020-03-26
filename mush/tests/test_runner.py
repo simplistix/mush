@@ -4,7 +4,7 @@ from mock import Mock, call
 from mush.declarations import (
     requires, returns, returns_mapping,
     replacement, original)
-from mush import Value, ContextError
+from mush import Value, ContextError, Context
 from mush.runner import Runner
 from testfixtures import (
     ShouldRaise,
@@ -1312,3 +1312,10 @@ class RunnerTests(TestCase):
 
     def test_repr_empty(self):
         compare('<Runner></Runner>', repr(Runner()))
+
+    def test_passed_in_context_with_no_point(self):
+        context = Context()
+        def foo():
+            return 42
+        runner = Runner(foo)
+        compare(runner(context), expected=42)

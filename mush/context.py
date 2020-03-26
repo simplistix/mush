@@ -1,5 +1,6 @@
 from typing import Optional, Callable
 
+from .callpoints import CallPoint
 from .declarations import RequiresType, ReturnsType
 from .extraction import extract_requires, extract_returns, default_requirement_type
 from .markers import missing
@@ -25,7 +26,8 @@ class ResourceError(Exception):
 class Context:
     "Stores resources for a particular run."
 
-    _parent = None
+    _parent: 'Context' = None
+    point: CallPoint = None
 
     def __init__(self, requirement_modifier: RequirementModifier = default_requirement_type):
         self._requirement_modifier = requirement_modifier

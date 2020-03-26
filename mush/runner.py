@@ -237,7 +237,7 @@ class Runner(object):
             runner._copy_from(r.start, r.end)
         return runner
 
-    def __call__(self, context=None):
+    def __call__(self, context: Context = None):
         """
         Execute the callables in this runner in the required order
         storing objects that are returned and providing them as
@@ -254,6 +254,7 @@ class Runner(object):
         """
         if context is None:
             context = Context()
+        if context.point is None:
             context.point = self.start
 
         result = None
@@ -272,6 +273,8 @@ class Runner(object):
                 with result as manager:
                     if manager not in (None, result):
                         context.add(manager, manager.__class__)
+                    # If the context manager swallows an exception,
+                    # None should be returned, not the context manager:
                     result = None
                     result = self(context)
 
