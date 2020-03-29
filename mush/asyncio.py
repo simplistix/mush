@@ -2,7 +2,10 @@ import asyncio
 from functools import partial
 from typing import Callable
 
-from . import Context as SyncContext, Call as SyncCall, missing
+from . import (
+    Context as SyncContext, Runner as SyncRunner, Call as SyncCall,
+    missing, ResourceError, ContextError
+)
 from .declarations import RequiresType, ReturnsType
 from .extraction import default_requirement_type
 from .markers import get_mush, AsyncType
@@ -82,6 +85,55 @@ class Context(SyncContext):
         return result
 
 
+class SyncContextManagerWrapper:
+
+    def __init__(self, sync_manager):
+        self.sync_manager = sync_manager
+        self.loop = asyncio.get_event_loop()
+
+    async def __aenter__(self):
+        return await self.loop.run_in_executor(None, self.sync_manager.__enter__)
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        return await self.loop.run_in_executor(None, self.sync_manager.__exit__,
+                                               exc_type, exc_val, exc_tb)
+
+
+class Runner(SyncRunner):
+
+    async def __call__(self, context: Context = None):
+        if context is None:
+            context = Context()
+        if context.point is None:
+            context.point = self.start
+
+        result = None
+
+        while context.point:
+
+            point = context.point
+            context.point = point.next
+
+            try:
+                result = manager = await point(context)
+            except ResourceError as e:
+                raise ContextError(str(e), point, context)
+
+            if getattr(result, '__enter__', None):
+                manager = SyncContextManagerWrapper(result)
+
+            if getattr(manager, '__aenter__', None):
+                async with manager as managed:
+                    if managed not in (None, result):
+                        context.add(managed)
+                    # If the context manager swallows an exception,
+                    # None should be returned, not the context manager:
+                    result = None
+                    result = await self(context)
+
+        return result
+
+
 class Call(SyncCall):
 
     async def resolve(self, context):
@@ -93,4 +145,4 @@ class Call(SyncCall):
         return result
 
 
-__all__ = ['Context', 'Call']
+__all__ = ['Context', 'Runner', 'Call']

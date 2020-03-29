@@ -135,7 +135,7 @@ class Runner(object):
             label specified in this option should be cloned.
             This filtering is applied in addition to the above options.
         """
-        runner = Runner()
+        runner = self.__class__()
 
         if start_label:
             start = self.labels[start_label]
@@ -232,7 +232,7 @@ class Runner(object):
         Return a new :class:`Runner` containing the contents of the two
         :class:`Runner` instances being added together.
         """
-        runner = Runner()
+        runner = self.__class__()
         for r in self, other:
             runner._copy_from(r.start, r.end)
         return runner

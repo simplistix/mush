@@ -40,8 +40,9 @@ def no_threads():
     finally:
         loop.run_in_executor = original
 
+
 @contextmanager
-def must_run_in_thread(func):
+def must_run_in_thread(*expected):
     seen = set()
     loop = asyncio.get_event_loop()
     original = loop.run_in_executor
@@ -61,4 +62,5 @@ def must_run_in_thread(func):
     finally:
         loop.run_in_executor = original
 
-    assert func in seen, f'{func} was not run in a thread'
+    not_seen = set(expected) - seen
+    assert not not_seen, f'{not_seen} not run in a thread, seen: {seen}'
