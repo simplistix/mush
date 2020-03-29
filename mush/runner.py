@@ -270,9 +270,9 @@ class Runner(object):
                 raise ContextError(str(e), point, context)
 
             if getattr(result, '__enter__', None):
-                with result as manager:
-                    if manager not in (None, result):
-                        context.add(manager, manager.__class__)
+                with result as managed:
+                    if managed not in (None, result):
+                        context.add(managed)
                     # If the context manager swallows an exception,
                     # None should be returned, not the context manager:
                     result = None
