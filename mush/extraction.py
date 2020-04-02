@@ -5,12 +5,12 @@ from functools import (
     partial
 )
 from inspect import signature, Parameter
-from typing import Callable, Type
+from typing import Callable
 
 from .declarations import (
     requires, RequiresType, ReturnsType,
     returns, result_type,
-    nothing
+    requires_nothing
 )
 from .requirements import Requirement, Value
 from .markers import missing, get_mush
@@ -124,7 +124,7 @@ def extract_requires(obj: Callable,
         _apply_requires(by_name, by_index, requires_)
 
     if not by_name:
-        return nothing
+        return requires_nothing
 
     needs_target = False
     for name, requirement in by_name.items():

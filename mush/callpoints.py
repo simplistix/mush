@@ -1,7 +1,7 @@
 from .declarations import (
-    nothing, returns as returns_declaration
+    requires_nothing, returns as returns_declaration,
 
-)
+    returns_nothing)
 from .extraction import extract_requires, extract_returns
 
 
@@ -22,7 +22,8 @@ class CallPoint(object):
                 raise TypeError('a single return type must be explicitly specified')
             runner.lazy[returns.args[0]] = obj, requires
             obj = do_nothing
-            requires = returns = nothing
+            requires = requires_nothing
+            returns = returns_nothing
         self.obj = obj
         self.requires = requires
         self.returns = returns

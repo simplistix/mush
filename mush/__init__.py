@@ -1,6 +1,6 @@
 from .context import Context, ResourceError
 from .declarations import (
-    requires, returns_result_type, returns_mapping, returns_sequence, returns, nothing
+    requires, returns, returns_result_type, returns_mapping, returns_sequence,
 )
 from .extraction import extract_requires, extract_returns, update_wrapper
 from .markers import missing, nonblocking, blocking
@@ -22,7 +22,6 @@ __all__ = [
     'blocking',
     'missing',
     'nonblocking',
-    'nothing',
     'requires',
     'returns',
     'returns_mapping',

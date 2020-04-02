@@ -9,7 +9,7 @@ from mush import Value
 from mush.declarations import (
     requires, returns,
     returns_mapping, returns_sequence, returns_result_type,
-    nothing,
+    requires_nothing,
     result_type, RequiresType
 )
 from mush.extraction import extract_requires, extract_returns, update_wrapper
@@ -213,7 +213,7 @@ class TestExtractDeclarations(object):
         check_extract(
             p,
             # since a is already bound by the partial:
-            expected_rq=nothing,
+            expected_rq=requires_nothing,
             expected_rt=result_type
         )
 
@@ -222,7 +222,7 @@ class TestExtractDeclarations(object):
         p = partial(foo, a=1)
         check_extract(
             p,
-            expected_rq=nothing,
+            expected_rq=requires_nothing,
             expected_rt=result_type
         )
 
@@ -232,7 +232,7 @@ class TestExtractDeclarations(object):
         check_extract(
             p,
             # since a is already bound by the partial:
-            expected_rq=nothing,
+            expected_rq=requires_nothing,
             expected_rt=result_type
         )
 
@@ -241,7 +241,7 @@ class TestExtractDeclarations(object):
         p = partial(foo, a=1)
         check_extract(
             p,
-            expected_rq=nothing,
+            expected_rq=requires_nothing,
             expected_rt=result_type
         )
 
@@ -303,7 +303,7 @@ class TestExtractDeclarationsFromTypeAnnotations(object):
     def test_returns_only(self):
         def foo() -> 'bar': pass
         check_extract(foo,
-                      expected_rq=nothing,
+                      expected_rq=requires_nothing,
                       expected_rt=returns('bar'))
 
     def test_extract_from_decorated_class(self):
@@ -338,14 +338,14 @@ class TestExtractDeclarationsFromTypeAnnotations(object):
         rt = returns_mapping()
         def foo() -> rt: pass
         check_extract(foo,
-                      expected_rq=nothing,
+                      expected_rq=requires_nothing,
                       expected_rt=rt)
 
     def test_returns_sequence(self):
         rt = returns_sequence()
         def foo() -> rt: pass
         check_extract(foo,
-                      expected_rq=nothing,
+                      expected_rq=requires_nothing,
                       expected_rt=rt)
 
     def test_how_instance_in_annotations(self):

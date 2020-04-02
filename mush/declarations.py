@@ -6,6 +6,23 @@ from .markers import set_mush
 from .requirements import Requirement, Value, name_or_repr
 
 
+VALID_DECORATION_TYPES = (type, str, Requirement)
+
+
+def valid_decoration_types(*objs):
+    for obj in objs:
+        if isinstance(obj, VALID_DECORATION_TYPES):
+            continue
+        try:
+            _type_check(obj, '')
+            continue
+        except TypeError:
+            pass
+        raise TypeError(
+            repr(obj)+" is not a valid decoration type"
+        )
+
+
 class RequiresType(list):
 
     def __repr__(self):
@@ -49,6 +66,9 @@ def requires(*args, **kw):
     return requires_
 
 
+requires_nothing = RequiresType()
+
+
 class ReturnsType(object):
 
     def __call__(self, obj):
@@ -57,6 +77,33 @@ class ReturnsType(object):
 
     def __repr__(self):
         return self.__class__.__name__ + '()'
+
+
+class returns(ReturnsType):
+    """
+    Declaration that specifies names for returned resources or overrides
+    the type of a returned resource.
+
+    This declaration can be used to indicate the type or name of a single
+    returned resource or, if multiple arguments are passed, that the callable
+    will return a sequence of values where each one should be named or have its
+    type overridden.
+    """
+
+    def __init__(self, *args):
+        valid_decoration_types(*args)
+        self.args = args
+
+    def process(self, obj):
+        if len(self.args) == 1:
+            yield self.args[0], obj
+        elif self.args:
+            for t, o in zip(self.args, obj):
+                yield t, o
+
+    def __repr__(self):
+        args_repr = ', '.join(name_or_repr(arg) for arg in self.args)
+        return self.__class__.__name__ + '(' + args_repr + ')'
 
 
 class returns_result_type(ReturnsType):
@@ -97,48 +144,9 @@ class returns_sequence(returns_result_type):
                 yield pair
 
 
-class returns(returns_result_type):
-    """
-    Declaration that specifies names for returned resources or overrides
-    the type of a returned resource.
+returns_nothing = returns()
 
-    This declaration can be used to indicate the type or name of a single
-    returned resource or, if multiple arguments are passed, that the callable
-    will return a sequence of values where each one should be named or have its
-    type overridden.
-    """
-
-    def __init__(self, *args):
-        valid_decoration_types(*args)
-        self.args = args
-
-    def process(self, obj):
-        if len(self.args) == 1:
-            yield self.args[0], obj
-        else:
-            for t, o in zip(self.args, obj):
-                yield t, o
-
-    def __repr__(self):
-        args_repr = ', '.join(name_or_repr(arg) for arg in self.args)
-        return self.__class__.__name__ + '(' + args_repr + ')'
-
-
-#: A singleton  indicating that a callable's return value should be
-#: stored based on the type of that return value.
 result_type = returns_result_type()
-
-
-class Nothing(RequiresType, returns):
-
-    def process(self, result):
-        return ()
-
-
-#: A singleton that be used as a :class:`~mush.requires` to indicate that a
-#: callable has no required arguments or as a :class:`~mush.returns` to indicate
-#: that anything returned from a callable should be ignored.
-nothing = Nothing()
 
 
 class DeclarationsFrom(Enum):
@@ -150,20 +158,3 @@ class DeclarationsFrom(Enum):
 original = DeclarationsFrom.original
 #: Use declarations from the replacement callable.
 replacement = DeclarationsFrom.replacement
-
-
-VALID_DECORATION_TYPES = (type, str, Requirement)
-
-
-def valid_decoration_types(*objs):
-    for obj in objs:
-        if isinstance(obj, VALID_DECORATION_TYPES):
-            continue
-        try:
-            _type_check(obj, '')
-            continue
-        except TypeError:
-            pass
-        raise TypeError(
-            repr(obj)+" is not a valid decoration type"
-        )

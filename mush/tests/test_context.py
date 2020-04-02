@@ -5,10 +5,10 @@ from mock import Mock
 from testfixtures import ShouldRaise, compare
 
 from mush import (
-    Context, requires, returns, nothing, returns_mapping, Value, missing
+    Context, requires, returns, returns_mapping, Value, missing
 )
 from mush.context import ResourceError
-from mush.declarations import RequiresType
+from mush.declarations import RequiresType, requires_nothing, returns_nothing
 from mush.requirements import Requirement
 from .helpers import r, TheType
 
@@ -91,7 +91,7 @@ class TestContext(TestCase):
         def foo():
             return 'bar'
         context = Context()
-        result = context.call(foo, nothing)
+        result = context.call(foo, requires_nothing)
         compare(result, 'bar')
 
     def test_call_requires_string(self):
@@ -289,7 +289,7 @@ class TestContext(TestCase):
         def foo():
             return 'bar'
         context = Context()
-        result = context.extract(foo, nothing, returns(TheType))
+        result = context.extract(foo, requires_nothing, returns(TheType))
         compare(result, 'bar')
         compare({TheType: 'bar'}, actual=context._store)
 
@@ -297,7 +297,7 @@ class TestContext(TestCase):
         def foo():
             return 1, 2
         context = Context()
-        result = context.extract(foo, nothing, returns('foo', 'bar'))
+        result = context.extract(foo, requires_nothing, returns('foo', 'bar'))
         compare(result, (1, 2))
         compare({'foo': 1, 'bar': 2},
                 actual=context._store)
@@ -306,7 +306,7 @@ class TestContext(TestCase):
         def foo():
             return {'foo': 1, 'bar': 2}
         context = Context()
-        result = context.extract(foo, nothing, returns_mapping())
+        result = context.extract(foo, requires_nothing, returns_mapping())
         compare(result, {'foo': 1, 'bar': 2})
         compare({'foo': 1, 'bar': 2},
                 actual=context._store)
@@ -315,14 +315,14 @@ class TestContext(TestCase):
         def foo():
             return 'bar'
         context = Context()
-        result = context.extract(foo, nothing, nothing)
+        result = context.extract(foo, requires_nothing, returns_nothing)
         compare(result, 'bar')
         compare({}, context._store)
 
     def test_ignore_non_iterable_return(self):
         def foo(): pass
         context = Context()
-        result = context.extract(foo, nothing, nothing)
+        result = context.extract(foo)
         compare(result, expected=None)
         compare(context._store, expected={})
 

@@ -375,17 +375,18 @@ I sold vegetables as fruit
 I made juice out of a tomato and a cucumber
 
 Finally, if you have a callable that returns results that you wish to ignore,
-you can do so using :attr:`~mush.declarations.nothing`:
+you can do so as follows:
 
 .. code-block:: python
 
-  from mush import Runner, nothing
+  from mush import Runner
 
+  @returns()
   def spam():
       return 'spam'
 
   runner = Runner()
-  runner.add(spam, returns=nothing)
+  runner.add(spam)
 
 .. _named-resources:
 
