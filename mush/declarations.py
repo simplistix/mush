@@ -111,11 +111,11 @@ class returns_result_type(ReturnsType):
     Default declaration that indicates a callable's return value
     should be used as a resource based on the type of the object returned.
 
-    ``None`` is ignored as a return value.
+    ``None`` is ignored as a return value, as are context managers
     """
 
     def process(self, obj):
-        if obj is not None:
+        if not (obj is None or hasattr(obj, '__enter__') or hasattr(obj, '__aenter__')):
             yield obj.__class__, obj
 
 

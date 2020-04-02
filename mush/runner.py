@@ -271,7 +271,7 @@ class Runner(object):
 
             if getattr(result, '__enter__', None):
                 with result as managed:
-                    if managed not in (None, result):
+                    if managed is not None:
                         context.add(managed)
                     # If the context manager swallows an exception,
                     # None should be returned, not the context manager:

@@ -723,11 +723,10 @@ class RunnerTests(TestCase):
         def func1(obj):
             m.func1(type(obj))
 
-        @requires(CM1, CM2, CM2Context)
-        def func2(obj1, obj2, obj3):
+        @requires(CM1, CM2Context)
+        def func2(obj1, obj2):
             m.func2(type(obj1),
-                    type(obj2),
-                    type(obj3))
+                    type(obj2))
             return '2'
 
         runner = Runner(
@@ -740,14 +739,14 @@ class RunnerTests(TestCase):
         result = runner()
         compare(result, '2')
 
-        compare([
-                call.cm1.enter(),
-                call.cm2.enter(),
-                call.func1(CM1),
-                call.func2(CM1, CM2, CM2Context),
-                call.cm2.exit(None, None),
-                call.cm1.exit(None, None)
-                ], m.mock_calls)
+        compare(m.mock_calls, expected=[
+            call.cm1.enter(),
+            call.cm2.enter(),
+            call.func1(CM1),
+            call.func2(CM1, CM2Context),
+            call.cm2.exit(None, None),
+            call.cm1.exit(None, None)
+        ])
 
         # now check with an exception
         m.reset_mock()
@@ -757,14 +756,14 @@ class RunnerTests(TestCase):
         # if something goes wrong, you get None
         compare(None, result)
 
-        compare([
-                call.cm1.enter(),
-                call.cm2.enter(),
-                call.func1(CM1),
-                call.func2(CM1, CM2, CM2Context),
-                call.cm2.exit(Exception, e),
-                call.cm1.exit(Exception, e)
-                ], m.mock_calls)
+        compare(m.mock_calls, expected=[
+            call.cm1.enter(),
+            call.cm2.enter(),
+            call.func1(CM1),
+            call.func2(CM1, CM2Context),
+            call.cm2.exit(Exception, e),
+            call.cm1.exit(Exception, e)
+        ])
 
     def test_clone(self):
         m = Mock()
