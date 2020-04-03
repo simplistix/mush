@@ -1,4 +1,5 @@
 import asyncio
+from functools import partial
 from typing import Tuple
 
 import pytest
@@ -31,6 +32,29 @@ async def test_call_async():
         return a+b
     with no_threads():
         compare(await context.call(it), expected='12')
+
+
+@pytest.mark.asyncio
+async def test_call_async_callable_object():
+    context = Context()
+
+    class AsyncCallable:
+        async def __call__(self):
+            return 42
+
+    with no_threads():
+        compare(await context.call(AsyncCallable()), expected=42)
+
+
+@pytest.mark.asyncio
+async def test_call_partial_around_async():
+    context = Context()
+
+    async def it():
+        return 42
+
+    with no_threads():
+        compare(await context.call(partial(it)), expected=42)
 
 
 @pytest.mark.asyncio

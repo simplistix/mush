@@ -1,5 +1,6 @@
 import asyncio
 from functools import partial
+from types import FunctionType
 from typing import Callable
 
 from . import (
@@ -42,7 +43,12 @@ class Context(SyncContext):
     async def _ensure_async(self, func, *args, **kw):
         async_type = self._async_cache.get(func)
         if async_type is None:
-            if asyncio.iscoroutinefunction(func):
+            to_check = func
+            if isinstance(func, partial):
+                to_check = func.func
+            if asyncio.iscoroutinefunction(to_check):
+                async_type = AsyncType.async_
+            elif asyncio.iscoroutinefunction(to_check.__call__):
                 async_type = AsyncType.async_
             else:
                 async_type = get_mush(func, 'async', default=None)
