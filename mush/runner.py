@@ -152,7 +152,11 @@ class Runner(object):
             end = self.end
 
         # check start point is before end_point
-        point = start.previous
+        if start is not None:
+            point = start.previous
+        else:
+            point = None
+
         while point:
             if point is end:
                 return runner

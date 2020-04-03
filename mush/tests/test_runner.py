@@ -942,6 +942,13 @@ class RunnerTests(TestCase):
                (m.f7, {'the_label'}),
                )
 
+    def test_clone_empty(self):
+        runner1 = Runner()
+        runner2 = runner1.clone()
+        # this gets set by the clone on runner 2, it's a class variable on runner1:
+        runner1.end = None
+        compare(expected=runner1, actual=runner2)
+
     def test_extend(self):
         m = Mock()
         class T1(object): pass
