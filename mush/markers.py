@@ -10,6 +10,9 @@ class Marker(object):
     def __repr__(self):
         return '<Marker: %s>' % self.name
 
+    def __copy__(self):
+        return self
+
 
 not_specified = Marker('not_specified')
 
