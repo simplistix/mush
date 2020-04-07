@@ -35,11 +35,17 @@ def _apply_requires(by_name, by_index, requires_):
             name = r.target
 
         existing = by_name[name]
-        existing.key = existing.key if r.key is None else r.key
-        existing.type = existing.type if r.type is None else r.type
-        existing.default = existing.default if r.default is missing else r.default
-        existing.ops = existing.ops if not r.ops else r.ops
-        existing.target = existing.target if r.target is None else r.target
+        if type(existing) is not type(r):
+            r_ = r.clone()
+            r_.name = existing.name
+            by_name[name] = r_
+        else:
+            r_ = existing
+        r_.key = existing.key if r.key is None else r.key
+        r_.type = existing.type if r.type is None else r.type
+        r_.default = existing.default if r.default is missing else r.default
+        r_.ops = existing.ops if not r.ops else r.ops
+        r_.target = existing.target if r.target is None else r.target
 
 
 def default_requirement_type(requirement):
@@ -52,14 +58,13 @@ def extract_requires(obj: Callable,
                      explicit: RequiresType = None,
                      modifier: RequirementModifier = default_requirement_type):
     # from annotations
-    is_partial = isinstance(obj, partial)
     by_name = {}
     for name, p in signature(obj).parameters.items():
         if p.kind in (p.VAR_POSITIONAL, p.VAR_KEYWORD):
             continue
 
         # https://bugs.python.org/issue39753:
-        if is_partial and p.name in obj.keywords:
+        if isinstance(obj, partial) and p.name in obj.keywords:
             continue
 
         name = p.name
@@ -126,6 +131,7 @@ def extract_requires(obj: Callable,
     if not by_name:
         return requires_nothing
 
+    # sort out target and apply modifier:
     needs_target = False
     for name, requirement in by_name.items():
         requirement_ = modifier(requirement)

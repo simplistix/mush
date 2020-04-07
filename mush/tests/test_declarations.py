@@ -489,3 +489,17 @@ class TestDeclarationsFromMultipleSources:
                           r(Value('c'), name='c', target='c'),
                       )),
                       expected_rt=result_type)
+
+    def test_explicit_requirement_type_trumps_default_requirement_type(self):
+
+        class FromRequest(Requirement): pass
+
+        @requires(a=Requirement('a'))
+        def foo(a):
+            pass
+
+        compare(actual=extract_requires(foo, requires(a=FromRequest('b'))),
+                strict=True,
+                expected=RequiresType((
+                          r(FromRequest('b'), name='a', target='a'),
+                      )))
