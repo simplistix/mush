@@ -510,10 +510,10 @@ class RunnerTests(TestCase):
             runner()
 
         text = '\n'.join((
-            'While calling: '+repr(job)+' requires(T) returns_result_type()',
+            'While calling: '+repr(job)+' requires(Value(T)) returns_result_type()',
             'with <Context: {}>:',
             '',
-            "No Value(T, name='arg') in context",
+            "No Value(T) in context",
         ))
         compare(text, actual=repr(s.raised))
         compare(text, actual=str(s.raised))
@@ -548,14 +548,14 @@ class RunnerTests(TestCase):
             repr(job1)+' requires() returns_result_type() <-- 1',
             repr(job2)+' requires() returns_result_type()',
             '',
-            'While calling: '+repr(job3)+' requires(T) returns_result_type()',
+            'While calling: '+repr(job3)+' requires(Value(T)) returns_result_type()',
             'with <Context: {}>:',
             '',
-            "No Value(T, name='arg') in context",
+            "No Value(T) in context",
             '',
             'Still to call:',
             repr(job4)+' requires() returns_result_type() <-- 4',
-            repr(job5)+" requires('foo', 'baz') returns('bob')",
+            repr(job5)+" requires(Value('foo'), Value('baz')) returns('bob')",
         ))
         compare(text, actual=repr(s.raised))
         compare(text, actual=str(s.raised))
@@ -1310,7 +1310,7 @@ class RunnerTests(TestCase):
         compare('\n'.join((
             '<Runner>',
             '    '+repr(m.job1)+' requires() returns_result_type() <-- label1',
-            '    '+repr(m.job2)+" requires('foo', T1) returns(T2) <-- label2",
+            '    '+repr(m.job2)+" requires(Value('foo'), Value(T1)) returns(T2) <-- label2",
             '    '+repr(m.job3)+' requires() returns_result_type()',
             '</Runner>'
 

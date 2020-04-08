@@ -100,7 +100,7 @@ class TestCallPoints(TestCase):
         point = CallPoint(self.runner, foo, requires('foo'), returns('bar'))
         point.labels.add('baz')
         point.labels.add('bob')
-        compare(expected=repr(foo)+" requires('foo') returns('bar') <-- baz, bob",
+        compare(expected=repr(foo)+" requires(Value('foo')) returns('bar') <-- baz, bob",
                 actual=repr(point))
 
     def test_convert_to_requires_and_returns(self):
@@ -108,7 +108,7 @@ class TestCallPoints(TestCase):
         point = CallPoint(self.runner, foo, requires='foo', returns='bar')
         self.assertTrue(isinstance(point.requires, RequiresType))
         self.assertTrue(isinstance(point.returns, returns))
-        compare(repr(foo)+" requires('foo') returns('bar')",
+        compare(repr(foo)+" requires(Value('foo')) returns('bar')",
                 repr(point))
 
     def test_convert_to_requires_and_returns_tuple(self):
@@ -119,7 +119,7 @@ class TestCallPoints(TestCase):
                           returns=('baz', 'bob'))
         self.assertTrue(isinstance(point.requires, RequiresType))
         self.assertTrue(isinstance(point.returns, returns))
-        compare(repr(foo)+" requires('foo', 'bar') returns('baz', 'bob')",
+        compare(repr(foo)+" requires(Value('foo'), Value('bar')) returns('baz', 'bob')",
                 repr(point))
 
     def test_convert_to_requires_and_returns_list(self):
@@ -130,5 +130,5 @@ class TestCallPoints(TestCase):
                           returns=['baz', 'bob'])
         self.assertTrue(isinstance(point.requires, RequiresType))
         self.assertTrue(isinstance(point.returns, returns))
-        compare(repr(foo)+" requires('foo', 'bar') returns('baz', 'bob')",
+        compare(repr(foo)+" requires(Value('foo'), Value('bar')) returns('baz', 'bob')",
                 repr(point))

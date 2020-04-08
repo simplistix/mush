@@ -33,7 +33,7 @@ class TestRequires(TestCase):
 
     def test_types(self):
         r_ = requires(Type1, Type2, x=Type3, y=Type4)
-        compare(repr(r_), 'requires(Type1, Type2, x=Type3, y=Type4)')
+        compare(repr(r_), 'requires(Value(Type1), Value(Type2), x=Value(Type3), y=Value(Type4))')
         compare(r_, expected=[
             Value(Type1),
             Value(Type2),
@@ -43,7 +43,7 @@ class TestRequires(TestCase):
 
     def test_strings(self):
         r_ = requires('1', '2', x='3', y='4')
-        compare(repr(r_), "requires('1', '2', x='3', y='4')")
+        compare(repr(r_), "requires(Value('1'), Value('2'), x=Value('3'), y=Value('4'))")
         compare(r_, expected=[
             Value('1'),
             Value('2'),
@@ -54,7 +54,7 @@ class TestRequires(TestCase):
     def test_typing(self):
         r_ = requires(Tuple[str])
         text = 'Tuple' if PY_36 else 'typing.Tuple[str]'
-        compare(repr(r_), f"requires({text})")
+        compare(repr(r_),expected=f"requires(Value({text}))")
         compare(r_, expected=[r(Value(Tuple[str]), type=Tuple[str])])
 
     def test_tuple_arg(self):

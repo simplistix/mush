@@ -77,26 +77,14 @@ class Requirement:
         obj.ops = list(self.ops)
         return obj
 
-    def value_repr(self, params='', *, from_repr=False):
-        key = name_or_repr(self.key)
-        if self.ops or self.default is not missing or from_repr:
-            default = '' if self.default is missing else f', default={self.default!r}'
-            ops = ''.join(repr(o) for o in self.ops)
-            return f"{type(self).__name__}({key}{default}{params}){ops}"
-        return key
+    def resolve(self, context: 'Context'):
+        raise NotImplementedError()
 
     def __repr__(self):
-        attrs = []
-        for a in 'name', 'type_', 'target':
-            value = getattr(self, a.rstrip('_'))
-            if value is not None and value != self.key:
-                attrs.append(f", {a}={value!r}")
-
         key = name_or_repr(self.key)
         default = '' if self.default is missing else f', default={self.default!r}'
         ops = ''.join(repr(o) for o in self.ops)
-
-        return f"{type(self).__name__}({key}{default}{''.join(attrs)}){ops}"
+        return f"{type(self).__name__}({key}{default}){ops}"
 
     def attr(self, name):
         """

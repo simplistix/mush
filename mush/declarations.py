@@ -26,7 +26,7 @@ def valid_decoration_types(*objs):
 class RequiresType(list):
 
     def __repr__(self):
-        parts = (r.value_repr() if r.target is None else f'{r.target}={r.value_repr()}'
+        parts = (repr(r) if r.target is None else f'{r.target}={r!r}'
                  for r in self)
         return f"requires({', '.join(parts)})"
 

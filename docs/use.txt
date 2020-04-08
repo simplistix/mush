@@ -650,10 +650,10 @@ the representation of a runner gives all this information:
 >>> runner
 <Runner>
     <function forge ...> requires() returns_result_type()
-    <function polish ...> requires(Ring) returns_result_type() <-- forged
-    <function engrave ...> requires(Ring) returns_result_type()
-    <function more_polish ...> requires(Ring) returns_result_type() <-- engraved
-    <function package at ...> requires(Ring) returns_result_type()
+    <function polish ...> requires(Value(Ring)) returns_result_type() <-- forged
+    <function engrave ...> requires(Value(Ring)) returns_result_type()
+    <function more_polish ...> requires(Value(Ring)) returns_result_type() <-- engraved
+    <function package at ...> requires(Value(Ring)) returns_result_type()
 </Runner>
 
 As you can see above, when a callable is inserted at a label, the label
@@ -676,7 +676,7 @@ Now, when you add to a specific label, only that label is moved:
 >>> runner
 <Runner>
     <function forge ...> requires() returns_result_type() <-- before_polish
-    <function polish ...> requires('ring') returns_result_type() <-- after_polish
+    <function polish ...> requires(Value('ring')) returns_result_type() <-- after_polish
 </Runner>
 
 Of course, you can still add to the end of the runner:
@@ -686,8 +686,8 @@ Of course, you can still add to the end of the runner:
 >>> runner
 <Runner>
     <function forge ...> requires() returns_result_type() <-- before_polish
-    <function polish ...> requires('ring') returns_result_type() <-- after_polish
-    <function package ...> requires('ring') returns_result_type()
+    <function polish ...> requires(Value('ring')) returns_result_type() <-- after_polish
+    <function package ...> requires(Value('ring')) returns_result_type()
 </Runner>
 
 However, the point modifier returned by getting a label from a runner will
@@ -697,9 +697,9 @@ keep on moving the label as more callables are added using it:
 >>> runner
 <Runner>
     <function forge ...> requires() returns_result_type() <-- before_polish
-    <function polish ...> requires('ring') returns_result_type()
-    <function more_polish ...> requires('ring') returns_result_type() <-- after_polish
-    <function package ...> requires('ring') returns_result_type()
+    <function polish ...> requires(Value('ring')) returns_result_type()
+    <function more_polish ...> requires(Value('ring')) returns_result_type() <-- after_polish
+    <function package ...> requires(Value('ring')) returns_result_type()
 </Runner>
 
 .. _plugs:
@@ -1041,7 +1041,7 @@ To see how the configuration panned out, we would look at the :func:`repr`:
 <Runner>
     <function make_config ...> requires() returns('config')
     <function connect ...> requires(Value('config')['foo']) returns_result_type() <-- config
-    <function process ...> requires('connection') returns_result_type()
+    <function process ...> requires(Value('connection')) returns_result_type()
 </Runner>
 
 As you can see, there is a problem with this configuration that will be exposed
