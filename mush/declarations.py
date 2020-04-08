@@ -54,8 +54,7 @@ def requires(*args, **kw):
         kw.items(),
     ):
         if isinstance(possible, Requirement):
-            possible = possible.clone()
-            possible.target = target
+            possible = possible.make_from(possible, target=target)
             requirement = possible
         else:
             requirement = Value(possible)

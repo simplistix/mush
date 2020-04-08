@@ -48,11 +48,11 @@ class Requirement:
     """
 
     def __init__(self,
-                 key: ResourceKey = None,
+                 key: ResourceKey = None, # XXX should not be default?
                  name: str = None,
                  type_: type = None,
                  default: Any = missing,
-                 target: str =None):
+                 target: str = None):
         #: The resource key needed for this parameter.
         self.key: Optional[ResourceKey] = key
         #: The name of this parameter in the callable's signature.
@@ -66,15 +66,38 @@ class Requirement:
         self.ops: List['Op'] = []
         self.target: Optional[str] = target
 
-    def resolve(self, context: 'Context'):
-        raise NotImplementedError()
+    @classmethod
+    def make(cls, **attrs):
+        """
+        Make a :class:`Requirement` instance with all attributes provided.
 
-    def clone(self):
+        .. note::
+
+          This method allows instances to be created with missing or invalid attributes.
+          While this is necessary for use cases such as testing :class:`Requirement`
+          instantiation or otherwise setting attributes that are not accessible from
+          a custom requirement's :meth:`__init__`, it should be used with care.
+
+        :param attrs:
+        :return:
         """
-        Create a copy of this requirement, so it can be mutated
+        obj = Requirement(attrs.pop('key'))
+        obj.__class__ = cls
+        obj.__dict__.update(attrs)
+        return obj
+
+    @classmethod
+    def make_from(cls, source: 'Requirement', **attrs):
         """
-        obj = copy(self)
-        obj.ops = list(self.ops)
+        Make a new instance of this requirement class, using attributes
+        from a source requirement overlaid with any additional
+        ``attrs`` that have been supplied.
+        """
+        attrs_ = source.__dict__.copy()
+        attrs_.update(attrs)
+        obj = cls.make(**attrs_)
+        obj.ops = list(source.ops)
+        obj.default = copy(source.default)
         return obj
 
     def resolve(self, context: 'Context'):

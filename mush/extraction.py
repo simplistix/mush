@@ -24,33 +24,32 @@ SIMPLE_TYPES = (str, int, dict, list)
 def _apply_requires(by_name, by_index, requires_):
 
     for i, r in enumerate(requires_):
+
         if r.target is None:
             try:
                 name = by_index[i]
             except IndexError:
                 # case where something takes *args
-                by_name[i] = r.clone()
+                by_name[i] = r.make_from(r)
                 continue
         else:
             name = r.target
 
         existing = by_name[name]
-        if type(existing) is not type(r):
-            r_ = r.clone()
-            r_.name = existing.name
-            by_name[name] = r_
-        else:
-            r_ = existing
-        r_.key = existing.key if r.key is None else r.key
-        r_.type = existing.type if r.type is None else r.type
-        r_.default = existing.default if r.default is missing else r.default
-        r_.ops = existing.ops if not r.ops else r.ops
-        r_.target = existing.target if r.target is None else r.target
+        by_name[name] = r.make_from(
+            r,
+            name=existing.name,
+            key=existing.key if r.key is None else r.key,
+            type=existing.type if r.type is None else r.type,
+            default=existing.default if r.default is missing else r.default,
+            ops=existing.ops if not r.ops else r.ops,
+            target=existing.target if r.target is None else r.target,
+        )
 
 
 def default_requirement_type(requirement):
-    if requirement.__class__ is Requirement:
-        requirement.__class__ = Value
+    if type(requirement) is Requirement:
+        requirement = Value.make_from(requirement)
     return requirement
 
 
@@ -92,7 +91,7 @@ def extract_requires(obj: Callable,
             else:
                 key = type_
         else:
-            requirement = requirement.clone()
+            requirement = requirement.make_from(requirement)
             type_ = type_ if requirement.type is None else requirement.type
             if requirement.key is not None:
                 key = requirement.key

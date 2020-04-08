@@ -26,15 +26,73 @@ class TestRequirement:
         r = Requirement('foo', name='n', type_='ty', default=None, target='ta')
         r.ops.append(AttrOp('bar'))
         compare(repr(r),
-                expected="Requirement('foo', default=None, "
-                         "name='n', type_='ty', target='ta').bar")
+                expected="Requirement('foo', default=None).bar")
 
-    def test_clone(self):
+    def test_make_allows_params_not_passed_to_constructor(self):
+        r = Value.make(key='x', target='a')
+        assert type(r) is Value
+        compare(r.key, expected='x')
+        compare(r.target, expected='a')
+
+    def test_make_can_create_invalid_objects(self):
+        # So be careful!
+
+        class SampleRequirement(Requirement):
+            def __init__(self, foo):
+                super().__init__(key='y')
+                self.foo = foo
+
+        r = SampleRequirement('it')
+        compare(r.foo, expected='it')
+
+        r = SampleRequirement.make(key='x')
+        assert 'foo' not in r.__dict__
+        # ...when it really should be!
+
+    def test_clone_using_make_from(self):
         r = Value('foo').bar.requirement
-        r_ = r.clone()
+        r_ = r.make_from(r)
         assert r_ is not r
         assert r_.ops is not r.ops
         compare(r_, expected=r)
+
+    def test_make_from_with_mutable_default(self):
+        r = Requirement('foo', default=[])
+        r_ = r.make_from(r)
+        assert r_ is not r
+        assert r_.default is not r.default
+        compare(r_, expected=r)
+
+    def test_make_from_into_new_type(self):
+        r = Requirement('foo').bar.requirement
+        r_ = Value.make_from(r)
+        compare(r_, expected=Value('foo').bar.requirement)
+
+    def test_make_from_with_required_constructor_parameter(self):
+
+        class SampleRequirement(Requirement):
+            def __init__(self, foo):
+                super().__init__('foo')
+                self.foo = foo
+
+        r = Requirement('foo')
+        r_ = SampleRequirement.make_from(r, foo='it')
+        assert r_ is not r
+        compare(r_, expected=SampleRequirement(foo='it'))
+
+    def test_make_from_source_has_more_attributes(self):
+
+        class SampleRequirement(Requirement):
+            def __init__(self, foo):
+                super().__init__()
+                self.foo = foo
+
+        r = SampleRequirement('it')
+        r_ = Requirement.make_from(r)
+        assert r_ is not r
+
+        # while this is a bit ugly, it will hopefully do no harm:
+        assert r_.foo == 'it'
 
     special_names = ['attr', 'ops', 'target']
 

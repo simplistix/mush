@@ -9,7 +9,6 @@ from mush.declarations import requires, returns, RequiresType
 from mush.extraction import update_wrapper
 from mush.requirements import Value
 from mush.runner import Runner
-from .helpers import r
 
 
 class TestCallPoints(TestCase):
@@ -33,7 +32,7 @@ class TestCallPoints(TestCase):
         compare(result, self.context.extract.return_value)
         compare(tuple(self.context.extract.mock_calls[0].args),
                 expected=(foo,
-                          RequiresType([r(Value('foo'), name='a1')]),
+                          RequiresType([Value.make(key='foo', name='a1')]),
                           rt))
 
     def test_extract_from_decorations(self):
@@ -48,7 +47,7 @@ class TestCallPoints(TestCase):
         compare(result, self.context.extract.return_value)
         compare(tuple(self.context.extract.mock_calls[0].args),
                 expected=(foo,
-                          RequiresType([r(Value('foo'), name='a1')]),
+                          RequiresType([Value.make(key='foo', name='a1')]),
                           returns('bar')))
 
     def test_extract_from_decorated_class(self):
@@ -74,7 +73,7 @@ class TestCallPoints(TestCase):
         self.context.extract.side_effect = lambda func, rq, rt: (func(), rq, rt)
         result = CallPoint(self.runner, foo)(self.context)
         compare(result, expected=('the answer',
-                                  RequiresType([r(Value('foo'), name='prefix')]),
+                                  RequiresType([Value.make(key='foo', name='prefix')]),
                                   rt))
 
     def test_explicit_trumps_decorators(self):
@@ -87,7 +86,7 @@ class TestCallPoints(TestCase):
         compare(result, self.context.extract.return_value)
         compare(tuple(self.context.extract.mock_calls[0].args),
                 expected=(foo,
-                          RequiresType([r(Value('baz'), name='a1')]),
+                          RequiresType([Value.make(key='baz', name='a1')]),
                           returns('bob')))
 
     def test_repr_minimal(self):

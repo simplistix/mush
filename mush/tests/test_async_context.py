@@ -370,8 +370,8 @@ async def test_default_custom_requirement():
             return (context.get('request'))[self.key]
 
     def default_requirement_type(requirement):
-        if requirement.__class__ is Requirement:
-            requirement.__class__ = FromRequest
+        if type(requirement) is Requirement:
+            requirement = FromRequest.make_from(requirement)
         return requirement
 
     def foo(bar):

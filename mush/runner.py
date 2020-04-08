@@ -26,8 +26,7 @@ class Runner(object):
 
     def modify_requirement(self, requirement):
         if requirement.key in self.lazy:
-            requirement.__class__ = Lazy
-            requirement.runner = self
+            requirement = Lazy.make_from(requirement, runner=self)
         else:
             requirement = default_requirement_type(requirement)
         return requirement

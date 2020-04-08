@@ -14,7 +14,7 @@ from mush.declarations import (
 )
 from mush.extraction import extract_requires, extract_returns, update_wrapper
 from mush.requirements import Requirement, ItemOp
-from .helpers import r, PY_36, Type1, Type2, Type3, Type4
+from .helpers import PY_36, Type1, Type2, Type3, Type4
 
 
 def check_extract(obj, expected_rq, expected_rt):
@@ -37,8 +37,8 @@ class TestRequires(TestCase):
         compare(r_, expected=[
             Value(Type1),
             Value(Type2),
-            r(Value(Type3), name='x', target='x'),
-            r(Value(Type4), name='y', target='y'),
+            Value.make(key=Type3, type=Type3, name='x', target='x'),
+            Value.make(key=Type4, type=Type4, name='y', target='y'),
         ])
 
     def test_strings(self):
@@ -47,15 +47,15 @@ class TestRequires(TestCase):
         compare(r_, expected=[
             Value('1'),
             Value('2'),
-            r(Value('3'), name='x', target='x'),
-            r(Value('4'), name='y', target='y'),
+            Value.make(key='3', name='x', target='x'),
+            Value.make(key='4', name='y', target='y'),
         ])
 
     def test_typing(self):
         r_ = requires(Tuple[str])
         text = 'Tuple' if PY_36 else 'typing.Tuple[str]'
         compare(repr(r_),expected=f"requires(Value({text}))")
-        compare(r_, expected=[r(Value(Tuple[str]), type=Tuple[str])])
+        compare(r_, expected=[Value.make(key=Tuple[str], type=Tuple[str])])
 
     def test_tuple_arg(self):
         with ShouldRaise(TypeError("('1', '2') is not a valid decoration type")):
@@ -169,8 +169,8 @@ class TestExtractDeclarations(object):
         def foo(a, b=None): pass
         check_extract(foo,
                       expected_rq=RequiresType((
-                          r(Value('a'), name='a'),
-                          r(Value('b'), default=None, name='b'),
+                          Value.make(key='a', name='a'),
+                          Value.make(key='b', default=None, name='b'),
                       )),
                       expected_rt=result_type)
 
@@ -179,8 +179,8 @@ class TestExtractDeclarations(object):
             def __init__(self, a, b=None): pass
         check_extract(MyClass,
                       expected_rq=RequiresType((
-                          r(Value('a'), name='a'),
-                          r(Value('b'), name='b', default=None),
+                          Value.make(key='a', name='a'),
+                          Value.make(key='b', name='b', default=None),
                       )),
                       expected_rt=result_type)
 
@@ -190,8 +190,8 @@ class TestExtractDeclarations(object):
         check_extract(
             p,
             expected_rq=RequiresType((
-                r(Value('z'), name='z', target='z'),
-                r(Value('a'), name='a', target='a', default=None),
+                Value.make(key='z', name='z', target='z'),
+                Value.make(key='a', name='a', target='a', default=None),
             )),
             expected_rt=result_type
         )
@@ -202,7 +202,7 @@ class TestExtractDeclarations(object):
         check_extract(
             p,
             expected_rq=RequiresType((
-                r(Value('a'), name='a', default=None),
+                Value.make(key='a', name='a', default=None),
             )),
             expected_rt=result_type
         )
@@ -251,8 +251,8 @@ class TestExtractDeclarations(object):
         check_extract(
             p,
             expected_rq=RequiresType((
-                r(Value('b'), name='b'),
-                r(Value('a'), name='a', default=None),
+                Value.make(key='b', name='b'),
+                Value.make(key='a', name='a', default=None),
             )),
             expected_rt=result_type
         )
@@ -264,7 +264,7 @@ class TestExtractDeclarations(object):
             p,
             # since b is already bound:
             expected_rq=RequiresType((
-                r(Value('a'), name='a'),
+                Value.make(key='a', name='a'),
             )),
             expected_rt=result_type
         )
@@ -275,7 +275,7 @@ class TestExtractDeclarations(object):
         check_extract(
             p,
             expected_rq=RequiresType((
-                r(Value('b'), name='b'),
+                Value.make(key='b', name='b'),
             )),
             expected_rt=result_type
         )
@@ -287,17 +287,17 @@ class TestExtractDeclarationsFromTypeAnnotations(object):
         def foo(a: 'foo', b, c: 'bar' = 1, d=2) -> 'bar': pass
         check_extract(foo,
                       expected_rq=RequiresType((
-                          r(Value('foo'), name='a'),
-                          r(Value('b'), name='b'),
-                          r(Value('bar'), name='c', default=1),
-                          r(Value('d'), name='d', default=2)
+                          Value.make(key='foo', name='a'),
+                          Value.make(key='b', name='b'),
+                          Value.make(key='bar', name='c', default=1),
+                          Value.make(key='d', name='d', default=2)
                       )),
                       expected_rt=returns('bar'))
 
     def test_requires_only(self):
         def foo(a: 'foo'): pass
         check_extract(foo,
-                      expected_rq=RequiresType((r(Value('foo'), name='a'),)),
+                      expected_rq=RequiresType((Value.make(key='foo', name='a'),)),
                       expected_rt=result_type)
 
     def test_returns_only(self):
@@ -323,7 +323,7 @@ class TestExtractDeclarationsFromTypeAnnotations(object):
 
         compare(foo(), expected='the answer')
         check_extract(foo,
-                      expected_rq=RequiresType((r(Value('foo'), name='a', default=None),)),
+                      expected_rq=RequiresType((Value.make(key='foo', name='a', default=None),)),
                       expected_rt=returns('bar'))
 
     def test_decorator_trumps_annotations(self):
@@ -331,7 +331,7 @@ class TestExtractDeclarationsFromTypeAnnotations(object):
         @returns('bar')
         def foo(a: 'x') -> 'y': pass
         check_extract(foo,
-                      expected_rq=RequiresType((r(Value('foo'), name='a'),)),
+                      expected_rq=RequiresType((Value.make(key='foo', name='a'),)),
                       expected_rt=returns('bar'))
 
     def test_returns_mapping(self):
@@ -352,7 +352,7 @@ class TestExtractDeclarationsFromTypeAnnotations(object):
         def foo(a: Value('config')['db_url']): pass
         check_extract(foo,
                       expected_rq=RequiresType((
-                          r(Value('config'), name='a', ops=[ItemOp('db_url')]),
+                          Value.make(key='config', name='a', ops=[ItemOp('db_url')]),
                       )),
                       expected_rt=result_type)
 
@@ -360,10 +360,10 @@ class TestExtractDeclarationsFromTypeAnnotations(object):
         def foo(a, b=1, *, c, d=None): pass
         check_extract(foo,
                       expected_rq=RequiresType((
-                          r(Value('a'), name='a'),
-                          r(Value('b'), name='b', default=1),
-                          r(Value('c'), name='c', target='c'),
-                          r(Value('d'), name='d', target='d', default=None)
+                          Value.make(key='a', name='a'),
+                          Value.make(key='b', name='b', default=1),
+                          Value.make(key='c', name='c', target='c'),
+                          Value.make(key='d', name='d', target='d', default=None)
                       )),
                       expected_rt=result_type)
 
@@ -371,27 +371,27 @@ class TestExtractDeclarationsFromTypeAnnotations(object):
         class T: pass
         def foo(a: T): pass
         check_extract(foo,
-                      expected_rq=RequiresType((r(Value(T), name='a', type=T),)),
+                      expected_rq=RequiresType((Value.make(key=T, name='a', type=T),)),
                       expected_rt=result_type)
 
     @pytest.mark.parametrize("type_", [str, int, dict, list])
     def test_simple_type_only(self, type_):
         def foo(a: type_): pass
         check_extract(foo,
-                      expected_rq=RequiresType((r(Value('a'), name='a', type=type_),)),
+                      expected_rq=RequiresType((Value.make(key='a', name='a', type=type_),)),
                       expected_rt=result_type)
 
     def test_type_plus_value(self):
         def foo(a: str = Value('b')): pass
         check_extract(foo,
-                      expected_rq=RequiresType((r(Value('b'), name='a', type=str),)),
+                      expected_rq=RequiresType((Value.make(key='b', name='a', type=str),)),
                       expected_rt=result_type)
 
     def test_type_plus_value_with_default(self):
         def foo(a: str = Value('b', default=1)): pass
         check_extract(foo,
                       expected_rq=RequiresType((
-                          r(Value('b'), name='a', type=str, default=1),
+                          Value.make(key='b', name='a', type=str, default=1),
                       )),
                       expected_rt=result_type)
 
@@ -399,7 +399,7 @@ class TestExtractDeclarationsFromTypeAnnotations(object):
         def foo(a: Value('b', type_=str) = 1): pass
         check_extract(foo,
                       expected_rq=RequiresType((
-                          r(Value('b'), name='a', type=str, default=1),
+                          Value.make(key='b', name='a', type=str, default=1),
                       )),
                       expected_rt=result_type)
 
@@ -407,7 +407,7 @@ class TestExtractDeclarationsFromTypeAnnotations(object):
         def foo(a: Value(str) = 1): pass
         check_extract(foo,
                       expected_rq=RequiresType((
-                          r(Value(str), name='a', type=str, default=1),
+                          Value.make(key=str, name='a', type=str, default=1),
                       )),
                       expected_rt=result_type)
 
@@ -415,7 +415,7 @@ class TestExtractDeclarationsFromTypeAnnotations(object):
         def foo(a: Value(type_=str) = 1): pass
         check_extract(foo,
                       expected_rq=RequiresType((
-                          r(Value(key='a'), name='a', type=str, default=1),
+                          Value.make(key='a', name='a', type=str, default=1),
                       )),
                       expected_rt=result_type)
 
@@ -423,19 +423,19 @@ class TestExtractDeclarationsFromTypeAnnotations(object):
         class T1: pass
         def foo(a: T1 = Value()): pass
         check_extract(foo,
-                      expected_rq=RequiresType((r(Value(key=T1), name='a', type=T1),)),
+                      expected_rq=RequiresType((Value.make(key=T1, name='a', type=T1),)),
                       expected_rt=result_type)
 
     def test_value_unspecified_with_simple_type(self):
         def foo(a: str = Value()): pass
         check_extract(foo,
-                      expected_rq=RequiresType((r(Value(key='a'), name='a', type=str),)),
+                      expected_rq=RequiresType((Value.make(key='a', name='a', type=str),)),
                       expected_rt=result_type)
 
     def test_value_unspecified(self):
         def foo(a = Value()): pass
         check_extract(foo,
-                      expected_rq=RequiresType((r(Value(key='a'), name='a'),)),
+                      expected_rq=RequiresType((Value.make(key='a', name='a'),)),
                       expected_rt=result_type)
 
     def test_requirement_modifier(self):
@@ -444,8 +444,8 @@ class TestExtractDeclarationsFromTypeAnnotations(object):
         class FromRequest(Requirement): pass
 
         def modifier(requirement):
-            if requirement.__class__ is Requirement:
-                requirement.__class__ = FromRequest
+            if type(requirement) is Requirement:
+                requirement = FromRequest.make_from(requirement)
             return requirement
 
         rq = extract_requires(foo, modifier=modifier)
@@ -467,9 +467,9 @@ class TestDeclarationsFromMultipleSources:
 
         check_extract(foo,
                       expected_rq=RequiresType((
-                          r(Value('a'), name='a'),
-                          r(Value('b'), name='b', target='b'),
-                          r(Value('c'), name='c', target='c'),
+                          Value.make(key='a', name='a'),
+                          Value.make(key='b', name='b', target='b'),
+                          Value.make(key='c', name='c', target='c'),
                       )),
                       expected_rt=result_type)
 
@@ -484,9 +484,9 @@ class TestDeclarationsFromMultipleSources:
 
         check_extract(foo,
                       expected_rq=RequiresType((
-                          r(Value('a'), name='a', target='a'),
-                          r(Value('b'), name='b', target='b', type=str),
-                          r(Value('c'), name='c', target='c'),
+                          Value.make(key='a', name='a', target='a'),
+                          Value.make(key='b', name='b', target='b', type=str),
+                          Value.make(key='c', name='c', target='c'),
                       )),
                       expected_rt=result_type)
 
@@ -501,5 +501,5 @@ class TestDeclarationsFromMultipleSources:
         compare(actual=extract_requires(foo, requires(a=FromRequest('b'))),
                 strict=True,
                 expected=RequiresType((
-                          r(FromRequest('b'), name='a', target='a'),
+                          FromRequest.make(key='b', name='a', target='a'),
                       )))

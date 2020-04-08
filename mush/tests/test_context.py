@@ -10,7 +10,7 @@ from mush import (
 from mush.context import ResourceError
 from mush.declarations import RequiresType, requires_nothing, returns_nothing
 from mush.requirements import Requirement
-from .helpers import r, TheType
+from .helpers import TheType
 
 
 class TestContext(TestCase):
@@ -427,7 +427,7 @@ class TestContext(TestCase):
         context.add({}, provides='request')
         with ShouldRaise(ResourceError("No FromRequest('bar') in context",
                                        key='bar',
-                                       requirement=r(FromRequest('bar'), name='bar'))):
+                                       requirement=FromRequest.make(key='bar', name='bar'))):
             compare(context.call(foo))
 
     def test_default_custom_requirement(self):
@@ -440,8 +440,8 @@ class TestContext(TestCase):
             return bar
 
         def modifier(requirement):
-            if requirement.__class__ is Requirement:
-                requirement.__class__ = FromRequest
+            if type(requirement) is Requirement:
+                requirement = FromRequest.make_from(requirement)
             return requirement
 
         context = Context(requirement_modifier=modifier)
