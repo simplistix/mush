@@ -136,7 +136,7 @@ def extract_requires(obj: Callable,
     for name, requirement in by_name.items():
         requirement_ = modifier(requirement)
         if requirement_ is not requirement:
-            by_name[name] = requirement
+            by_name[name] = requirement = requirement_
         if requirement.target is not None:
             needs_target = True
         elif needs_target:
