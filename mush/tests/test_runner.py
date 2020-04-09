@@ -4,7 +4,7 @@ from mock import Mock, call
 from mush.declarations import (
     requires, returns, returns_mapping,
     replacement, original)
-from mush import Value, ContextError, Context
+from mush import Value, ContextError, Context, Requirement
 from mush.runner import Runner
 from testfixtures import (
     ShouldRaise,
@@ -445,6 +445,17 @@ class RunnerTests(TestCase):
         ):
             runner.add(lambda: None, returns=returns(T1, T2), lazy=True)
 
+    def test_lazy_two_callable_provide_same_type(self):
+        class T1(object): pass
+        runner = Runner()
+        runner.add(lambda: None, returns=returns(T1), lazy=True)
+        with ShouldRaise(TypeError(
+                'T1 has more than one lazy definition:\n'
+                'Call(<lambda>)\n'
+                'Call(<lambda>)'
+        )):
+            runner.add(lambda: None, returns=returns(T1), lazy=True)
+
     def test_lazy_per_context(self):
         m = Mock()
         class T1(object): pass
@@ -469,6 +480,65 @@ class RunnerTests(TestCase):
             call.lazy_used(),
             call.job(t),
         ], )
+
+    def test_lazy_after_clone(self):
+        m = Mock()
+        class T1(object): pass
+        t = T1()
+
+        def lazy():
+            m.lazy_used()
+            return t
+
+        def job(obj):
+            m.job(obj)
+
+        runner = Runner()
+        runner.add(lazy, returns=returns(T1), lazy=True)
+        runner_ = runner.clone()
+        runner_.add(job, requires(T1))
+        runner_()
+
+        compare(m.mock_calls, expected=[
+            call.lazy_used(),
+            call.job(t),
+        ], )
+
+    def test_lazy_after_add(self):
+        m = Mock()
+        class T1(object): pass
+        t = T1()
+
+        def lazy():
+            m.lazy_used()
+            return t
+
+        def job(obj):
+            m.job(obj)
+
+        runner1 = Runner()
+        runner1.add(lazy, returns=returns(T1), lazy=True)
+        runner2 = Runner()
+        runner2.add(job, requires(T1))
+        runner = runner1 + runner2
+        runner()
+
+        compare(m.mock_calls, expected=[
+            call.lazy_used(),
+            call.job(t),
+        ], )
+
+    def test_lazy_add_clash(self):
+        class T1(object): pass
+        runner1 = Runner()
+        runner1.add(lambda: None, returns=returns(T1), lazy=True)
+        runner2 = Runner()
+        runner2.add(lambda: None, returns=returns(T1), lazy=True)
+        with ShouldRaise(TypeError(
+                'both runners have lazy definitions for these resources:\n'
+                'T1'
+        )):
+            runner1 + runner2
 
     def test_lazy_only_resolved_once(self):
         m = Mock()

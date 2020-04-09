@@ -1,8 +1,8 @@
 from .declarations import (
-    requires_nothing, returns as returns_declaration,
-
-    returns_nothing)
+    requires_nothing, returns as returns_declaration, returns_nothing
+)
 from .extraction import extract_requires, extract_returns
+from .requirements import Call, name_or_repr
 
 
 def do_nothing():
@@ -20,7 +20,15 @@ class CallPoint(object):
         if lazy:
             if not (type(returns) is returns_declaration and len(returns.args) == 1):
                 raise TypeError('a single return type must be explicitly specified')
-            runner.lazy[returns.args[0]] = obj, requires
+            key = returns.args[0]
+            requirement = Call(obj, requires)
+            if key in runner.lazy:
+                raise TypeError(
+                    f'{name_or_repr(key)} has more than one lazy definition:\n'
+                    f'{runner.lazy[key]}\n'
+                    f'{requirement}'
+                )
+            runner.lazy[key] = requirement
             obj = do_nothing
             requires = requires_nothing
             returns = returns_nothing

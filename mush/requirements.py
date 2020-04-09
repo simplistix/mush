@@ -154,35 +154,25 @@ class Value(Requirement):
         return context.get(self.key, self.default)
 
 
-class Lazy(Requirement):
-
-    runner = None
-
-    def resolve(self, context):
-        result = context.get(self.key, missing)
-        if result is missing:
-            obj, requires = self.runner.lazy[self.key]
-            result = context.call(obj, requires)
-            context.add(result, provides=self.key)
-        return result
-
-
 class Call(Requirement):
     """
     A requirement that is resolved by calling something.
 
     If ``cache`` is ``True``, then the result of that call will be cached
     for the duration of the context in which this requirement is resolved.
+
+    Explicit ``requires`` can also be passed in.
     """
 
-    def __init__(self, obj: Callable, *, cache: bool = True):
+    def __init__(self, obj: Callable, requires=None, *, cache: bool = True):
         super().__init__(obj)
+        self.requires = requires
         self.cache: bool = cache
 
     def resolve(self, context):
         result = context.get(self.key, missing)
         if result is missing:
-            result = context.call(self.key)
+            result = context.call(self.key, self.requires)
             if self.cache:
                 context.add(result, provides=self.key)
         return result

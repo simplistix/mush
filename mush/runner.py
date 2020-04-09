@@ -7,7 +7,7 @@ from .extraction import extract_requires, extract_returns, default_requirement_t
 from .markers import not_specified
 from .modifier import Modifier
 from .plug import Plug
-from .requirements import Lazy
+from .requirements import name_or_repr
 
 
 class Runner(object):
@@ -26,7 +26,7 @@ class Runner(object):
 
     def modify_requirement(self, requirement):
         if requirement.key in self.lazy:
-            requirement = Lazy.make_from(requirement, runner=self)
+            requirement = self.lazy[requirement.key]
         else:
             requirement = default_requirement_type(requirement)
         return requirement
@@ -69,7 +69,15 @@ class Runner(object):
         m.add_label(label)
         return m
 
-    def _copy_from(self, start_point, end_point, added_using=None):
+    def _copy_from(self, runner, start_point, end_point, added_using=None):
+        lazy_clash = set(self.lazy) & set(runner.lazy)
+        if lazy_clash:
+            raise TypeError(
+                'both runners have lazy definitions for these resources:\n' +
+                '\n'.join(name_or_repr(key) for key in lazy_clash)
+            )
+        self.lazy.update(runner.lazy)
+
         previous_cloned_point = self.end
         point = start_point
 
@@ -104,7 +112,7 @@ class Runner(object):
         """
         for obj in objs:
             if isinstance(obj, Runner):
-                self._copy_from(obj.start, obj.end)
+                self._copy_from(obj, obj.start, obj.end)
             else:
                 self.add(obj)
 
@@ -161,7 +169,7 @@ class Runner(object):
                 return runner
             point = point.previous
 
-        runner._copy_from(start, end, added_using)
+        runner._copy_from(self, start, end, added_using)
         return runner
 
     def replace(self,
@@ -237,7 +245,7 @@ class Runner(object):
         """
         runner = self.__class__()
         for r in self, other:
-            runner._copy_from(r.start, r.end)
+            runner._copy_from(r, r.start, r.end)
         return runner
 
     def __call__(self, context: Context = None):
