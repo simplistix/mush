@@ -1,3 +1,5 @@
+from collections import namedtuple
+
 from .declarations import (
     requires_nothing, returns as returns_declaration, returns_nothing
 )
@@ -7,6 +9,9 @@ from .requirements import Call, name_or_repr
 
 def do_nothing():
     pass
+
+
+LazyProvider = namedtuple('LazyProvider', ['obj', 'requires', 'returns'])
 
 
 class CallPoint(object):
@@ -21,14 +26,13 @@ class CallPoint(object):
             if not (type(returns) is returns_declaration and len(returns.args) == 1):
                 raise TypeError('a single return type must be explicitly specified')
             key = returns.args[0]
-            requirement = Call(obj, requires)
             if key in runner.lazy:
                 raise TypeError(
-                    f'{name_or_repr(key)} has more than one lazy definition:\n'
-                    f'{runner.lazy[key]}\n'
-                    f'{requirement}'
+                    f'{name_or_repr(key)} has more than one lazy provider:\n'
+                    f'{runner.lazy[key].obj}\n'
+                    f'{obj}'
                 )
-            runner.lazy[key] = requirement
+            runner.lazy[key] = LazyProvider(obj, requires, returns)
             obj = do_nothing
             requires = requires_nothing
             returns = returns_nothing

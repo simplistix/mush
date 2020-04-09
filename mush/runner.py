@@ -7,7 +7,7 @@ from .extraction import extract_requires, extract_returns, default_requirement_t
 from .markers import not_specified
 from .modifier import Modifier
 from .plug import Plug
-from .requirements import name_or_repr
+from .requirements import name_or_repr, Lazy
 
 
 class Runner(object):
@@ -19,16 +19,16 @@ class Runner(object):
 
     start = end = None
 
-    def __init__(self, *objects):
+    def __init__(self, *objects, requirement_modifier=default_requirement_type):
+        self.requirement_modifier = requirement_modifier
         self.labels = {}
         self.lazy = {}
         self.extend(*objects)
 
     def modify_requirement(self, requirement):
+        requirement = self.requirement_modifier(requirement)
         if requirement.key in self.lazy:
-            requirement = self.lazy[requirement.key]
-        else:
-            requirement = default_requirement_type(requirement)
+            requirement = Lazy(requirement, provider=self.lazy[requirement.key])
         return requirement
 
     def add(self, obj, requires=None, returns=None, label=None, lazy=False):
@@ -70,11 +70,16 @@ class Runner(object):
         return m
 
     def _copy_from(self, runner, start_point, end_point, added_using=None):
+        if self.requirement_modifier is not runner.requirement_modifier:
+            raise TypeError('requirement_modifier must be identical')
+
         lazy_clash = set(self.lazy) & set(runner.lazy)
         if lazy_clash:
             raise TypeError(
-                'both runners have lazy definitions for these resources:\n' +
-                '\n'.join(name_or_repr(key) for key in lazy_clash)
+                'both runners have lazy providers for these resources:\n' +
+                '\n'.join(f'{name_or_repr(key)}: \n'
+                          f'  {self.lazy[key].obj}\n'
+                          f'  {runner.lazy[key].obj}'  for key in lazy_clash)
             )
         self.lazy.update(runner.lazy)
 
@@ -142,7 +147,7 @@ class Runner(object):
             label specified in this option should be cloned.
             This filtering is applied in addition to the above options.
         """
-        runner = self.__class__()
+        runner = self.__class__(requirement_modifier=self.requirement_modifier)
 
         if start_label:
             start = self.labels[start_label]

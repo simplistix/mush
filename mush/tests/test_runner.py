@@ -447,14 +447,16 @@ class RunnerTests(TestCase):
 
     def test_lazy_two_callable_provide_same_type(self):
         class T1(object): pass
+        def foo(): pass
+        def bar(): pass
         runner = Runner()
-        runner.add(lambda: None, returns=returns(T1), lazy=True)
+        runner.add(foo, returns=returns(T1), lazy=True)
         with ShouldRaise(TypeError(
-                'T1 has more than one lazy definition:\n'
-                'Call(<lambda>)\n'
-                'Call(<lambda>)'
+                'T1 has more than one lazy provider:\n'
+                f'{foo!r}\n'
+                f'{bar!r}'
         )):
-            runner.add(lambda: None, returns=returns(T1), lazy=True)
+            runner.add(bar, returns=returns(T1), lazy=True)
 
     def test_lazy_per_context(self):
         m = Mock()
@@ -530,13 +532,17 @@ class RunnerTests(TestCase):
 
     def test_lazy_add_clash(self):
         class T1(object): pass
+        def foo(): pass
+        def bar(): pass
         runner1 = Runner()
-        runner1.add(lambda: None, returns=returns(T1), lazy=True)
+        runner1.add(foo, returns=returns(T1), lazy=True)
         runner2 = Runner()
-        runner2.add(lambda: None, returns=returns(T1), lazy=True)
+        runner2.add(bar, returns=returns(T1), lazy=True)
         with ShouldRaise(TypeError(
-                'both runners have lazy definitions for these resources:\n'
-                'T1'
+                'both runners have lazy providers for these resources:\n'
+                'T1: \n'
+                f'  {foo!r}\n'
+                f'  {bar!r}'
         )):
             runner1 + runner2
 
@@ -566,6 +572,29 @@ class RunnerTests(TestCase):
             call.job1(t),
             call.job2(t),
         ], )
+
+    def test_lazy_with_requirement_modifier(self):
+        def make_data():
+            return {'foo': 'bar'}
+
+        class FromKey(Requirement):
+            def resolve(self, context):
+                return context.get('data')[self.data_key]
+
+        def modifier(requirement):
+            if type(requirement) is Requirement:
+                # another limitation of lazy:
+                requirement = FromKey.make_from(requirement,
+                                                key='data',
+                                                data_key=requirement.key)
+            return requirement
+
+        runner = Runner(requirement_modifier=modifier)
+        runner.add(make_data, returns='data', lazy=True)
+        runner.add(lambda foo: foo+'baz', returns='processed')
+        runner.add(lambda *args: args, requires(Value('data')['foo'], 'processed'))
+
+        compare(runner(), expected=('bar', 'barbaz'))
 
     def test_missing_from_context_no_chain(self):
         class T(object): pass
@@ -1395,3 +1424,44 @@ class RunnerTests(TestCase):
             return 42
         runner = Runner(foo)
         compare(runner(context), expected=42)
+
+    def test_requirement_modifier(self):
+
+        class FromRequest(Requirement):
+            def resolve(self, context):
+                return context.get('request')[self.key]
+
+        def foo(bar):
+            return bar
+
+        def modifier(requirement):
+            if type(requirement) is Requirement:
+                requirement = FromRequest.make_from(requirement)
+            return requirement
+
+        runner = Runner(requirement_modifier=modifier)
+        runner.add(foo)
+        context = Context()
+        context.add({'bar': 'foo'}, provides='request')
+        compare(runner(context), expected='foo')
+
+    def test_clone_requirement_modifier(self):
+        def modifier(requirement): pass
+        runner = Runner(requirement_modifier=modifier)
+        assert runner.clone().requirement_modifier is runner.requirement_modifier
+
+    def test_add_clashing_requirement_modifier(self):
+        def modifier1(requirement): pass
+        runner1 = Runner(requirement_modifier=modifier1)
+        def modifier2(requirement): pass
+        runner2 = Runner(requirement_modifier=modifier2)
+        with ShouldRaise(TypeError('requirement_modifier must be identical')):
+            runner1 + runner2
+
+    def test_extend_other_runner_clashing_requirement_modifier(self):
+        def modifier1(requirement): pass
+        runner1 = Runner(requirement_modifier=modifier1)
+        def modifier2(requirement): pass
+        runner2 = Runner(requirement_modifier=modifier2)
+        with ShouldRaise(TypeError('requirement_modifier must be identical')):
+            runner1.extend(runner2)
