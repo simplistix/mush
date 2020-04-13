@@ -14,7 +14,7 @@ from .declarations import (
 )
 from .requirements import Requirement, Value
 from .markers import missing, get_mush
-from .types import RequirementModifier
+from .types import RequirementModifier, Requires, Returns
 
 EMPTY = Parameter.empty
 #: For these types, prefer the name instead of the type.
@@ -54,7 +54,7 @@ def default_requirement_type(requirement):
 
 
 def extract_requires(obj: Callable,
-                     explicit: RequiresType = None,
+                     explicit: Requires = None,
                      modifier: RequirementModifier = default_requirement_type):
     # from annotations
     by_name = {}
@@ -144,7 +144,7 @@ def extract_requires(obj: Callable,
     return RequiresType(by_name.values())
 
 
-def extract_returns(obj: Callable, explicit: ReturnsType = None):
+def extract_returns(obj: Callable, explicit: Returns = None):
     if explicit is None:
         returns_ = get_mush(obj, 'returns', None)
         if returns_ is None:

@@ -4,7 +4,7 @@ from typing import _type_check
 
 from .markers import set_mush
 from .requirements import Requirement, Value, name_or_repr
-
+from .types import RequirementType, ReturnType
 
 VALID_DECORATION_TYPES = (type, str, Requirement)
 
@@ -35,7 +35,7 @@ class RequiresType(list):
         return obj
 
 
-def requires(*args, **kw):
+def requires(*args: RequirementType, **kw: RequirementType):
     """
     Represents requirements for a particular callable.
 
@@ -89,7 +89,7 @@ class returns(ReturnsType):
     type overridden.
     """
 
-    def __init__(self, *args):
+    def __init__(self, *args: ReturnType):
         valid_decoration_types(*args)
         self.args = args
 

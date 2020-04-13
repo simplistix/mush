@@ -16,7 +16,7 @@ from .types import RequirementModifier
 class AsyncFromSyncContext:
 
     def __init__(self, context, loop):
-        self.context = context
+        self.context: Context = context
         self.loop = loop
         self.remove = context.remove
         self.add = context.add
@@ -142,7 +142,7 @@ class Runner(SyncRunner):
 
 class Call(SyncCall):
 
-    async def resolve(self, context):
+    async def resolve(self, context: Context):
         result = context.get(self.key, missing)
         if result is missing:
             result = await context.call(self.key)

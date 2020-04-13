@@ -1,10 +1,15 @@
 from collections import namedtuple
+from typing import TYPE_CHECKING, Callable
 
 from .declarations import (
     requires_nothing, returns as returns_declaration, returns_nothing
 )
 from .extraction import extract_requires, extract_returns
 from .requirements import Call, name_or_repr
+from .types import Requires, Returns
+
+if TYPE_CHECKING:
+    from .runner import Runner
 
 
 def do_nothing():
@@ -19,7 +24,9 @@ class CallPoint(object):
     next = None
     previous = None
 
-    def __init__(self, runner, obj, requires=None, returns=None, lazy=False):
+    def __init__(self, runner: 'Runner', obj: Callable,
+                 requires: Requires = None, returns: Returns = None,
+                 lazy: bool = False):
         requires = extract_requires(obj, requires, runner.modify_requirement)
         returns = extract_returns(obj, returns)
         if lazy:

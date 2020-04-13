@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, Optional
 
 from .callpoints import CallPoint
 from .context import Context, ResourceError
@@ -8,6 +8,7 @@ from .markers import not_specified
 from .modifier import Modifier
 from .plug import Plug
 from .requirements import name_or_repr, Lazy
+from .types import Requires, Returns
 
 
 class Runner(object):
@@ -17,9 +18,10 @@ class Runner(object):
     will be called.
     """
 
-    start = end = None
+    start: Optional[CallPoint] = None
+    end: Optional[CallPoint] = None
 
-    def __init__(self, *objects, requirement_modifier=default_requirement_type):
+    def __init__(self, *objects: Callable, requirement_modifier=default_requirement_type):
         self.requirement_modifier = requirement_modifier
         self.labels = {}
         self.lazy = {}
@@ -31,7 +33,8 @@ class Runner(object):
             requirement = Lazy(requirement, provider=self.lazy[requirement.key])
         return requirement
 
-    def add(self, obj, requires=None, returns=None, label=None, lazy=False):
+    def add(self, obj: Callable, requires: Requires = None, returns: Returns = None,
+            label: str = None, lazy: bool = False):
         """
         Add a callable to the runner.
 
@@ -61,7 +64,7 @@ class Runner(object):
             m.add(obj, requires, returns, label, lazy)
             return m
 
-    def add_label(self, label):
+    def add_label(self, label: str):
         """
         Add a label to the the point currently at the end of the runner.
         """
@@ -108,7 +111,7 @@ class Runner(object):
 
         self.end = previous_cloned_point
 
-    def extend(self, *objs):
+    def extend(self, *objs: Callable):
         """
         Add the specified callables to this runner.
 
@@ -122,9 +125,9 @@ class Runner(object):
                 self.add(obj)
 
     def clone(self,
-              start_label=None, end_label=None,
-              include_start=False, include_end=False,
-              added_using=None):
+              start_label: str = None, end_label: str = None,
+              include_start: bool = False, include_end: bool = False,
+              added_using: str = None):
         """
         Return a copy of this :class:`Runner`.
 
@@ -236,14 +239,14 @@ class Runner(object):
 
             point = point.next
 
-    def __getitem__(self, label):
+    def __getitem__(self, label: str):
         """
         Retrieve a :class:`~.modifier.Modifier` for a previous labelled point in
         the runner.
         """
         return Modifier(self, self.labels[label], label)
 
-    def __add__(self, other):
+    def __add__(self, other: 'Runner'):
         """
         Return a new :class:`Runner` containing the contents of the two
         :class:`Runner` instances being added together.

@@ -1,9 +1,11 @@
 """
 .. currentmodule:: mush
 """
+from typing import Callable
 
 from .callpoints import CallPoint
 from .markers import not_specified
+from .types import Requires, Returns
 
 
 class Modifier(object):
@@ -19,7 +21,8 @@ class Modifier(object):
         else:
             self.labels = {label}
 
-    def add(self, obj, requires=None, returns=None, label=None, lazy=False):
+    def add(self, obj: Callable, requires: Requires = None, returns: Returns = None,
+            label: str = None, lazy: bool = False):
         """
         :param obj: The callable to be added.
 
