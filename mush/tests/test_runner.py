@@ -654,7 +654,7 @@ class RunnerTests(TestCase):
             '',
             'Still to call:',
             repr(job4)+' requires() returns_result_type() <-- 4',
-            repr(job5)+" requires(Value('foo'), Value('baz')) returns('bob')",
+            repr(job5)+" requires(Value('foo'), bar=Value('baz')) returns('bob')",
         ))
         compare(text, actual=repr(s.raised))
         compare(text, actual=str(s.raised))
