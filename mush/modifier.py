@@ -5,7 +5,7 @@ from typing import Callable
 
 from .callpoints import CallPoint
 from .markers import not_specified
-from .types import Requires, Returns
+from .typing import Requires, Returns
 
 
 class Modifier(object):

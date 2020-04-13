@@ -10,7 +10,7 @@ from . import (
 from .declarations import RequiresType, ReturnsType
 from .extraction import default_requirement_type
 from .markers import get_mush, AsyncType
-from .types import RequirementModifier
+from .typing import RequirementModifier
 
 
 class AsyncFromSyncContext:

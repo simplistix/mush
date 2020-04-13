@@ -8,7 +8,7 @@ from .markers import not_specified
 from .modifier import Modifier
 from .plug import Plug
 from .requirements import name_or_repr, Lazy
-from .types import Requires, Returns
+from .typing import Requires, Returns
 
 
 class Runner(object):

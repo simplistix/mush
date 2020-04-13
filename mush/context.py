@@ -5,7 +5,7 @@ from .declarations import RequiresType, ReturnsType
 from .extraction import extract_requires, extract_returns, default_requirement_type
 from .markers import missing
 from .requirements import Requirement
-from .types import ResourceKey, ResourceValue, RequirementModifier
+from .typing import ResourceKey, ResourceValue, RequirementModifier
 
 NONE_TYPE = type(None)
 

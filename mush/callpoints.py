@@ -6,7 +6,7 @@ from .declarations import (
 )
 from .extraction import extract_requires, extract_returns
 from .requirements import Call, name_or_repr
-from .types import Requires, Returns
+from .typing import Requires, Returns
 
 if TYPE_CHECKING:
     from .runner import Runner

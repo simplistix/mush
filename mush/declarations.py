@@ -4,7 +4,7 @@ from typing import _type_check
 
 from .markers import set_mush
 from .requirements import Requirement, Value, name_or_repr
-from .types import RequirementType, ReturnType
+from .typing import RequirementType, ReturnType
 
 VALID_DECORATION_TYPES = (type, str, Requirement)
 

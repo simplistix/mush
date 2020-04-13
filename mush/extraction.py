@@ -14,7 +14,7 @@ from .declarations import (
 )
 from .requirements import Requirement, Value
 from .markers import missing, get_mush
-from .types import RequirementModifier, Requires, Returns
+from .typing import RequirementModifier, Requires, Returns
 
 EMPTY = Parameter.empty
 #: For these types, prefer the name instead of the type.

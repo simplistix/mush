@@ -1,7 +1,7 @@
 from copy import copy
 from typing import Any, Optional, List, TYPE_CHECKING, Callable
 
-from .types import ResourceKey
+from .typing import ResourceKey
 from .markers import missing, nonblocking
 
 if TYPE_CHECKING:
