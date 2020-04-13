@@ -84,13 +84,14 @@ class TestRequirement:
 
         class SampleRequirement(Requirement):
             def __init__(self, foo):
-                super().__init__()
+                super().__init__('bar')
                 self.foo = foo
 
         r = SampleRequirement('it')
         r_ = Requirement.make_from(r)
         assert r_ is not r
 
+        assert r_.key == 'bar'
         # while this is a bit ugly, it will hopefully do no harm:
         assert r_.foo == 'it'
 
@@ -116,7 +117,7 @@ class TestRequirement:
         compare(v.ops, [])
 
     def test_resolve(self):
-        r = Requirement()
+        r = Requirement('foo')
         with ShouldRaise(NotImplementedError):
             r.resolve(None)
 

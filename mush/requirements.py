@@ -48,7 +48,7 @@ class Requirement:
     """
 
     def __init__(self,
-                 key: ResourceKey = None, # XXX should not be default?
+                 key: ResourceKey,
                  name: str = None,
                  type_: type = None,
                  default: Any = missing,
