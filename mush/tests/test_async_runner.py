@@ -584,3 +584,17 @@ async def test_async_context_then_sync_context_exception_not_handled():
         call.cm2.exit(e),
         call.cm1.exit(e),
     ])
+
+
+@pytest.mark.asyncio
+async def test_context_manager_is_last_callpoint():
+    m = Mock()
+    CM = make_cm('CM', AsyncCM, m)
+
+    runner = Runner(CM)
+
+    compare(await runner(), expected=None)
+    compare(m.mock_calls, expected=[
+        call.cm.enter(),
+        call.cm.exit(None),
+    ])

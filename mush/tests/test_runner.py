@@ -864,6 +864,25 @@ class RunnerTests(TestCase):
             call.cm1.exit(Exception, e)
         ])
 
+    def test_context_manager_is_last_callpoint(self):
+        m = Mock()
+
+        class CM(object):
+            def __enter__(self):
+                m.cm.enter()
+            def __exit__(self, type, obj, tb):
+                m.cm.exit()
+
+        runner = Runner(CM)
+        result = runner()
+        compare(result, expected=None)
+
+        compare(m.mock_calls, expected=[
+            call.cm.enter(),
+            call.cm.exit(),
+        ])
+
+
     def test_clone(self):
         m = Mock()
         class T1(object): pass

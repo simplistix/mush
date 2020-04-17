@@ -295,7 +295,8 @@ class Runner(object):
                     # If the context manager swallows an exception,
                     # None should be returned, not the context manager:
                     result = None
-                    result = self(context)
+                    if context.point is not None:
+                        result = self(context)
 
         return result
 
