@@ -9,10 +9,10 @@ RequirementType = Union['Requirement', type, str]
 Requires = Union['RequiresType',
                  RequirementType,
                  List[RequirementType],
-                 Tuple[RequirementType]]
+                 Tuple[RequirementType, ...]]
 
 ReturnType = Union[type, str]
-Returns = Union['ReturnsType', ReturnType, List[ReturnType], Tuple[ReturnType]]
+Returns = Union['ReturnsType', ReturnType, List[ReturnType], Tuple[ReturnType, ...]]
 
 ResourceKey = Union[Hashable, Callable]
 ResourceValue = NewType('ResourceValue', Any)
