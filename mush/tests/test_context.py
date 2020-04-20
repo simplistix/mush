@@ -1,8 +1,8 @@
 from typing import Tuple, List
 from unittest import TestCase
 
-from mock import Mock
 from testfixtures import ShouldRaise, compare
+from testfixtures.mock import Mock
 
 from mush import (
     Context, requires, returns, returns_mapping, Value, missing

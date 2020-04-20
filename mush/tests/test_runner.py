@@ -1,6 +1,5 @@
 from unittest import TestCase
 
-from mock import Mock, call
 from mush.declarations import (
     requires, returns, returns_mapping,
     replacement, original)
@@ -10,6 +9,7 @@ from testfixtures import (
     ShouldRaise,
     compare
 )
+from testfixtures.mock import Mock, call
 
 
 def verify(runner, *expected):

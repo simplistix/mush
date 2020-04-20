@@ -37,7 +37,7 @@ setup(
             'pytest-asyncio',
             'pytest-cov',
             'sybil',
-            'testfixtures>=6.13'
+            'testfixtures>=6.14.1'
         ],
         build=['sphinx', 'setuptools-git', 'wheel', 'twine']
     ))

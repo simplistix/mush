@@ -1,5 +1,5 @@
 import asyncio
-from unittest.mock import Mock, call
+from testfixtures.mock import Mock, call
 
 import pytest
 from testfixtures import compare, ShouldRaise, Comparison as C

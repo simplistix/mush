@@ -1,7 +1,7 @@
 from unittest import TestCase
 
-from mock import Mock, call
 from testfixtures import compare, ShouldRaise
+from testfixtures.mock import Mock, call
 
 from mush import Plug, Runner, returns, requires
 from mush.plug import insert, ignore, append

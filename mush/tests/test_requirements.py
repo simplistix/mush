@@ -2,8 +2,8 @@ from typing import Tuple
 from unittest.case import TestCase
 
 import pytest
-from mock import Mock
 from testfixtures import compare, ShouldRaise
+from testfixtures.mock import Mock
 
 from mush import Context, Call, Value, missing, requires, ResourceError
 from mush.requirements import Requirement, AttrOp, ItemOp, AnyOf, Like

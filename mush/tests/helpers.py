@@ -3,7 +3,7 @@ import sys
 from contextlib import contextmanager
 from functools import partial
 
-from mock import Mock
+from testfixtures.mock import Mock
 
 
 PY_VERSION = sys.version_info[:2]
