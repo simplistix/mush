@@ -7,17 +7,17 @@ common: &common
   jobs:
 
     - python/pip-run-tests:
-        name: python36
-        image: circleci/python:3.6
-    - python/pip-run-tests:
-        name: python38
-        image: circleci/python:3.8
+        matrix:
+          parameters:
+            image:
+              - circleci/python:3.6
+              - circleci/python:3.7
+              - circleci/python:3.8
 
     - python/coverage:
         name: coverage
         requires:
-          - python36
-          - python38
+          - python/pip-run-tests
 
     - python/release:
         name: release
