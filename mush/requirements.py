@@ -142,7 +142,7 @@ class Value(Requirement):
     ever use this.
     """
 
-    def __init__(self, key: ResourceKey=None, *, type_: type = None, default: Any = missing):
+    def __init__(self, key: ResourceKey = None, *, type_: type = None, default: Any = missing):
         if isinstance(key, type):
             if type_ is not None:
                 raise TypeError('type_ cannot be specified if key is a type')

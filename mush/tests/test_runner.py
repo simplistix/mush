@@ -882,7 +882,6 @@ class RunnerTests(TestCase):
             call.cm.exit(),
         ])
 
-
     def test_clone(self):
         m = Mock()
         class T1(object): pass
