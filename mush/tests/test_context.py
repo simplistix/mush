@@ -386,14 +386,14 @@ class TestContext(TestCase):
         def modifier(): pass
         c1 = Context(modifier)
         c2 = c1.nest()
-        assert c2._requirement_modifier is modifier
+        assert c2.requirement_modifier is modifier
 
     def test_nest_with_explicit_default_requirement_type(self):
         def modifier1(): pass
         def modifier2(): pass
         c1 = Context(modifier1)
         c2 = c1.nest(modifier2)
-        assert c2._requirement_modifier is modifier2
+        assert c2.requirement_modifier is modifier2
 
     def test_nest_keeps_declarations_cache(self):
         c1 = Context()

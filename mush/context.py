@@ -30,7 +30,7 @@ class Context:
     point: CallPoint = None
 
     def __init__(self, requirement_modifier: RequirementModifier = default_requirement_type):
-        self._requirement_modifier = requirement_modifier
+        self.requirement_modifier = requirement_modifier
         self._store = {}
         self._requires_cache = {}
         self._returns_cache = {}
@@ -92,7 +92,7 @@ class Context:
             if requires is None:
                 requires = extract_requires(obj,
                                             explicit=None,
-                                            modifier=self._requirement_modifier)
+                                            modifier=self.requirement_modifier)
                 self._requires_cache[obj] = requires
 
         for requirement in requires:
@@ -144,7 +144,7 @@ class Context:
 
     def nest(self, requirement_modifier: RequirementModifier = None):
         if requirement_modifier is None:
-            requirement_modifier = self._requirement_modifier
+            requirement_modifier = self.requirement_modifier
         nested = self.__class__(requirement_modifier)
         nested._parent = self
         nested._requires_cache = self._requires_cache
