@@ -44,7 +44,7 @@ class TestCall:
         compare(await context.call(bob), expected='abc')
         compare(await context.call(bob), expected='abc')
         compare(called, expected=[1, 1])
-        compare(context.get(foo), expected=None)
+        compare(context.get(foo, default=None), expected=None)
 
     @pytest.mark.asyncio
     async def test_parts_of_a_call(self):

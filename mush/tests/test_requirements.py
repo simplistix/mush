@@ -230,7 +230,7 @@ class TestCall:
         compare(context.call(bob), expected='abc')
         compare(context.call(bob), expected='abc')
         compare(called, expected=[1, 1])
-        compare(context.get(foo), expected=None)
+        compare(context.get(foo, default=None), expected=None)
 
     def test_parts_of_a_call(self):
         context = Context()

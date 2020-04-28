@@ -358,7 +358,7 @@ async def test_custom_requirement_sync_resolve_add_remove():
     context = Context()
     context.add({'bar': 'foo'}, provides='request')
     compare(await context.call(foo), expected='foo')
-    compare(context.get('request'), expected=None)
+    compare(context.get('request', default=None), expected=None)
     compare(context.get('response'), expected='foo')
 
 

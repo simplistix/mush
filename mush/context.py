@@ -3,11 +3,12 @@ from typing import Optional, Callable
 from .callpoints import CallPoint
 from .declarations import RequiresType, ReturnsType
 from .extraction import extract_requires, extract_returns, default_requirement_type
-from .markers import missing
+from .markers import missing, Marker
 from .requirements import Requirement
 from .typing import ResourceKey, ResourceValue, RequirementModifier
 
 NONE_TYPE = type(None)
+unspecified = Marker('unspecified')
 
 
 class ResourceError(Exception):
@@ -128,7 +129,7 @@ class Context:
             resolving.send(requirement.resolve(self))
         return obj(*args, **kw)
 
-    def get(self, key: ResourceKey, default=None):
+    def get(self, key: ResourceKey, default=unspecified):
         context = self
 
         while context is not None:
@@ -139,6 +140,9 @@ class Context:
                 if context is not self:
                     self._store[key] = value
                 return value
+
+        if default is unspecified:
+            raise ResourceError(f'No {key!r} in context', key)
 
         return default
 

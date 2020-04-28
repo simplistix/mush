@@ -359,14 +359,15 @@ class TestContext(TestCase):
         context = Context()
         context.add(['bar'], provides=List[str])
         compare(context.get(List[str]), expected=['bar'])
-        compare(context.get(List[int]), expected=None)
-        compare(context.get(List), expected=None)
+        compare(context.get(List[int], default=None), expected=None)
+        compare(context.get(List, default=None), expected=None)
         # nb: this might be surprising:
-        compare(context.get(list), expected=None)
+        compare(context.get(list, default=None), expected=None)
 
     def test_get_missing(self):
         context = Context()
-        compare(context.get('foo'), expected=None)
+        with ShouldRaise(ResourceError("No 'foo' in context", 'foo')):
+            context.get('foo')
 
     def test_nest(self):
         c1 = Context()
@@ -379,7 +380,7 @@ class TestContext(TestCase):
         compare(c2.get('b'), expected='b')
         compare(c2.get('c'), expected='d')
         compare(c1.get('a'), expected='a')
-        compare(c1.get('b'), expected=None)
+        compare(c1.get('b', default=None), expected=None)
         compare(c1.get('c'), expected='c')
 
     def test_nest_with_overridden_default_requirement_type(self):
