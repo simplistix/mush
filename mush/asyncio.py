@@ -1,11 +1,9 @@
 import asyncio
 from functools import partial
-from types import FunctionType
 from typing import Callable
 
 from . import (
-    Context as SyncContext, Runner as SyncRunner, Call as SyncCall,
-    missing, ResourceError, ContextError
+    Context as SyncContext, Runner as SyncRunner, ResourceError, ContextError
 )
 from .declarations import RequiresType, ReturnsType
 from .extraction import default_requirement_type
@@ -141,15 +139,4 @@ class Runner(SyncRunner):
         return result
 
 
-class Call(SyncCall):
-
-    async def resolve(self, context: Context):
-        result = context.get(self.key, missing)
-        if result is missing:
-            result = await context.call(self.key)
-            if self.cache:
-                context.add(result, provides=self.key)
-        return result
-
-
-__all__ = ['Context', 'Runner', 'Call']
+__all__ = ['Context', 'Runner']

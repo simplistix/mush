@@ -1,5 +1,5 @@
 from copy import copy
-from typing import Any, Optional, List, TYPE_CHECKING, Callable
+from typing import Any, Optional, List, TYPE_CHECKING
 
 from .typing import ResourceKey
 from .markers import missing, nonblocking
@@ -152,27 +152,6 @@ class Value(Requirement):
     @nonblocking
     def resolve(self, context: 'Context'):
         return context.get(self.key, self.default)
-
-
-class Call(Requirement):
-    """
-    A requirement that is resolved by calling something.
-
-    If ``cache`` is ``True``, then the result of that call will be cached
-    for the duration of the context in which this requirement is resolved.
-    """
-
-    def __init__(self, obj: Callable, *, cache: bool = True):
-        super().__init__(obj)
-        self.cache: bool = cache
-
-    def resolve(self, context):
-        result = context.get(self.key, missing)
-        if result is missing:
-            result = context.call(self.key)
-            if self.cache:
-                context.add(result, provides=self.key)
-        return result
 
 
 class AnyOf(Requirement):

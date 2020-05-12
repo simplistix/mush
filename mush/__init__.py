@@ -5,12 +5,11 @@ from .declarations import (
 from .extraction import extract_requires, extract_returns, update_wrapper
 from .markers import missing, nonblocking, blocking
 from .plug import Plug
-from .requirements import Requirement, Value, Call, AnyOf, Like
+from .requirements import Requirement, Value, AnyOf, Like
 from .runner import Runner, ContextError
 
 __all__ = [
     'AnyOf',
-    'Call',
     'Context',
     'ContextError',
     'Like',
