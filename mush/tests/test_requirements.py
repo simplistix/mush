@@ -6,7 +6,7 @@ from testfixtures import compare, ShouldRaise
 from testfixtures.mock import Mock
 
 from mush import Context, Value, missing, requires, ResourceError
-from mush.requirements import Requirement, AttrOp, ItemOp, AnyOf, Like
+from mush.requirements import Requirement, AttrOp, ItemOp#, AnyOf, Like
 from .helpers import Type1
 
 
@@ -131,153 +131,153 @@ class TestValue:
     def test_key_and_type_cannot_disagree(self):
         with ShouldRaise(TypeError('type_ cannot be specified if key is a type')):
             Value(key=str, type_=int)
-
-
-class TestItem:
-
-    def test_single(self):
-        h = Value(Type1)['foo']
-        compare(repr(h), expected="Value(Type1)['foo']")
-        check_ops(h, {'foo': 1}, expected=1)
-
-    def test_multiple(self):
-        h = Value(Type1)['foo']['bar']
-        compare(repr(h), expected="Value(Type1)['foo']['bar']")
-        check_ops(h, {'foo': {'bar': 1}}, expected=1)
-
-    def test_missing_obj(self):
-        h = Value(Type1)['foo']['bar']
-        with ShouldRaise(TypeError):
-            check_ops(h, object(), expected=None)
-
-    def test_missing_key(self):
-        h = Value(Type1)['foo']
-        check_ops(h, {}, expected=missing)
-
-    def test_passed_missing(self):
-        c = Context()
-        c.add({}, provides='key')
-        compare(c.call(lambda x: x, requires(Value('key', default=1)['foo']['bar'])),
-                expected=1)
-
-    def test_bad_type(self):
-        h = Value(Type1)['foo']['bar']
-        with ShouldRaise(TypeError):
-            check_ops(h, [], expected=None)
-
-
-class TestAttr(TestCase):
-
-    def test_single(self):
-        h = Value(Type1).foo
-        compare(repr(h), "Value(Type1).foo")
-        m = Mock()
-        check_ops(h, m, expected=m.foo)
-
-    def test_multiple(self):
-        h = Value(Type1).foo.bar
-        compare(repr(h), "Value(Type1).foo.bar")
-        m = Mock()
-        check_ops(h, m, expected=m.foo.bar)
-
-    def test_missing(self):
-        h = Value(Type1).foo
-        compare(repr(h), "Value(Type1).foo")
-        check_ops(h, object(), expected=missing)
-
-    def test_passed_missing(self):
-        c = Context()
-        c.add(object(), provides='key')
-        compare(c.call(lambda x: x, requires(Value('key', default=1).foo.bar)),
-                expected=1)
-
-
-class TestAnyOf:
-
-    def test_first(self):
-        context = Context()
-        context.add(('foo', ))
-        context.add(('bar', ), provides=Tuple[str])
-
-        def bob(x: str = AnyOf(tuple, Tuple[str])):
-            return x[0]
-
-        compare(context.call(bob), expected='foo')
-
-    def test_second(self):
-        context = Context()
-        context.add(('bar', ), provides=Tuple[str])
-
-        def bob(x: str = AnyOf(tuple, Tuple[str])):
-            return x[0]
-
-        compare(context.call(bob), expected='bar')
-
-    def test_none(self):
-        context = Context()
-
-        def bob(x: str = AnyOf(tuple, Tuple[str])):
-            pass
-
-        with ShouldRaise(ResourceError):
-            context.call(bob)
-
-    def test_default(self):
-        context = Context()
-
-        def bob(x: str = AnyOf(tuple, Tuple[str], default=(42,))):
-            return x[0]
-
-        compare(context.call(bob), expected=42)
-
-
-class Parent(object):
-    pass
-
-
-class Child(Parent):
-    pass
-
-
-class TestLike:
-
-    def test_actual(self):
-        context = Context()
-        p = Parent()
-        c = Child()
-        context.add(p)
-        context.add(c)
-
-        def bob(x: str = Like(Child)):
-            return x
-
-        assert context.call(bob) is c
-
-    def test_base(self):
-        context = Context()
-        p = Parent()
-        context.add(p)
-
-        def bob(x: str = Like(Child)):
-            return x
-
-        assert context.call(bob) is p
-
-    def test_none(self):
-        context = Context()
-        # make sure we don't pick up object!
-        context.add(object())
-
-        def bob(x: str = Like(Child)):
-            pass
-
-        with ShouldRaise(ResourceError):
-            context.call(bob)
-
-    def test_default(self):
-        context = Context()
-
-        def bob(x: str = Like(Child, default=42)):
-            return x
-
-        compare(context.call(bob), expected=42)
+#
+#
+# class TestItem:
+#
+#     def test_single(self):
+#         h = Value(Type1)['foo']
+#         compare(repr(h), expected="Value(Type1)['foo']")
+#         check_ops(h, {'foo': 1}, expected=1)
+#
+#     def test_multiple(self):
+#         h = Value(Type1)['foo']['bar']
+#         compare(repr(h), expected="Value(Type1)['foo']['bar']")
+#         check_ops(h, {'foo': {'bar': 1}}, expected=1)
+#
+#     def test_missing_obj(self):
+#         h = Value(Type1)['foo']['bar']
+#         with ShouldRaise(TypeError):
+#             check_ops(h, object(), expected=None)
+#
+#     def test_missing_key(self):
+#         h = Value(Type1)['foo']
+#         check_ops(h, {}, expected=missing)
+#
+#     def test_passed_missing(self):
+#         c = Context()
+#         c.add({}, provides='key')
+#         compare(c.call(lambda x: x, requires(Value('key', default=1)['foo']['bar'])),
+#                 expected=1)
+#
+#     def test_bad_type(self):
+#         h = Value(Type1)['foo']['bar']
+#         with ShouldRaise(TypeError):
+#             check_ops(h, [], expected=None)
+#
+#
+# class TestAttr(TestCase):
+#
+#     def test_single(self):
+#         h = Value(Type1).foo
+#         compare(repr(h), "Value(Type1).foo")
+#         m = Mock()
+#         check_ops(h, m, expected=m.foo)
+#
+#     def test_multiple(self):
+#         h = Value(Type1).foo.bar
+#         compare(repr(h), "Value(Type1).foo.bar")
+#         m = Mock()
+#         check_ops(h, m, expected=m.foo.bar)
+#
+#     def test_missing(self):
+#         h = Value(Type1).foo
+#         compare(repr(h), "Value(Type1).foo")
+#         check_ops(h, object(), expected=missing)
+#
+#     def test_passed_missing(self):
+#         c = Context()
+#         c.add(object(), provides='key')
+#         compare(c.call(lambda x: x, requires(Value('key', default=1).foo.bar)),
+#                 expected=1)
+#
+#
+# class TestAnyOf:
+#
+#     def test_first(self):
+#         context = Context()
+#         context.add(('foo', ))
+#         context.add(('bar', ), provides=Tuple[str])
+#
+#         def bob(x: str = AnyOf(tuple, Tuple[str])):
+#             return x[0]
+#
+#         compare(context.call(bob), expected='foo')
+#
+#     def test_second(self):
+#         context = Context()
+#         context.add(('bar', ), provides=Tuple[str])
+#
+#         def bob(x: str = AnyOf(tuple, Tuple[str])):
+#             return x[0]
+#
+#         compare(context.call(bob), expected='bar')
+#
+#     def test_none(self):
+#         context = Context()
+#
+#         def bob(x: str = AnyOf(tuple, Tuple[str])):
+#             pass
+#
+#         with ShouldRaise(ResourceError):
+#             context.call(bob)
+#
+#     def test_default(self):
+#         context = Context()
+#
+#         def bob(x: str = AnyOf(tuple, Tuple[str], default=(42,))):
+#             return x[0]
+#
+#         compare(context.call(bob), expected=42)
+#
+#
+# class Parent(object):
+#     pass
+#
+#
+# class Child(Parent):
+#     pass
+#
+#
+# class TestLike:
+#
+#     def test_actual(self):
+#         context = Context()
+#         p = Parent()
+#         c = Child()
+#         context.add(p)
+#         context.add(c)
+#
+#         def bob(x: str = Like(Child)):
+#             return x
+#
+#         assert context.call(bob) is c
+#
+#     def test_base(self):
+#         context = Context()
+#         p = Parent()
+#         context.add(p)
+#
+#         def bob(x: str = Like(Child)):
+#             return x
+#
+#         assert context.call(bob) is p
+#
+#     def test_none(self):
+#         context = Context()
+#         # make sure we don't pick up object!
+#         context.add(object())
+#
+#         def bob(x: str = Like(Child)):
+#             pass
+#
+#         with ShouldRaise(ResourceError):
+#             context.call(bob)
+#
+#     def test_default(self):
+#         context = Context()
+#
+#         def bob(x: str = Like(Child, default=42)):
+#             return x
+#
+#         compare(context.call(bob), expected=42)

@@ -1,11 +1,11 @@
-from typing import Optional, Callable, Hashable, Type
+from typing import Optional, Callable, Hashable, Type, Sequence
 
-from .callpoints import CallPoint
-from .declarations import RequiresType, ReturnsType
-from .extraction import extract_requires, extract_returns, default_requirement_type
+from .declarations import RequiresType
+from .extraction import extract_requires
 from .markers import missing, Marker
 from .requirements import Requirement
-from .typing import ResourceValue, RequirementModifier
+from .resources import ResourceKey, Resource
+from .typing import ResourceValue
 
 NONE_TYPE = type(None)
 unspecified = Marker('unspecified')
@@ -13,35 +13,8 @@ unspecified = Marker('unspecified')
 
 class ResourceError(Exception):
     """
-    An exception raised when there is a problem with a `ResourceKey`.
+    An exception raised when there is a problem with a resource.
     """
-
-    def __init__(self, message: str, type_: Type = None, identifier: Hashable = None):
-        super().__init__(message)
-        #: The type for the problematic resource.
-        self.type: Type = type_
-        #: The identifier for the problematic resource.
-        self.identifier: Hashable = identifier
-        # #: The requirement that caused this exception.
-        # self.requirement: Requirement = requirement
-
-
-class ResourceKey(tuple):
-
-    @property
-    def type(self):
-        return self[0]
-
-    @property
-    def identifier(self):
-        return self[1]
-
-    def __repr__(self):
-        if self.type is None:
-            return repr(self.identifier)
-        elif self.identifier is None:
-            return repr(self.type)
-        return f'{self.type!r}, {self.identifier!r}'
 
 
 class Context:
@@ -54,7 +27,7 @@ class Context:
         self._store = {}
         self._seen_types = set()
         self._seen_identifiers = set()
-        # self._requires_cache = {}
+        self._requires_cache = {}
         # self._returns_cache = {}
 
     def add(self,
@@ -68,13 +41,13 @@ class Context:
         """
         if provides is missing:
             provides = type(resource)
-        to_add = [ResourceKey((provides, identifier))]
+        to_add = [ResourceKey(provides, identifier)]
         if identifier and provides:
-            to_add.append(ResourceKey((None, identifier)))
+            to_add.append(ResourceKey(None, identifier))
         for key in to_add:
             if key in self._store:
-                raise ResourceError(f'Context already contains {key!r}', *key)
-            self._store[key] = resource
+                raise ResourceError(f'Context already contains {key}')
+            self._store[key] = Resource(resource)
 
     # def remove(self, key: ResourceKey, *, strict: bool = True):
     #     """
@@ -90,7 +63,7 @@ class Context:
     def __repr__(self):
         bits = []
         for key, value in sorted(self._store.items(), key=lambda o: repr(o)):
-            bits.append(f'\n    {key!r}: {value!r}')
+            bits.append(f'\n    {key}: {value!r}')
         if bits:
             bits.append('\n')
         return f"<Context: {{{''.join(bits)}}}>"
@@ -109,46 +82,56 @@ class Context:
     #     result = self.call(obj, requires)
     #     self._process(obj, result, returns)
     #     return result
-    #
-    # def _resolve(self, obj, requires, args, kw, context):
-    #
-    #     if requires is None:
-    #         requires = self._requires_cache.get(obj)
-    #         if requires is None:
-    #             requires = extract_requires(obj,
-    #                                         explicit=None,
-    #                                         modifier=self.requirement_modifier)
-    #             self._requires_cache[obj] = requires
-    #
-    #     for requirement in requires:
-    #         o = yield requirement
-    #
-    #         if o is not requirement.default:
-    #             for op in requirement.ops:
-    #                 o = op(o)
-    #                 if o is missing:
-    #                     o = requirement.default
-    #                     break
-    #
-    #         if o is missing:
-    #             key = requirement.key
-    #             if isinstance(key, type) and issubclass(key, Context):
-    #                 o = context
-    #             else:
-    #                 raise ResourceError(f'No {requirement!r} in context',
-    #                                     key, requirement)
-    #
-    #         if requirement.target is None:
-    #             args.append(o)
-    #         else:
-    #             kw[requirement.target] = o
-    #
-    #         yield
+
+    def _resolve(self, obj, requires, args, kw, context):
+
+        if requires is None:
+            requires = self._requires_cache.get(obj)
+            if requires is None:
+                requires = extract_requires(obj)
+                self._requires_cache[obj] = requires
+
+        specials = {Context: self}
+
+        for requirement in requires:
+
+            o = missing
+
+            for key in requirement.keys:
+                # how to handle context and requirement here?!
+                resource = self._store.get(key)
+                if resource is None:
+                    o = specials.get(key[0], missing)
+                else:
+                    o = resource.obj
+                if o is not missing:
+                    break
+
+            if o is missing:
+                o = requirement.default
+
+            # if o is not requirement.default:
+            #     for op in requirement.ops:
+            #         o = op(o)
+            #         if o is missing:
+            #             o = requirement.default
+            #             break
+
+            if o is missing:
+                raise ResourceError(f'{requirement!r} could not be satisfied')
+
+            # if requirement.target is None:
+            args.append(o)
+            # else:
+            #     kw[requirement.target] = o
+            #
+            # yield
 
     def call(self, obj: Callable, requires: RequiresType = None):
         args = []
         kw = {}
-        # resolving = self._resolve(obj, requires, args, kw, self)
+
+        self._resolve(obj, requires, args, kw, self)
         # for requirement in resolving:
         #     resolving.send(requirement.resolve(self))
 

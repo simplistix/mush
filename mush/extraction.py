@@ -5,16 +5,16 @@ from functools import (
     partial
 )
 from inspect import signature, Parameter
-from typing import Callable
+from typing import Callable, Iterable
 
 from .declarations import (
     requires, RequiresType, ReturnsType,
     returns, result_type,
     requires_nothing
 )
-from .requirements import Requirement, Value
+from .requirements import Value, Requirement
 from .markers import missing, get_mush
-from .typing import RequirementModifier, Requires, Returns
+from .typing import Requires, Returns
 
 EMPTY = Parameter.empty
 #: For these types, prefer the name instead of the type.
@@ -47,104 +47,100 @@ def _apply_requires(by_name, by_index, requires_):
         )
 
 
-def default_requirement_type(requirement):
-    if type(requirement) is Requirement:
-        requirement = Value.make_from(requirement)
-    return requirement
-
-
-def extract_requires(obj: Callable,
-                     explicit: Requires = None,
-                     modifier: RequirementModifier = default_requirement_type):
+def extract_requires(obj: Callable) -> Iterable[Requirement]:
+                     # explicit: Requires = None):
     # from annotations
     by_name = {}
     for name, p in signature(obj).parameters.items():
         if p.kind in (p.VAR_POSITIONAL, p.VAR_KEYWORD):
             continue
 
-        # https://bugs.python.org/issue39753:
-        if isinstance(obj, partial) and p.name in obj.keywords:
-            continue
-
+    #     # https://bugs.python.org/issue39753:
+    #     if isinstance(obj, partial) and p.name in obj.keywords:
+    #         continue
+    #
         name = p.name
-        if isinstance(p.annotation, type) and not p.annotation is EMPTY:
+        if isinstance(p.annotation, type) and p.annotation is not EMPTY:
             type_ = p.annotation
         else:
             type_ = None
-        key = None
+
         default = missing if p.default is EMPTY else p.default
         ops = []
 
-        requirement = None
-        if isinstance(default, Requirement):
-            requirement = default
-            default = missing
-        elif isinstance(p.annotation, Requirement):
-            requirement = p.annotation
-
-        if requirement is None:
-            requirement = Requirement(key)
-            if isinstance(p.annotation, str):
-                key = p.annotation
-            elif type_ is None or issubclass(type_, SIMPLE_TYPES):
-                key = name
-            else:
-                key = type_
-        else:
-            requirement = requirement.make_from(requirement)
-            type_ = type_ if requirement.type is None else requirement.type
-            if requirement.key is not None:
-                key = requirement.key
-            elif type_ is None or issubclass(type_, SIMPLE_TYPES):
-                key = name
-            else:
-                key = type_
-            default = requirement.default if requirement.default is not missing else default
-            ops = requirement.ops
-
-        requirement.key = key
-        requirement.name = name
-        requirement.type = type_
-        requirement.default = default
-        requirement.ops = ops
-
-        if p.kind is p.KEYWORD_ONLY:
-            requirement.target = p.name
-
+        requirement = Value(type_, p.name, default)
+    #
+    #     requirement = None
+    #     if isinstance(default, Requirement):
+    #         requirement = default
+    #         default = missing
+    #     elif isinstance(p.annotation, Requirement):
+    #         requirement = p.annotation
+    #
+    #     if requirement is None:
+    #         requirement = Requirement(key)
+    #         if isinstance(p.annotation, str):
+    #             key = p.annotation
+    #         elif type_ is None or issubclass(type_, SIMPLE_TYPES):
+    #             key = name
+    #         else:
+    #             key = type_
+    #     else:
+    #         requirement = requirement.make_from(requirement)
+    #         type_ = type_ if requirement.type is None else requirement.type
+    #         if requirement.key is not None:
+    #             key = requirement.key
+    #         elif type_ is None or issubclass(type_, SIMPLE_TYPES):
+    #             key = name
+    #         else:
+    #             key = type_
+    #         default = requirement.default if requirement.default is not missing else default
+    #         ops = requirement.ops
+    #
+    #     requirement.key = key
+    #     requirement.name = name
+    #     requirement.type = type_
+    #     requirement.default = default
+    #     requirement.ops = ops
+    #
+    #     if p.kind is p.KEYWORD_ONLY:
+    #         requirement.target = p.name
+    #
         by_name[name] = requirement
-
-    by_index = list(by_name)
-
-    # from declarations
-    mush_requires = get_mush(obj, 'requires', None)
-    if mush_requires is not None:
-        _apply_requires(by_name, by_index, mush_requires)
-
-    # explicit
-    if explicit is not None:
-        if isinstance(explicit, RequiresType):
-            requires_ = explicit
-        else:
-            if not isinstance(explicit, (list, tuple)):
-                explicit = (explicit,)
-            requires_ = requires(*explicit)
-        _apply_requires(by_name, by_index, requires_)
-
-    if not by_name:
-        return requires_nothing
-
-    # sort out target and apply modifier:
-    needs_target = False
-    for name, requirement in by_name.items():
-        requirement_ = modifier(requirement)
-        if requirement_ is not requirement:
-            by_name[name] = requirement = requirement_
-        if requirement.target is not None:
-            needs_target = True
-        elif needs_target:
-            requirement.target = requirement.name
-
-    return RequiresType(by_name.values())
+    #
+    # by_index = list(by_name)
+    #
+    # # from declarations
+    # mush_requires = get_mush(obj, 'requires', None)
+    # if mush_requires is not None:
+    #     _apply_requires(by_name, by_index, mush_requires)
+    #
+    # # explicit
+    # if explicit is not None:
+    #     if isinstance(explicit, RequiresType):
+    #         requires_ = explicit
+    #     else:
+    #         if not isinstance(explicit, (list, tuple)):
+    #             explicit = (explicit,)
+    #         requires_ = requires(*explicit)
+    #     _apply_requires(by_name, by_index, requires_)
+    #
+    # if not by_name:
+    #     return requires_nothing
+    #
+    # # sort out target and apply modifier:
+    # needs_target = False
+    # for name, requirement in by_name.items():
+    #     requirement_ = modifier(requirement)
+    #     if requirement_ is not requirement:
+    #         by_name[name] = requirement = requirement_
+    #     if requirement.target is not None:
+    #         needs_target = True
+    #     elif needs_target:
+    #         requirement.target = requirement.name
+    #
+    return by_name.values()
+    # return RequiresType(by_name.values())
 
 
 def extract_returns(obj: Callable, explicit: Returns = None):

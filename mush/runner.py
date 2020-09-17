@@ -3,11 +3,11 @@ from typing import Callable, Optional
 from .callpoints import CallPoint
 from .context import Context, ResourceError
 from .declarations import DeclarationsFrom
-from .extraction import extract_requires, extract_returns, default_requirement_type
+from .extraction import extract_requires, extract_returns
 from .markers import not_specified
 from .modifier import Modifier
 from .plug import Plug
-from .requirements import name_or_repr, Lazy
+from .requirements import name_or_repr#, Lazy
 from .typing import Requires, Returns
 
 
@@ -21,7 +21,7 @@ class Runner(object):
     start: Optional[CallPoint] = None
     end: Optional[CallPoint] = None
 
-    def __init__(self, *objects: Callable, requirement_modifier=default_requirement_type):
+    def __init__(self, *objects: Callable):
         self.requirement_modifier = requirement_modifier
         self.labels = {}
         self.lazy = {}

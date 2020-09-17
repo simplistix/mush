@@ -4,12 +4,13 @@ from testfixtures import ShouldRaise, compare
 # from testfixtures.mock import Mock
 #
 from mush import (
-    Context, requires, returns, returns_mapping, Value, missing
+    Context#, requires, returns, returns_mapping, Value, missing
 )
 from mush.context import ResourceError
 # from mush.declarations import RequiresType, requires_nothing, returns_nothing
 # from mush.requirements import Requirement
 from .helpers import TheType
+from ..resources import Resource
 
 
 class TestContext(object):
@@ -19,7 +20,7 @@ class TestContext(object):
         context = Context()
         context.add(obj)
 
-        compare(context._store, expected={(TheType, None): obj})
+        compare(context._store, expected={(TheType, None): Resource(obj)})
         expected = (
             "<Context: {\n"
             "    <class 'mush.tests.helpers.TheType'>: <TheType obj>\n"
@@ -34,12 +35,12 @@ class TestContext(object):
         context.add(obj, identifier='my label')
 
         compare(context._store, expected={
-            (TheType, 'my label'): obj,
-            (None, 'my label'): obj,
+            (TheType, 'my label'): Resource(obj),
+            (None, 'my label'): Resource(obj),
         })
         expected = ("<Context: {\n"
-                    "    'my label': <TheType obj>\n"
                     "    <class 'mush.tests.helpers.TheType'>, 'my label': <TheType obj>\n"
+                    "    'my label': <TheType obj>\n"
                     "}>")
         compare(expected, actual=repr(context))
         compare(expected, actual=str(context))
@@ -49,7 +50,7 @@ class TestContext(object):
         context = Context()
         context.add(obj, provides=None, identifier='my label')
 
-        compare(context._store, expected={(None, 'my label'): obj})
+        compare(context._store, expected={(None, 'my label'): Resource(obj)})
         expected = ("<Context: {\n"
                     "    'my label': <TheType obj>\n"
                     "}>")
@@ -61,7 +62,7 @@ class TestContext(object):
         obj = TheType()
         context = Context()
         context.add(obj, provides=T2)
-        compare(context._store, expected={(T2, None): obj})
+        compare(context._store, expected={(T2, None): Resource(obj)})
         expected = ("<Context: {\n"
                     "    " + repr(T2) + ": <TheType obj>\n"
                     "}>")
@@ -73,8 +74,7 @@ class TestContext(object):
         obj2 = TheType()
         context = Context()
         context.add(obj1, TheType)
-        with ShouldRaise(ResourceError(f'Context already contains {TheType!r}',
-                                       type_=TheType)):
+        with ShouldRaise(ResourceError(f'Context already contains {TheType!r}')):
             context.add(obj2, TheType)
 
     def test_clash_just_identifier(self):
@@ -82,8 +82,7 @@ class TestContext(object):
         obj2 = TheType()
         context = Context()
         context.add(obj1, provides=None, identifier='my label')
-        with ShouldRaise(ResourceError("Context already contains 'my label'",
-                                       identifier='my label')):
+        with ShouldRaise(ResourceError("Context already contains 'my label'")):
             context.add(obj2, provides=None, identifier='my label')
 
     def test_clash_identifier_only_with_identifier_plus_type(self):
@@ -91,8 +90,7 @@ class TestContext(object):
         obj2 = TheType()
         context = Context()
         context.add(obj1, provides=None, identifier='my label')
-        with ShouldRaise(ResourceError("Context already contains 'my label'",
-                                       identifier='my label')):
+        with ShouldRaise(ResourceError("Context already contains 'my label'")):
             context.add(obj2, identifier='my label')
 
     def test_clash_identifier_plus_type_with_identifier_only(self):
@@ -100,8 +98,7 @@ class TestContext(object):
         obj2 = TheType()
         context = Context()
         context.add(obj1, identifier='my label')
-        with ShouldRaise(ResourceError("Context already contains 'my label'",
-                                       identifier='my label')):
+        with ShouldRaise(ResourceError("Context already contains 'my label'")):
             context.add(obj2, provides=None, identifier='my label')
 
     def test_call_no_params(self):
@@ -128,16 +125,69 @@ class TestContext(object):
         result = context.call(foo)
         compare(result, expected='bob')
 
-    def test_call_identifier_and_type_from_annotation(self):
-        def foo(baz: str):
-            return baz
-        context = Context()
-        context.add('bar', provides=str)
-        context.add('bob', identifier='baz')
-        context.add('foo', provides=str, identifier='baz')
-        result = context.call(foo)
-        compare(result, expected='foo')
+    def test_call_by_identifier_only(self):
+        def foo(param):
+            return param
 
+        context = Context()
+        context.add('bar', identifier='param')
+        result = context.call(foo)
+        compare(result, 'bar')
+
+    def test_call_requires_missing(self):
+        def foo(obj: TheType): return obj
+        context = Context()
+        with ShouldRaise(ResourceError(
+            "Value(<class 'mush.tests.helpers.TheType'>, 'obj') could not be satisfied"
+        )):
+            context.call(foo)
+
+    def test_call_optional_type_present(self):
+        def foo(x: TheType = 1):
+            return x
+        context = Context()
+        context.add(2, TheType)
+        result = context.call(foo)
+        compare(result, 2)
+
+    def test_call_optional_type_missing(self):
+        def foo(x: TheType = 1):
+            return x
+        context = Context()
+        result = context.call(foo)
+        compare(result, 1)
+
+    def test_call_optional_identifier_present(self):
+        def foo(x=1):
+            return x
+
+        context = Context()
+        context.add(2, identifier='x')
+        result = context.call(foo)
+        compare(result, 2)
+
+    def test_call_optional_identifier_missing(self):
+        def foo(x=1):
+            return x
+
+        context = Context()
+        context.add(2)
+        result = context.call(foo)
+        compare(result, 1)
+
+    def test_call_requires_context(self):
+        context = Context()
+
+        def return_context(context_: Context):
+            return context_
+
+        assert context.call(return_context) is context
+
+    def test_call_requires_requirement(self):
+        # this should blow up unless we're in a provider?
+        pass
+
+# XXX - these are for explicit requires() objects:
     # def test_call_requires_string(self):
     #     def foo(obj):
     #         return obj
@@ -156,16 +206,28 @@ class TestContext(object):
 #         compare(result, 'bar')
 #         compare({TheType: 'bar'}, actual=context._store)
 #
-#     def test_call_requires_missing(self):
-#         def foo(obj): return obj
-#         context = Context()
-#         with ShouldRaise(ResourceError(
-#             "No Value(TheType) in context",
-#             key=TheType,
-#             requirement=Value(TheType),
-#         )):
-#             context.call(foo, requires(TheType))
+    #
+    #     def test_call_requires_accidental_tuple(self):
+    #         def foo(obj): return obj
+    #         context = Context()
+    #         with ShouldRaise(TypeError(
+    #                 "(<class 'mush.tests.helpers.TheType'>, "
+    #                 "<class 'mush.tests.helpers.TheType'>) "
+    #                 "is not a valid decoration type"
+    #         )):
+    #             context.call(foo, requires((TheType, TheType)))
 #
+#     def test_call_requires_optional_override_source_and_default(self):
+#         def foo(x=1):
+#             return x
+#         context = Context()
+#         context.add(2, provides='x')
+#         result = context.call(foo, requires(x=Value('y', default=3)))
+#         compare(result, expected=3)
+#
+
+
+# XXX - these are for ops
 #     def test_call_requires_item_missing(self):
 #         def foo(obj): return obj
 #         context = Context()
@@ -176,16 +238,6 @@ class TestContext(object):
 #             requirement=Value(TheType)['foo'],
 #         )):
 #             context.call(foo, requires(Value(TheType)['foo']))
-#
-#     def test_call_requires_accidental_tuple(self):
-#         def foo(obj): return obj
-#         context = Context()
-#         with ShouldRaise(TypeError(
-#                 "(<class 'mush.tests.helpers.TheType'>, "
-#                 "<class 'mush.tests.helpers.TheType'>) "
-#                 "is not a valid decoration type"
-#         )):
-#             context.call(foo, requires((TheType, TheType)))
 #
 #     def test_call_requires_named_parameter(self):
 #         def foo(x, y):
@@ -198,39 +250,6 @@ class TestContext(object):
 #         compare({TheType: 'foo',
 #                  'baz': 'bar'},
 #                 actual=context._store)
-#
-#     def test_call_requires_optional_present(self):
-#         def foo(x=1):
-#             return x
-#         context = Context()
-#         context.add(2, TheType)
-#         result = context.call(foo, requires(TheType))
-#         compare(result, 2)
-#         compare({TheType: 2}, actual=context._store)
-#
-#     def test_call_requires_optional_missing(self):
-#         def foo(x: TheType = 1):
-#             return x
-#         context = Context()
-#         result = context.call(foo)
-#         compare(result, 1)
-#
-#     def test_call_requires_optional_override_source_and_default(self):
-#         def foo(x=1):
-#             return x
-#         context = Context()
-#         context.add(2, provides='x')
-#         result = context.call(foo, requires(x=Value('y', default=3)))
-#         compare(result, expected=3)
-#
-#     def test_call_requires_optional_string(self):
-#         def foo(x:'foo'=1):
-#             return x
-#         context = Context()
-#         context.add(2, 'foo')
-#         result = context.call(foo)
-#         compare(result, 2)
-#         compare({'foo': 2}, actual=context._store)
 #
 #     def test_call_requires_item(self):
 #         def foo(x):
@@ -273,21 +292,9 @@ class TestContext(object):
 #         context.add(dict(bar='baz'), provides='foo')
 #         result = context.call(foo)
 #         compare(result, 'baz')
-#
-#     def test_call_extract_requirements(self):
-#         def foo(param):
-#             return param
-#         context = Context()
-#         context.add('bar', 'param')
-#         result = context.call(foo)
-#         compare(result, 'bar')
-#
-#     def test_call_extract_no_requirements(self):
-#         def foo():
-#             pass
-#         context = Context()
-#         result = context.call(foo)
-#         compare(result, expected=None)
+
+
+# XXX requirements caching:
 #
 #     def test_call_caches_requires(self):
 #         context = Context()
@@ -370,12 +377,6 @@ class TestContext(object):
 #         compare(result, expected=None)
 #         compare(context._store, expected={})
 #
-#     def test_context_contains_itself(self):
-#         context = Context()
-#         def return_context(context: Context):
-#             return context
-#         assert context.call(return_context) is context
-#
 #     def test_remove(self):
 #         context = Context()
 #         context.add('foo')
@@ -445,6 +446,10 @@ class TestContext(object):
 #         c2 = c1.nest()
 #         assert c2._requires_cache is c1._requires_cache
 #         assert c2._returns_cache is c1._returns_cache
+
+
+
+# XXX "custom requirement" stuff
 #
 #     def test_custom_requirement(self):
 #
@@ -492,3 +497,9 @@ class TestContext(object):
 #         context = Context(requirement_modifier=modifier)
 #         context.add({'bar': 'foo'}, provides='request')
 #         compare(context.call(foo), expected='foo')
+
+    def test_provider(self):
+        pass
+
+    def test_provider_needs_requirement(self):
+        pass

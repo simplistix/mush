@@ -14,6 +14,5 @@ Requires = Union['RequiresType',
 ReturnType = Union[type, str]
 Returns = Union['ReturnsType', ReturnType, List[ReturnType], Tuple[ReturnType, ...]]
 
-ResourceKey = Union[Hashable, Callable]
 ResourceValue = NewType('ResourceValue', Any)
-RequirementModifier = Callable[['Requirement'], 'Requirement']
+
