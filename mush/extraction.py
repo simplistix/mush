@@ -18,33 +18,33 @@ from .typing import Requires, Returns
 
 EMPTY = Parameter.empty
 #: For these types, prefer the name instead of the type.
-SIMPLE_TYPES = (str, int, dict, list)
-
-
-def _apply_requires(by_name, by_index, requires_):
-
-    for i, r in enumerate(requires_):
-
-        if r.target is None:
-            try:
-                name = by_index[i]
-            except IndexError:
-                # case where something takes *args
-                by_name[i] = r.make_from(r)
-                continue
-        else:
-            name = r.target
-
-        existing = by_name[name]
-        by_name[name] = r.make_from(
-            r,
-            name=existing.name,
-            key=existing.key if r.key is None else r.key,
-            type=existing.type if r.type is None else r.type,
-            default=existing.default if r.default is missing else r.default,
-            ops=existing.ops if not r.ops else r.ops,
-            target=existing.target if r.target is None else r.target,
-        )
+# SIMPLE_TYPES = (str, int, dict, list)
+#
+#
+# def _apply_requires(by_name, by_index, requires_):
+#
+#     for i, r in enumerate(requires_):
+#
+#         if r.target is None:
+#             try:
+#                 name = by_index[i]
+#             except IndexError:
+#                 # case where something takes *args
+#                 by_name[i] = r.make_from(r)
+#                 continue
+#         else:
+#             name = r.target
+#
+#         existing = by_name[name]
+#         by_name[name] = r.make_from(
+#             r,
+#             name=existing.name,
+#             key=existing.key if r.key is None else r.key,
+#             type=existing.type if r.type is None else r.type,
+#             default=existing.default if r.default is missing else r.default,
+#             ops=existing.ops if not r.ops else r.ops,
+#             target=existing.target if r.target is None else r.target,
+#         )
 
 
 def extract_requires(obj: Callable) -> Iterable[Requirement]:
@@ -143,34 +143,34 @@ def extract_requires(obj: Callable) -> Iterable[Requirement]:
     # return RequiresType(by_name.values())
 
 
-def extract_returns(obj: Callable, explicit: Returns = None):
-    if explicit is None:
-        returns_ = get_mush(obj, 'returns', None)
-        if returns_ is None:
-            annotations = getattr(obj, '__annotations__', {})
-            returns_ = annotations.get('return')
-    else:
-        returns_ = explicit
-
-    if returns_ is None or isinstance(returns_, ReturnsType):
-        pass
-    elif isinstance(returns_, (list, tuple)):
-        returns_ = returns(*returns_)
-    else:
-        returns_ = returns(returns_)
-
-    return returns_ or result_type
-
-
-WRAPPER_ASSIGNMENTS = FUNCTOOLS_ASSIGNMENTS + ('__mush__',)
-
-
-def update_wrapper(wrapper,
-                   wrapped,
-                   assigned=WRAPPER_ASSIGNMENTS,
-                   updated=WRAPPER_UPDATES):
-    """
-    An extended version of :func:`functools.update_wrapper` that
-    also preserves Mush's annotations.
-    """
-    return functools_update_wrapper(wrapper, wrapped, assigned, updated)
+# def extract_returns(obj: Callable, explicit: Returns = None):
+#     if explicit is None:
+#         returns_ = get_mush(obj, 'returns', None)
+#         if returns_ is None:
+#             annotations = getattr(obj, '__annotations__', {})
+#             returns_ = annotations.get('return')
+#     else:
+#         returns_ = explicit
+#
+#     if returns_ is None or isinstance(returns_, ReturnsType):
+#         pass
+#     elif isinstance(returns_, (list, tuple)):
+#         returns_ = returns(*returns_)
+#     else:
+#         returns_ = returns(returns_)
+#
+#     return returns_ or result_type
+#
+#
+# WRAPPER_ASSIGNMENTS = FUNCTOOLS_ASSIGNMENTS + ('__mush__',)
+#
+#
+# def update_wrapper(wrapper,
+#                    wrapped,
+#                    assigned=WRAPPER_ASSIGNMENTS,
+#                    updated=WRAPPER_UPDATES):
+#     """
+#     An extended version of :func:`functools.update_wrapper` that
+#     also preserves Mush's annotations.
+#     """
+#     return functools_update_wrapper(wrapper, wrapped, assigned, updated)

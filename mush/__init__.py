@@ -2,7 +2,7 @@ from .context import Context, ResourceError
 from .declarations import (
     requires, returns, returns_result_type, returns_mapping, returns_sequence,
 )
-from .extraction import extract_requires, extract_returns, update_wrapper
+from .extraction import extract_requires#, extract_returns, update_wrapper
 from .markers import missing, nonblocking, blocking
 from .plug import Plug
 from .requirements import Requirement, Value#, AnyOf, Like

@@ -3,7 +3,7 @@ from typing import Callable, Optional
 from .callpoints import CallPoint
 from .context import Context, ResourceError
 from .declarations import DeclarationsFrom
-from .extraction import extract_requires, extract_returns
+from .extraction import extract_requires#, extract_returns
 from .markers import not_specified
 from .modifier import Modifier
 from .plug import Plug
