@@ -46,8 +46,8 @@ class Requirement:
     The requirement for an individual parameter of a callable.
     """
 
-    def __init__(self, default: Any, *keys: Sequence[ResourceKey]):
-        self.keys = keys
+    def __init__(self, default: Any, *keys: ResourceKey):
+        self.keys: Sequence[ResourceKey] = keys
         self.default = default
         self.ops: List['Op'] = []
     #     self.target: Optional[str] = target
