@@ -137,23 +137,6 @@ class Context:
 
         return obj(*args, **kw)
     #
-    # def get(self, key: ResourceKey, default=unspecified):
-    #     context = self
-    #
-    #     while context is not None:
-    #         value = context._store.get(key, missing)
-    #         if value is missing:
-    #             context = context._parent
-    #         else:
-    #             if context is not self:
-    #                 self._store[key] = value
-    #             return value
-    #
-    #     if default is unspecified:
-    #         raise ResourceError(f'No {key!r} in context', key)
-    #
-    #     return default
-    #
     # def nest(self, requirement_modifier: RequirementModifier = None):
     #     if requirement_modifier is None:
     #         requirement_modifier = self.requirement_modifier

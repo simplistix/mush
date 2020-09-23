@@ -395,25 +395,6 @@ class TestContext(object):
 #         context.remove('foo', strict=False)
 #         compare(context._store, expected={})
 #
-#     def test_get_present(self):
-#         context = Context()
-#         context.add('bar', provides='foo')
-#         compare(context.get('foo'), expected='bar')
-#
-#     def test_get_type(self):
-#         context = Context()
-#         context.add(['bar'], provides=List[str])
-#         compare(context.get(List[str]), expected=['bar'])
-#         compare(context.get(List[int], default=None), expected=None)
-#         compare(context.get(List, default=None), expected=None)
-#         # nb: this might be surprising:
-#         compare(context.get(list, default=None), expected=None)
-#
-#     def test_get_missing(self):
-#         context = Context()
-#         with ShouldRaise(ResourceError("No 'foo' in context", 'foo')):
-#             context.get('foo')
-#
 #     def test_nest(self):
 #         c1 = Context()
 #         c1.add('a', provides='a')
