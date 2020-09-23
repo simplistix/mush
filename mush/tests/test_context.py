@@ -1,21 +1,24 @@
 # from typing import Tuple, List
 #
+from typing import NewType
+
 from testfixtures import ShouldRaise, compare
+
 # from testfixtures.mock import Mock
 #
 from mush import (
-    Context#, requires, returns, returns_mapping, Value, missing
+    Context, Requirement  # , requires, returns, returns_mapping, Value, missing
 )
 from mush.context import ResourceError
 # from mush.declarations import RequiresType, requires_nothing, returns_nothing
 # from mush.requirements import Requirement
-from .helpers import TheType
-from ..resources import Resource
+from .helpers import TheType, Type1, Type2
+from ..resources import Resource, Provider
 
 
-class TestContext(object):
+class TestAdd:
 
-    def test_add_by_inferred_type(self):
+    def test_by_inferred_type(self):
         obj = TheType()
         context = Context()
         context.add(obj)
@@ -29,7 +32,7 @@ class TestContext(object):
         compare(expected, actual=repr(context))
         compare(expected, actual=str(context))
 
-    def test_add_by_identifier(self):
+    def test_by_identifier(self):
         obj = TheType()
         context = Context()
         context.add(obj, identifier='my label')
@@ -45,7 +48,7 @@ class TestContext(object):
         compare(expected, actual=repr(context))
         compare(expected, actual=str(context))
 
-    def test_add_by_identifier_only(self):
+    def test_by_identifier_only(self):
         obj = TheType()
         context = Context()
         context.add(obj, provides=None, identifier='my label')
@@ -101,14 +104,17 @@ class TestContext(object):
         with ShouldRaise(ResourceError("Context already contains 'my label'")):
             context.add(obj2, provides=None, identifier='my label')
 
-    def test_call_no_params(self):
+
+class TestCall:
+
+    def test_no_params(self):
         def foo():
             return 'bar'
         context = Context()
         result = context.call(foo)
         compare(result, 'bar')
 
-    def test_call_type_from_annotation(self):
+    def test_type_from_annotation(self):
         def foo(baz: str):
             return baz
         context = Context()
@@ -116,7 +122,7 @@ class TestContext(object):
         result = context.call(foo)
         compare(result, expected='bar')
 
-    def test_call_identifier_from_annotation(self):
+    def test_identifier_from_annotation(self):
         def foo(baz: str):
             return baz
         context = Context()
@@ -125,7 +131,7 @@ class TestContext(object):
         result = context.call(foo)
         compare(result, expected='bob')
 
-    def test_call_by_identifier_only(self):
+    def test_by_identifier_only(self):
         def foo(param):
             return param
 
@@ -134,7 +140,7 @@ class TestContext(object):
         result = context.call(foo)
         compare(result, 'bar')
 
-    def test_call_requires_missing(self):
+    def test_requires_missing(self):
         def foo(obj: TheType): return obj
         context = Context()
         with ShouldRaise(ResourceError(
@@ -142,7 +148,7 @@ class TestContext(object):
         )):
             context.call(foo)
 
-    def test_call_optional_type_present(self):
+    def tes_optional_type_present(self):
         def foo(x: TheType = 1):
             return x
         context = Context()
@@ -150,14 +156,14 @@ class TestContext(object):
         result = context.call(foo)
         compare(result, 2)
 
-    def test_call_optional_type_missing(self):
+    def test_optional_type_missing(self):
         def foo(x: TheType = 1):
             return x
         context = Context()
         result = context.call(foo)
         compare(result, 1)
 
-    def test_call_optional_identifier_present(self):
+    def test_optional_identifier_present(self):
         def foo(x=1):
             return x
 
@@ -166,7 +172,7 @@ class TestContext(object):
         result = context.call(foo)
         compare(result, 2)
 
-    def test_call_optional_identifier_missing(self):
+    def test_optional_identifier_missing(self):
         def foo(x=1):
             return x
 
@@ -175,7 +181,7 @@ class TestContext(object):
         result = context.call(foo)
         compare(result, 1)
 
-    def test_call_requires_context(self):
+    def test_requires_context(self):
         context = Context()
 
         def return_context(context_: Context):
@@ -183,7 +189,7 @@ class TestContext(object):
 
         assert context.call(return_context) is context
 
-    def test_call_requires_requirement(self):
+    def test_base_class_should_not_match(self):
         # this should blow up unless we're in a provider?
         pass
 
@@ -311,6 +317,9 @@ class TestContext(object):
 #         compare(result, ('a',))
 #         compare(context._requires_cache, expected={})
 #
+
+    # XXX extract
+
 #     def test_extract_minimal(self):
 #         o = TheType()
 #         def foo() -> TheType:
@@ -377,6 +386,9 @@ class TestContext(object):
 #         compare(result, expected=None)
 #         compare(context._store, expected={})
 #
+
+    # XXX - remove
+
 #     def test_remove(self):
 #         context = Context()
 #         context.add('foo')
@@ -394,6 +406,8 @@ class TestContext(object):
 #         context = Context()
 #         context.remove('foo', strict=False)
 #         compare(context._store, expected={})
+#
+# XXX - nest
 #
 #     def test_nest(self):
 #         c1 = Context()
@@ -427,8 +441,205 @@ class TestContext(object):
 #         c2 = c1.nest()
 #         assert c2._requires_cache is c1._requires_cache
 #         assert c2._returns_cache is c1._returns_cache
+#  - XXX nesting versus cached providers!
 
+class TestProviders:
 
+    def test_cached(self):
+        items = []
+
+        def provider():
+            items.append(1)
+            return sum(items)
+
+        context = Context()
+        context.add(Provider(provider), provides=int)
+
+        def returner(obj: int):
+            return obj
+
+        compare(context.call(returner), expected=1)
+        compare(context.call(returner), expected=1)
+
+    def test_not_cached(self):
+        items = []
+
+        def provider():
+            items.append(1)
+            return sum(items)
+
+        context = Context()
+        context.add(Provider(provider, cache=False), provides=int)
+
+        def returner(obj: int):
+            return obj
+
+        compare(context.call(returner), expected=1)
+        compare(context.call(returner), expected=2)
+
+    def test_needs_resources(self):
+        def provider(start: int):
+            return start*2
+
+        context = Context()
+        context.add(Provider(provider), provides=int)
+        context.add(4, identifier='start')
+
+        def returner(obj: int):
+            return obj
+
+        compare(context.call(returner), expected=8)
+
+    def test_needs_requirement(self):
+        def provider(requirement: Requirement):
+            return requirement.keys[0].identifier
+
+        context = Context()
+        context.add(Provider(provider), provides=str)
+
+        def returner(obj: str):
+            return obj
+
+        compare(context.call(returner), expected='obj')
+
+    def test_provides_subclasses(self):
+        class Base: pass
+
+        class TheType(Base): pass
+
+        def provider(requirement: Requirement):
+            return requirement.keys[0].type()
+
+        def foo(bar: TheType):
+            return bar
+
+        context = Context()
+        context.add(Provider(provider, provides_subclasses=True), provides=Base)
+
+        assert isinstance(context.call(foo), TheType)
+
+    def test_does_not_provide_subclasses(self):
+        def foo(obj: TheType): pass
+
+        context = Context()
+        context.add(Provider(lambda: None), provides=object)
+
+        with ShouldRaise(ResourceError(
+            "Value(<class 'mush.tests.helpers.TheType'>, 'obj') could not be satisfied"
+        )):
+            context.call(foo)
+
+    def test_multiple_providers_using_requirement(self):
+        def provider(requirement: Requirement):
+            return requirement.keys[0].type()
+
+        def foo(t1: Type1, t2: Type2):
+            return t1, t2
+
+        context = Context()
+        context.add(Provider(provider), provides=Type1)
+        context.add(Provider(provider), provides=Type2)
+
+        t1, t2 = context.call(foo)
+        assert isinstance(t1, Type1)
+        assert isinstance(t2, Type2)
+
+    def test_nested_providers_using_requirement(self):
+        class Base1: pass
+
+        class Type1(Base1): pass
+
+        def provider1(requirement: Requirement):
+            return requirement.keys[0].type()
+
+        class Base2:
+            def __init__(self, x):
+                self.x = x
+
+        class Type2(Base2): pass
+
+        # order here is important
+        def provider2(t1: Type1, requirement: Requirement):
+            return requirement.keys[0].type(t1)
+
+        def foo(t2: Type2):
+            return t2
+
+        context = Context()
+        context.add(Provider(provider1, provides_subclasses=True), provides=Base1)
+        context.add(Provider(provider2, provides_subclasses=True), provides=Base2)
+
+        t2 = context.call(foo)
+        assert isinstance(t2, Type2)
+        assert isinstance(t2.x, Type1)
+
+    def test_from_return_type_annotation(self):
+        def provider() -> Type1:
+            return Type1()
+
+        context = Context()
+        context.add(Provider(provider))
+
+        def returner(obj: Type1):
+            return obj
+
+        assert isinstance(context.call(returner), Type1)
+
+    def test_no_provides(self):
+        def provider(): pass
+        context = Context()
+        with ShouldRaise(ResourceError(f'Could not determine what is provided by {provider}')):
+            context.add(Provider(provider))
+
+    def test_identifier(self):
+        def provider() -> str:
+            return 'some foo'
+
+        context = Context()
+        context.add(Provider(provider), identifier='param')
+
+        def foo(param):
+            return param
+
+        compare(context.call(foo), expected='some foo')
+
+    def test_identifier_only(self):
+        def provider():
+            return 'some foo'
+
+        context = Context()
+        context.add(Provider(provider), identifier='param')
+
+        def foo(param):
+            return param
+
+        compare(context.call(foo), expected='some foo')
+
+    def test_minimal_representation(self):
+        def provider(): pass
+        context = Context()
+        context.add(Provider(provider), provides=str)
+        expected = ("<Context: {\n"
+                    f"    <class 'str'>: Provider({provider}, "
+                    f"cache=True, provides_subclasses=False)\n"
+                    "}>")
+        compare(expected, actual=repr(context))
+        compare(expected, actual=str(context))
+
+    def test_maximal_representation(self):
+        def provider() -> str: pass
+        p = Provider(provider, cache=False, provides_subclasses=True)
+        p.obj = 'it'
+        context = Context()
+        context.add(p, provides=str, identifier='the id')
+        expected = ("<Context: {\n"
+                    f"    <class 'str'>, 'the id': Provider({provider}, "
+                    f"cached='it', cache=False, provides_subclasses=True)\n"
+                    f"    'the id': Provider({provider}, "
+                    f"cached='it', cache=False, provides_subclasses=True)\n"
+                    "}>")
+        compare(expected, actual=repr(context))
+        compare(expected, actual=str(context))
 
 # XXX "custom requirement" stuff
 #
@@ -460,27 +671,3 @@ class TestContext(object):
 #                                        key='bar',
 #                                        requirement=FromRequest.make(key='bar', name='bar'))):
 #             compare(context.call(foo))
-#
-#     def test_default_custom_requirement(self):
-#
-#         class FromRequest(Requirement):
-#             def resolve(self, context):
-#                 return context.get('request')[self.key]
-#
-#         def foo(bar):
-#             return bar
-#
-#         def modifier(requirement):
-#             if type(requirement) is Requirement:
-#                 requirement = FromRequest.make_from(requirement)
-#             return requirement
-#
-#         context = Context(requirement_modifier=modifier)
-#         context.add({'bar': 'foo'}, provides='request')
-#         compare(context.call(foo), expected='foo')
-
-    def test_provider(self):
-        pass
-
-    def test_provider_needs_requirement(self):
-        pass
