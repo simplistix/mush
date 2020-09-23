@@ -20,9 +20,13 @@ class ResourceKey(tuple):
     def __str__(self):
         if self.type is None:
             return repr(self.identifier)
-        elif self.identifier is None:
-            return repr(self.type)
-        return f'{self.type!r}, {self.identifier!r}'
+        if hasattr(self.type, '__supertype__'):
+            type_repr = f'NewType({self.type.__name__}, {self.type.__supertype__})'
+        else:
+            type_repr = repr(self.type)
+        if self.identifier is None:
+            return type_repr
+        return f'{type_repr}, {self.identifier!r}'
 
 
 class Resource:

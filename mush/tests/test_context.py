@@ -1,6 +1,6 @@
 # from typing import Tuple, List
 #
-from typing import NewType
+from typing import NewType, Mapping, Any
 
 from testfixtures import ShouldRaise, compare
 
@@ -190,8 +190,58 @@ class TestCall:
         assert context.call(return_context) is context
 
     def test_base_class_should_not_match(self):
-        # this should blow up unless we're in a provider?
-        pass
+        def foo(obj: TheType): return obj
+        context = Context()
+        context.add(object())
+        with ShouldRaise(ResourceError(
+            "Value(<class 'mush.tests.helpers.TheType'>, 'obj') could not be satisfied"
+        )):
+            context.call(foo)
+
+    def test_requires_typing(self):
+        Request = NewType('Request', dict)
+        context = Context()
+        request = {}
+        context.add(request, provides=Request)
+
+        def returner(request_: Request):
+            return request_
+
+        assert context.call(returner) is request
+
+    def test_requires_typing_missing_typing(self):
+        context = Context()
+
+        def returner(request_: Mapping[str, Any]):
+            return request_
+
+        with ShouldRaise(ResourceError(
+                "Value(typing.Mapping[str, typing.Any], 'request_') could not be satisfied"
+        )):
+            context.call(returner)
+
+    def test_requires_typing_missing_new_type(self):
+        Request = NewType('Request', dict)
+        context = Context()
+
+        def returner(request_: Request):
+            return request_
+
+        with ShouldRaise(ResourceError(
+                "Value(NewType(Request, <class 'dict'>), 'request_') could not be satisfied"
+        )):
+            context.call(returner)
+
+    def test_requires_requirement(self):
+        context = Context()
+
+        def foo(requirement: Requirement): pass
+
+        with ShouldRaise(ResourceError(
+                "Value(<class 'mush.requirements.Requirement'>, 'requirement') "
+                "could not be satisfied"
+        )):
+            context.call(foo)
 
 # XXX - these are for explicit requires() objects:
     # def test_call_requires_string(self):
