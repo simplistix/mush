@@ -15,5 +15,5 @@ sybil_collector = Sybil(
 ).pytest()
 
 
-def pytest_collect_file(parent, path):
-    return sybil_collector(parent, path)
+# def pytest_collect_file(parent, path):
+#     return sybil_collector(parent, path)
