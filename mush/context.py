@@ -158,8 +158,10 @@ class Context:
             if o is missing:
                 raise ResourceError(f'{requirement!r} could not be satisfied')
 
-            # if requirement.target is None:
-            args.append(o)
+            if requirement.target is None:
+                args.append(o)
+            else:
+                kw[requirement.target] = o
 
         return obj(*args, **kw)
 

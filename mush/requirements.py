@@ -50,7 +50,7 @@ class Requirement:
         self.keys: Sequence[ResourceKey] = keys
         self.default = default
         self.ops: List['Op'] = []
-    #     self.target: Optional[str] = target
+        self.target: Optional[str] = None
 
     def _keys_repr(self):
         return ', '.join(repr(key) for key in self.keys)

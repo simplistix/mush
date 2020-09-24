@@ -16,7 +16,6 @@ from .requirements import Value, Requirement
 from .markers import missing, get_mush
 from .typing import Requires, Returns
 
-EMPTY = Parameter.empty
 #: For these types, prefer the name instead of the type.
 # SIMPLE_TYPES = (str, int, dict, list)
 #
@@ -60,12 +59,12 @@ def extract_requires(obj: Callable) -> Iterable[Requirement]:
     #         continue
     #
         name = p.name
-        if isinstance(p.annotation, type) and p.annotation is not EMPTY:
+        if p.annotation is not p.empty:
             type_ = p.annotation
         else:
             type_ = None
 
-        default = missing if p.default is EMPTY else p.default
+        default = missing if p.default is p.empty else p.default
         ops = []
 
         requirement = Value(type_, p.name, default)
@@ -106,6 +105,10 @@ def extract_requires(obj: Callable) -> Iterable[Requirement]:
     #     if p.kind is p.KEYWORD_ONLY:
     #         requirement.target = p.name
     #
+
+        if p.kind is p.KEYWORD_ONLY:
+            requirement.target = p.name
+
         by_name[name] = requirement
     #
     # by_index = list(by_name)
@@ -139,6 +142,7 @@ def extract_requires(obj: Callable) -> Iterable[Requirement]:
     #     elif needs_target:
     #         requirement.target = requirement.name
     #
+
     return by_name.values()
     # return RequiresType(by_name.values())
 

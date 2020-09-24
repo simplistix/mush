@@ -243,6 +243,15 @@ class TestCall:
         )):
             context.call(foo)
 
+    def test_keyword_only(self):
+        def foo(*, x: int):
+            return x
+
+        context = Context()
+        context.add(2)
+        result = context.call(foo)
+        compare(result, expected=2)
+
 # XXX - these are for explicit requires() objects:
     # def test_call_requires_string(self):
     #     def foo(obj):
