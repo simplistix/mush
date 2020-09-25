@@ -13,7 +13,7 @@ from mush.context import ResourceError
 # from mush.declarations import RequiresType, requires_nothing, returns_nothing
 # from mush.requirements import Requirement
 from .helpers import TheType, Type1, Type2
-from ..resources import Resource, Provider
+from ..resources import ResourceValue, Provider
 
 
 class TestAdd:
@@ -23,7 +23,7 @@ class TestAdd:
         context = Context()
         context.add(obj)
 
-        compare(context._store, expected={(TheType, None): Resource(obj)})
+        compare(context._store, expected={(TheType, None): ResourceValue(obj)})
         expected = (
             "<Context: {\n"
             "    <class 'mush.tests.helpers.TheType'>: <TheType obj>\n"
@@ -38,8 +38,8 @@ class TestAdd:
         context.add(obj, identifier='my label')
 
         compare(context._store, expected={
-            (TheType, 'my label'): Resource(obj),
-            (None, 'my label'): Resource(obj),
+            (TheType, 'my label'): ResourceValue(obj),
+            (None, 'my label'): ResourceValue(obj),
         })
         expected = ("<Context: {\n"
                     "    <class 'mush.tests.helpers.TheType'>, 'my label': <TheType obj>\n"
@@ -53,7 +53,7 @@ class TestAdd:
         context = Context()
         context.add(obj, provides=None, identifier='my label')
 
-        compare(context._store, expected={(None, 'my label'): Resource(obj)})
+        compare(context._store, expected={(None, 'my label'): ResourceValue(obj)})
         expected = ("<Context: {\n"
                     "    'my label': <TheType obj>\n"
                     "}>")
@@ -65,7 +65,7 @@ class TestAdd:
         obj = TheType()
         context = Context()
         context.add(obj, provides=T2)
-        compare(context._store, expected={(T2, None): Resource(obj)})
+        compare(context._store, expected={(T2, None): ResourceValue(obj)})
         expected = ("<Context: {\n"
                     "    " + repr(T2) + ": <TheType obj>\n"
                     "}>")

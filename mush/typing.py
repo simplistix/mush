@@ -1,7 +1,6 @@
-from typing import NewType, Union, Hashable, Callable, Any, TYPE_CHECKING, List, Tuple
+from typing import NewType, Union, Hashable, Any, TYPE_CHECKING, List, Tuple
 
 if TYPE_CHECKING:
-    from .context import Context
     from .declarations import Requirements, Return
     from .requirements import Requirement
 
@@ -14,5 +13,5 @@ Requires = Union['Requirements',
 ReturnType = Union[type, str]
 Returns = Union['Return', ReturnType, List[ReturnType], Tuple[ReturnType, ...]]
 
-ResourceValue = NewType('ResourceValue', Any)
-
+Resource = NewType('Resource', Any)
+Identifier = Hashable

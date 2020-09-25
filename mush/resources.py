@@ -1,20 +1,20 @@
-from typing import Callable, Optional
+from typing import Callable, Optional, Type
 
 from .markers import missing
-from .typing import ResourceValue
+from .typing import Resource, Identifier
 
 
 class ResourceKey(tuple):
 
-    def __new__(cls, type_, identifier):
+    def __new__(cls, type_: Type, identifier: Identifier):
         return tuple.__new__(cls, (type_, identifier))
 
     @property
-    def type(self):
+    def type(self) -> Type:
         return self[0]
 
     @property
-    def identifier(self):
+    def identifier(self) -> Identifier:
         return self[1]
 
     def __str__(self):
@@ -29,19 +29,19 @@ class ResourceKey(tuple):
         return f'{type_repr}, {self.identifier!r}'
 
 
-class Resource:
+class ResourceValue:
 
     provider: Optional[Callable] = None
     provides_subclasses: bool = False
 
-    def __init__(self, obj: ResourceValue):
+    def __init__(self, obj: Resource):
         self.obj = obj
 
     def __repr__(self):
         return repr(self.obj)
 
 
-class Provider(Resource):
+class Provider(ResourceValue):
 
     def __init__(self, obj: Callable, *, cache: bool = True, provides_subclasses: bool = False):
         super().__init__(missing)

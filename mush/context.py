@@ -1,12 +1,11 @@
 from inspect import signature
-from typing import Optional, Callable, Hashable, Type, Union, Mapping, Any, Dict
+from typing import Optional, Callable, Type, Union, Any, Dict
 
-from .requirements import Requirement
-from .declarations import Requirements
 from .extraction import extract_requires
 from .markers import missing, Marker
-from .resources import ResourceKey, Resource, Provider
-from .typing import ResourceValue
+from .requirements import Requirement
+from .resources import ResourceKey, ResourceValue, Provider
+from .typing import Resource, Identifier
 
 NONE_TYPE = type(None)
 unspecified = Marker('unspecified')
@@ -30,9 +29,9 @@ class Context:
         # self._returns_cache = {}
 
     def add(self,
-            obj: Union[Provider, ResourceValue],
+            obj: Union[Provider, Resource],
             provides: Optional[Type] = missing,
-            identifier: Hashable = None):
+            identifier: Identifier = None):
         """
         Add a resource to the context.
 
@@ -54,7 +53,7 @@ class Context:
                     provides = annotation
 
         else:
-            resource = Resource(obj)
+            resource = ResourceValue(obj)
             if provides is missing:
                 provides = type(obj)
 
