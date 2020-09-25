@@ -1,6 +1,6 @@
 from enum import Enum, auto
 from itertools import chain
-from typing import _type_check
+from typing import _type_check, Any
 
 from .markers import set_mush
 from .requirements import Requirement, Value, name_or_repr
@@ -24,7 +24,10 @@ def valid_decoration_types(*objs):
 
 
 class Parameter:
-    __slots__ = 'target', 'requirement'
+    def __init__(self, requirement: Requirement, target:str, default: Any):
+        self.requirement = requirement
+        self.target = target
+        self.default = default
 
 
 class Requirements(list):

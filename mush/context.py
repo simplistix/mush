@@ -121,7 +121,8 @@ class Context:
         args = []
         kw = {}
 
-        for requirement in requires:
+        for parameter in requires:
+            requirement = parameter.requirement
 
             o = missing
 
@@ -145,7 +146,7 @@ class Context:
                     break
 
             if o is missing:
-                o = requirement.default
+                o = parameter.default
 
             # if o is not requirement.default:
             #     for op in requirement.ops:
@@ -157,10 +158,10 @@ class Context:
             if o is missing:
                 raise ResourceError(f'{requirement!r} could not be satisfied')
 
-            if requirement.target is None:
+            if parameter.target is None:
                 args.append(o)
             else:
-                kw[requirement.target] = o
+                kw[parameter.target] = o
 
         return obj(*args, **kw)
 

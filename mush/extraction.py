@@ -4,17 +4,16 @@ from functools import (
     update_wrapper as functools_update_wrapper,
     partial
 )
-from inspect import signature, Parameter
+from inspect import signature
 from typing import Callable, Iterable
 
 from .declarations import (
-    requires, Requires, Returns,
+    requires, Parameter, Requirements, Return,
     returns, result_type,
     requires_nothing
 )
 from .requirements import Value, Requirement
 from .markers import missing, get_mush
-from .typing import Requires, Returns
 
 #: For these types, prefer the name instead of the type.
 # SIMPLE_TYPES = (str, int, dict, list)
@@ -46,8 +45,7 @@ from .typing import Requires, Returns
 #         )
 
 
-def extract_requires(obj: Callable) -> Iterable[Requirement]:
-                     # explicit: Requires = None):
+def extract_requires(obj: Callable) -> Requirements:
     # from annotations
     by_name = {}
     for name, p in signature(obj).parameters.items():
@@ -59,13 +57,13 @@ def extract_requires(obj: Callable) -> Iterable[Requirement]:
     #         continue
     #
         name = p.name
+
         if p.annotation is not p.empty:
             type_ = p.annotation
         else:
             type_ = None
 
         default = missing if p.default is p.empty else p.default
-        ops = []
 
         requirement = Value(type_, p.name, default)
     #
@@ -94,22 +92,18 @@ def extract_requires(obj: Callable) -> Iterable[Requirement]:
     #         else:
     #             key = type_
     #         default = requirement.default if requirement.default is not missing else default
-    #         ops = requirement.ops
     #
     #     requirement.key = key
     #     requirement.name = name
     #     requirement.type = type_
     #     requirement.default = default
-    #     requirement.ops = ops
-    #
-    #     if p.kind is p.KEYWORD_ONLY:
-    #         requirement.target = p.name
-    #
 
-        if p.kind is p.KEYWORD_ONLY:
-            requirement.target = p.name
+        by_name[name] = Parameter(
+            requirement,
+            target=p.name if p.kind is p.KEYWORD_ONLY else None,
+            default=requirement.default
+        )
 
-        by_name[name] = requirement
     #
     # by_index = list(by_name)
     #
@@ -130,21 +124,16 @@ def extract_requires(obj: Callable) -> Iterable[Requirement]:
     #
     # if not by_name:
     #     return requires_nothing
-    #
-    # # sort out target and apply modifier:
-    # needs_target = False
-    # for name, requirement in by_name.items():
-    #     requirement_ = modifier(requirement)
-    #     if requirement_ is not requirement:
-    #         by_name[name] = requirement = requirement_
-    #     if requirement.target is not None:
-    #         needs_target = True
-    #     elif needs_target:
-    #         requirement.target = requirement.name
-    #
 
-    return by_name.values()
-    # return RequiresType(by_name.values())
+    # sort out target:
+    needs_target = False
+    for name, parameter in by_name.items():
+        if parameter.target is not None:
+            needs_target = True
+        elif needs_target:
+            parameter.target = name
+
+    return Requirements(by_name.values())
 
 
 # def extract_returns(obj: Callable, explicit: Returns = None):
