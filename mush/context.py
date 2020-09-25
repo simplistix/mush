@@ -2,7 +2,7 @@ from inspect import signature
 from typing import Optional, Callable, Hashable, Type, Union, Mapping, Any, Dict
 
 from .requirements import Requirement
-from .declarations import RequiresType
+from .declarations import Requirements
 from .extraction import extract_requires
 from .markers import missing, Marker
 from .resources import ResourceKey, Resource, Provider
@@ -165,7 +165,7 @@ class Context:
 
         return obj(*args, **kw)
 
-    def call(self, obj: Callable, requires: RequiresType = None):
+    def call(self, obj: Callable):
         return self._resolve(obj)
 
     #

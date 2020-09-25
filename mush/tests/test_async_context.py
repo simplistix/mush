@@ -9,7 +9,7 @@ from testfixtures import compare, ShouldRaise
 
 from mush import Value, requires, returns, Context as SyncContext, blocking, nonblocking
 # from mush.asyncio import Context
-from mush.declarations import RequiresType
+from mush.declarations import Requirements
 # from mush.requirements import Requirement, AnyOf, Like
 from .helpers import TheType, no_threads, must_run_in_thread
 from ..markers import AsyncType
@@ -165,7 +165,7 @@ async def test_call_cache_requires():
     context = Context()
     def foo(): pass
     await context.call(foo)
-    compare(context._requires_cache[foo], expected=RequiresType())
+    compare(context._requires_cache[foo], expected=Requirements())
 
 
 @pytest.mark.asyncio
@@ -219,7 +219,7 @@ async def test_extract_minimal():
     result = await context.extract(foo)
     assert result is o
     compare({TheType: o}, actual=context._store)
-    compare(context._requires_cache[foo], expected=RequiresType())
+    compare(context._requires_cache[foo], expected=Requirements())
     compare(context._returns_cache[foo], expected=returns(TheType))
 
 

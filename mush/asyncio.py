@@ -5,7 +5,7 @@ from typing import Callable
 from . import (
     Context as SyncContext, Runner as SyncRunner, ResourceError, ContextError
 )
-from .declarations import RequiresType, ReturnsType
+from .declarations import Requirements, Return
 from .extraction import default_requirement_type
 from .markers import get_mush, AsyncType
 from .typing import RequirementModifier
@@ -20,12 +20,12 @@ class AsyncFromSyncContext:
         self.add = context.add
         self.get = context.get
 
-    def call(self, obj: Callable, requires: RequiresType = None):
+    def call(self, obj: Callable, requires: Requirements = None):
         coro = self.context.call(obj, requires)
         future = asyncio.run_coroutine_threadsafe(coro, self.loop)
         return future.result()
 
-    def extract(self, obj: Callable, requires: RequiresType = None, returns: ReturnsType = None):
+    def extract(self, obj: Callable, requires: Requirements = None, returns: Return = None):
         coro = self.context.extract(obj, requires, returns)
         future = asyncio.run_coroutine_threadsafe(coro, self.loop)
         return future.result()
@@ -70,7 +70,7 @@ class Context(SyncContext):
     def _context_for(self, obj):
         return self if asyncio.iscoroutinefunction(obj) else self._sync_context
 
-    async def call(self, obj: Callable, requires: RequiresType = None):
+    async def call(self, obj: Callable, requires: Requirements = None):
         args = []
         kw = {}
         resolving = self._resolve(obj, requires, args, kw, self._context_for(obj))
@@ -82,8 +82,8 @@ class Context(SyncContext):
 
     async def extract(self,
                       obj: Callable,
-                      requires: RequiresType = None,
-                      returns: ReturnsType = None):
+                      requires: Requirements = None,
+                      returns: Return = None):
         result = await self.call(obj, requires)
         self._process(obj, result, returns)
         return result

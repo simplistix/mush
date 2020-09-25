@@ -8,7 +8,7 @@ from inspect import signature, Parameter
 from typing import Callable, Iterable
 
 from .declarations import (
-    requires, RequiresType, ReturnsType,
+    requires, Requires, Returns,
     returns, result_type,
     requires_nothing
 )

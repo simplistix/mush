@@ -23,7 +23,11 @@ def valid_decoration_types(*objs):
         )
 
 
-class RequiresType(list):
+class Parameter:
+    __slots__ = 'target', 'requirement'
+
+
+class Requirements(list):
 
     def __repr__(self):
         parts = (repr(r) if r.target is None else f'{r.target}={r!r}'
@@ -46,7 +50,7 @@ def requires(*args: RequirementType, **kw: RequirementType):
     String names for resources must be used instead of types where the callable
     returning those resources is configured to return the named resource.
     """
-    requires_ = RequiresType()
+    requires_ = Requirements()
     valid_decoration_types(*args)
     valid_decoration_types(*kw.values())
     for target, possible in chain(
@@ -65,10 +69,10 @@ def requires(*args: RequirementType, **kw: RequirementType):
     return requires_
 
 
-requires_nothing = RequiresType()
+requires_nothing = Requirements()
 
 
-class ReturnsType(object):
+class Return(object):
 
     def __call__(self, obj):
         set_mush(obj, 'returns', self)
@@ -78,7 +82,7 @@ class ReturnsType(object):
         return self.__class__.__name__ + '()'
 
 
-class returns(ReturnsType):
+class returns(Return):
     """
     Declaration that specifies names for returned resources or overrides
     the type of a returned resource.
@@ -105,7 +109,7 @@ class returns(ReturnsType):
         return self.__class__.__name__ + '(' + args_repr + ')'
 
 
-class returns_result_type(ReturnsType):
+class returns_result_type(Return):
     """
     Default declaration that indicates a callable's return value
     should be used as a resource based on the type of the object returned.
@@ -118,7 +122,7 @@ class returns_result_type(ReturnsType):
             yield obj.__class__, obj
 
 
-class returns_mapping(ReturnsType):
+class returns_mapping(Return):
     """
     Declaration that indicates a callable returns a mapping of type or name
     to resource.
