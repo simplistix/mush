@@ -2,7 +2,7 @@ from enum import Enum, auto
 from itertools import chain
 from typing import _type_check, Any
 
-from .markers import set_mush
+from .markers import set_mush, missing
 from .requirements import Requirement, Value, name_or_repr
 from .typing import RequirementType, ReturnType
 
@@ -24,7 +24,7 @@ def valid_decoration_types(*objs):
 
 
 class Parameter:
-    def __init__(self, requirement: Requirement, target:str, default: Any):
+    def __init__(self, requirement: Requirement, target: str = None, default: Any = missing):
         self.requirement = requirement
         self.target = target
         self.default = default
@@ -61,14 +61,10 @@ def requires(*args: RequirementType, **kw: RequirementType):
         kw.items(),
     ):
         if isinstance(possible, Requirement):
-            possible = possible.make_from(possible, target=target)
-            requirement = possible
+            parameter = Parameter(possible, target, default=possible.default)
         else:
-            requirement = Value(possible)
-            requirement.type = None if isinstance(possible, str) else possible
-            requirement.name = target
-            requirement.target = target
-        requires_.append(requirement)
+            parameter = Parameter(Value(possible), target)
+        requires_.append(parameter)
     return requires_
 
 

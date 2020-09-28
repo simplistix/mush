@@ -6,7 +6,7 @@ from .typing import Resource, Identifier
 
 class ResourceKey(tuple):
 
-    def __new__(cls, type_: Type, identifier: Identifier):
+    def __new__(cls, type_: Type = None, identifier: Identifier = None):
         return tuple.__new__(cls, (type_, identifier))
 
     @property

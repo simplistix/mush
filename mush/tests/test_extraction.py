@@ -1,28 +1,29 @@
-import pytest; pytestmark = pytest.mark.skip("WIP")
 from functools import partial
-from typing import Tuple
+from typing import Tuple, get_type_hints
 from unittest import TestCase
 
 import pytest
 from testfixtures import compare, ShouldRaise
 
-from mush import Value
+from mush import Value, missing
 from mush.declarations import (
     requires, returns,
     returns_mapping, returns_sequence, returns_result_type,
     requires_nothing,
-    result_type, Requirements
+    result_type, Requirements, Parameter
 )
-from mush.extraction import extract_requires#, extract_returns, update_wrapper
+from mush.extraction import extract_requires, extract_returns, update_wrapper
 from mush.requirements import Requirement, ItemOp
 from .helpers import PY_36, Type1, Type2, Type3, Type4
+from ..resources import ResourceKey
 
 
 def check_extract(obj, expected_rq, expected_rt):
-    rq = extract_requires(obj, None)
+    rq = extract_requires(obj)
     rt = extract_returns(obj, None)
     compare(rq, expected=expected_rq, strict=True)
-    compare(rt, expected=expected_rt, strict=True)
+    assert rt is None
+    # compare(rt, expected=expected_rt, strict=True)
 
 
 class TestRequirementsExtraction(object):
@@ -31,8 +32,8 @@ class TestRequirementsExtraction(object):
         def foo(a, b=None): pass
         check_extract(foo,
                       expected_rq=Requirements((
-                          Value.make(key='a', name='a'),
-                          Value.make(key='b', default=None, name='b'),
+                          Parameter(Value(identifier='a')),
+                          Parameter(Value(identifier='b', default=None), default=None),
                       )),
                       expected_rt=result_type)
 
@@ -41,8 +42,8 @@ class TestRequirementsExtraction(object):
             def __init__(self, a, b=None): pass
         check_extract(MyClass,
                       expected_rq=Requirements((
-                          Value.make(key='a', name='a'),
-                          Value.make(key='b', name='b', default=None),
+                          Parameter(Value(identifier='a')),
+                          Parameter(Value(identifier='b', default=None), default=None),
                       )),
                       expected_rt=result_type)
 
@@ -52,8 +53,8 @@ class TestRequirementsExtraction(object):
         check_extract(
             p,
             expected_rq=Requirements((
-                Value.make(key='z', name='z', target='z'),
-                Value.make(key='a', name='a', target='a', default=None),
+                Parameter(Value(identifier='z'), target='z'),
+                Parameter(Value(identifier='a', default=None), target='a', default=None),
             )),
             expected_rt=result_type
         )
@@ -64,7 +65,7 @@ class TestRequirementsExtraction(object):
         check_extract(
             p,
             expected_rq=Requirements((
-                Value.make(key='a', name='a', default=None),
+                Parameter(Value(identifier='a', default=None), default=None),
             )),
             expected_rt=result_type
         )
@@ -113,8 +114,8 @@ class TestRequirementsExtraction(object):
         check_extract(
             p,
             expected_rq=Requirements((
-                Value.make(key='b', name='b'),
-                Value.make(key='a', name='a', default=None),
+                Parameter(Value(identifier='b')),
+                Parameter(Value(identifier='a', default=None), default=None),
             )),
             expected_rt=result_type
         )
@@ -126,7 +127,7 @@ class TestRequirementsExtraction(object):
             p,
             # since b is already bound:
             expected_rq=Requirements((
-                Value.make(key='a', name='a'),
+                Parameter(Value(identifier='a')),
             )),
             expected_rt=result_type
         )
@@ -137,36 +138,47 @@ class TestRequirementsExtraction(object):
         check_extract(
             p,
             expected_rq=Requirements((
-                Value.make(key='b', name='b'),
+                Parameter(Value(identifier='b')),
             )),
             expected_rt=result_type
         )
 
 
+# https://bugs.python.org/issue41872
+def foo(a: 'Foo') -> 'Bar': pass
+class Foo: pass
+class Bar: pass
+
+
 class TestExtractDeclarationsFromTypeAnnotations(object):
 
     def test_extract_from_annotations(self):
-        def foo(a: 'foo', b, c: 'bar' = 1, d=2) -> 'bar': pass
+        def foo(a: Type1, b, c: Type2 = 1, d=2) -> Type3: pass
         check_extract(foo,
                       expected_rq=Requirements((
-                          Value.make(key='foo', name='a'),
-                          Value.make(key='b', name='b'),
-                          Value.make(key='bar', name='c', default=1),
-                          Value.make(key='d', name='d', default=2)
+                          Parameter(Value(Type1, identifier='a')),
+                          Parameter(Value(identifier='b')),
+                          Parameter(Value(Type2, identifier='c', default=1), default=1),
+                          Parameter(Value(identifier='d', default=2), default=2),
                       )),
                       expected_rt=returns('bar'))
 
-    def test_requires_only(self):
-        def foo(a: 'foo'): pass
+    def test_forward_type_references(self):
         check_extract(foo,
-                      expected_rq=Requirements((Value.make(key='foo', name='a'),)),
+                      expected_rq=Requirements((Parameter(Value(Foo, identifier='a')),)),
+                      expected_rt=returns(Bar))
+
+    def test_requires_only(self):
+        def foo(a: Type1): pass
+        check_extract(foo,
+                      expected_rq=Requirements((Parameter(Value(Type1, identifier='a')),)),
                       expected_rt=result_type)
 
     def test_returns_only(self):
-        def foo() -> 'bar': pass
+        def foo() -> Type1: pass
         check_extract(foo,
                       expected_rq=requires_nothing,
-                      expected_rt=returns('bar'))
+                      expected_rt=returns(Type1))
 
     def test_extract_from_decorated_class(self):
 
@@ -180,20 +192,26 @@ class TestExtractDeclarationsFromTypeAnnotations(object):
             return update_wrapper(Wrapper(func), func)
 
         @my_dec
-        def foo(a: 'foo' = None) -> 'bar':
+        @requires(a=Value('foo'))
+        @returns('bar')
+        def foo(a=None):
             return 'answer'
 
         compare(foo(), expected='the answer')
         check_extract(foo,
-                      expected_rq=Requirements((Value.make(key='foo', name='a', default=None),)),
+                      expected_rq=Requirements((
+                          Parameter(Value(identifier='foo'), target='a'),
+                      )),
                       expected_rt=returns('bar'))
 
     def test_decorator_trumps_annotations(self):
         @requires('foo')
         @returns('bar')
-        def foo(a: 'x') -> 'y': pass
+        def foo(a: Type1) -> Type2: pass
         check_extract(foo,
-                      expected_rq=Requirements((Value.make(key='foo', name='a'),)),
+                      expected_rq=Requirements((
+                          Parameter(Value(identifier='foo')),)
+                      ),
                       expected_rt=returns('bar'))
 
     def test_returns_mapping(self):
@@ -214,7 +232,7 @@ class TestExtractDeclarationsFromTypeAnnotations(object):
         def foo(a: Value('config')['db_url']): pass
         check_extract(foo,
                       expected_rq=Requirements((
-                          Value.make(key='config', name='a', ops=[ItemOp('db_url')]),
+                          Parameter(Value(identifier='config')['db_url']),
                       )),
                       expected_rt=result_type)
 
@@ -222,10 +240,10 @@ class TestExtractDeclarationsFromTypeAnnotations(object):
         def foo(a, b=1, *, c, d=None): pass
         check_extract(foo,
                       expected_rq=Requirements((
-                          Value.make(key='a', name='a'),
-                          Value.make(key='b', name='b', default=1),
-                          Value.make(key='c', name='c', target='c'),
-                          Value.make(key='d', name='d', target='d', default=None)
+                          Parameter(Value(identifier='a')),
+                          Parameter(Value(identifier='b', default=1), default=1),
+                          Parameter(Value(identifier='c'), target='c'),
+                          Parameter(Value(identifier='d', default=None), target='d', default=None)
                       )),
                       expected_rt=result_type)
 
@@ -233,35 +251,43 @@ class TestExtractDeclarationsFromTypeAnnotations(object):
         class T: pass
         def foo(a: T): pass
         check_extract(foo,
-                      expected_rq=Requirements((Value.make(key=T, name='a', type=T),)),
+                      expected_rq=Requirements((Parameter(Value(T, identifier='a')),)),
                       expected_rt=result_type)
 
     @pytest.mark.parametrize("type_", [str, int, dict, list])
     def test_simple_type_only(self, type_):
         def foo(a: type_): pass
         check_extract(foo,
-                      expected_rq=Requirements((Value.make(key='a', name='a', type=type_),)),
+                      expected_rq=Requirements((Parameter(Value(type_, identifier='a')),)),
                       expected_rt=result_type)
 
     def test_type_plus_value(self):
         def foo(a: str = Value('b')): pass
         check_extract(foo,
-                      expected_rq=Requirements((Value.make(key='b', name='a', type=str),)),
+                      expected_rq=Requirements((Parameter(Value(identifier='b')),)),
                       expected_rt=result_type)
 
     def test_type_plus_value_with_default(self):
         def foo(a: str = Value('b', default=1)): pass
         check_extract(foo,
                       expected_rq=Requirements((
-                          Value.make(key='b', name='a', type=str, default=1),
+                          Parameter(Value(identifier='b', default=1), default=1),
                       )),
                       expected_rt=result_type)
 
     def test_value_annotation_plus_default(self):
-        def foo(a: Value('b', type_=str) = 1): pass
+        def foo(a: Value(str, identifier='b') = 1): pass
         check_extract(foo,
                       expected_rq=Requirements((
-                          Value.make(key='b', name='a', type=str, default=1),
+                          Parameter(Value(str, identifier='b'), default=1),
+                      )),
+                      expected_rt=result_type)
+
+    def test_requirement_default_preferred_to_annotation_default(self):
+        def foo(a: Value(str, identifier='b', default=2) = 1): pass
+        check_extract(foo,
+                      expected_rq=Requirements((
+                          Parameter(Value(str, identifier='b', default=2), default=2),
                       )),
                       expected_rt=result_type)
 
@@ -269,51 +295,9 @@ class TestExtractDeclarationsFromTypeAnnotations(object):
         def foo(a: Value(str) = 1): pass
         check_extract(foo,
                       expected_rq=Requirements((
-                          Value.make(key=str, name='a', type=str, default=1),
+                          Parameter(Value(str), default=1),
                       )),
                       expected_rt=result_type)
-
-    def test_value_annotation_just_type_plus_default(self):
-        def foo(a: Value(type_=str) = 1): pass
-        check_extract(foo,
-                      expected_rq=Requirements((
-                          Value.make(key='a', name='a', type=str, default=1),
-                      )),
-                      expected_rt=result_type)
-
-    def test_value_unspecified_with_type(self):
-        class T1: pass
-        def foo(a: T1 = Value()): pass
-        check_extract(foo,
-                      expected_rq=Requirements((Value.make(key=T1, name='a', type=T1),)),
-                      expected_rt=result_type)
-
-    def test_value_unspecified_with_simple_type(self):
-        def foo(a: str = Value()): pass
-        check_extract(foo,
-                      expected_rq=Requirements((Value.make(key='a', name='a', type=str),)),
-                      expected_rt=result_type)
-
-    def test_value_unspecified(self):
-        def foo(a=Value()): pass
-        check_extract(foo,
-                      expected_rq=Requirements((Value.make(key='a', name='a'),)),
-                      expected_rt=result_type)
-
-    def test_requirement_modifier(self):
-        def foo(x: str = None): pass
-
-        class FromRequest(Requirement): pass
-
-        def modifier(requirement):
-            if type(requirement) is Requirement:
-                requirement = FromRequest.make_from(requirement)
-            return requirement
-
-        rq = extract_requires(foo, modifier=modifier)
-        compare(rq, strict=True, expected=Requirements((
-            FromRequest(key='x', name='x', type_=str, default=None),
-        )))
 
 
 class TestDeclarationsFromMultipleSources:
@@ -329,39 +313,25 @@ class TestDeclarationsFromMultipleSources:
 
         check_extract(foo,
                       expected_rq=Requirements((
-                          Value.make(key='a', name='a'),
-                          Value.make(key='b', name='b', target='b'),
-                          Value.make(key='c', name='c', target='c'),
+                          Parameter(Requirement(default='a'), default='a'),
+                          Parameter(Requirement(default='b'), default='b', target='b'),
+                          Parameter(Requirement(default='c'), default='c', target='c'),
                       )),
                       expected_rt=result_type)
 
     def test_declaration_priorities(self):
-        r1 = Requirement('a')
-        r2 = Requirement('b')
-        r3 = Requirement('c')
+        r1 = Requirement(missing, ResourceKey(identifier='x'))
+        r2 = Requirement(missing, ResourceKey(identifier='y'))
+        r3 = Requirement(missing, ResourceKey(identifier='z'))
 
         @requires(a=r1)
-        def foo(a: r2 = r3, b: str = r2, c = r3):
+        def foo(a: r2 = r3, b: str = r2, c=r3):
             pass
 
         check_extract(foo,
                       expected_rq=Requirements((
-                          Value.make(key='a', name='a', target='a'),
-                          Value.make(key='b', name='b', target='b', type=str),
-                          Value.make(key='c', name='c', target='c'),
+                          Parameter(r1, target='a'),
+                          Parameter(r2, target='b'),
+                          Parameter(r3, target='c'),
                       )),
                       expected_rt=result_type)
-
-    def test_explicit_requirement_type_trumps_default_requirement_type(self):
-
-        class FromRequest(Requirement): pass
-
-        @requires(a=Requirement('a'))
-        def foo(a):
-            pass
-
-        compare(actual=extract_requires(foo, requires(a=FromRequest('b'))),
-                strict=True,
-                expected=Requirements((
-                          FromRequest.make(key='b', name='a', target='a'),
-                      )))

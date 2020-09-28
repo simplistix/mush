@@ -1,10 +1,8 @@
-from typing import Any, List, TYPE_CHECKING, Hashable, Sequence
+from typing import Any, List, Hashable, Sequence, Optional, Union
 
-from .markers import missing, nonblocking
+from .markers import missing
 from .resources import ResourceKey
-
-if TYPE_CHECKING:
-    from .context import Context
+from .typing import Identifier
 
 
 def name_or_repr(obj):
@@ -50,7 +48,6 @@ class Requirement:
         self.keys: Sequence[ResourceKey] = keys
         self.default = default
         self.ops: List['Op'] = []
-        self.target: Optional[str] = None
 
     def _keys_repr(self):
         return ', '.join(repr(key) for key in self.keys)
@@ -93,7 +90,18 @@ class Value(Requirement):
     ever use this.
     """
 
-    def __init__(self, type_: type = None, identifier: Hashable = None, default: Any = missing):
+    def __init__(self,
+                 type_or_identifier: Union[type, Identifier] = None,
+                 identifier: Identifier = None,
+                 default: Any = missing):
+        if identifier is None:
+            if isinstance(type_or_identifier, type):
+                type_ = type_or_identifier
+            else:
+                identifier = type_or_identifier
+                type_ = None
+        else:
+            type_ = type_or_identifier
         super().__init__(
             default,
             ResourceKey(type_, identifier),
