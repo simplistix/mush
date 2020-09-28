@@ -56,24 +56,24 @@ class Requirement:
         default = '' if self.default is missing else f', default={self.default!r}'
         ops = ''.join(repr(o) for o in self.ops)
         return f"{type(self).__name__}({self._keys_repr()}{default}){ops}"
-    #
-    # def attr(self, name):
-    #     """
-    #     If you need to get an attribute called either ``attr`` or ``item``
-    #     then you will need to call this method instead of using the
-    #     generating behaviour.
-    #     """
-    #     self.ops.append(AttrOp(name))
-    #     return self
-    #
-    # def __getattr__(self, name):
-    #     if name.startswith('__'):
-    #         raise AttributeError(name)
-    #     return self.attr(name)
-    #
-    # def __getitem__(self, name):
-    #     self.ops.append(ItemOp(name))
-    #     return self
+
+    def attr(self, name):
+        """
+        If you need to get an attribute called either ``attr`` or ``item``
+        then you will need to call this method instead of using the
+        generating behaviour.
+        """
+        self.ops.append(AttrOp(name))
+        return self
+
+    def __getattr__(self, name):
+        if name.startswith('__'):
+            raise AttributeError(name)
+        return self.attr(name)
+
+    def __getitem__(self, name):
+        self.ops.append(ItemOp(name))
+        return self
 
 
 class Value(Requirement):

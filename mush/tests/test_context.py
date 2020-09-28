@@ -292,71 +292,60 @@ class TestCall:
 #
 
 
-# XXX - these are for ops
-#     def test_call_requires_item_missing(self):
-#         def foo(obj): return obj
-#         context = Context()
-#         context.add({}, TheType)
-#         with ShouldRaise(ResourceError(
-#             "No Value(TheType)['foo'] in context",
-#             key=TheType,
-#             requirement=Value(TheType)['foo'],
-#         )):
-#             context.call(foo, requires(Value(TheType)['foo']))
-#
-#     def test_call_requires_named_parameter(self):
-#         def foo(x, y):
-#             return x, y
-#         context = Context()
-#         context.add('foo', TheType)
-#         context.add('bar', 'baz')
-#         result = context.call(foo, requires(y='baz', x=TheType))
-#         compare(result, ('foo', 'bar'))
-#         compare({TheType: 'foo',
-#                  'baz': 'bar'},
-#                 actual=context._store)
-#
-#     def test_call_requires_item(self):
-#         def foo(x):
-#             return x
-#         context = Context()
-#         context.add(dict(bar='baz'), 'foo')
-#         result = context.call(foo, requires(Value('foo')['bar']))
-#         compare(result, 'baz')
-#
-#     def test_call_requires_attr(self):
-#         def foo(x):
-#             return x
-#         m = Mock()
-#         context = Context()
-#         context.add(m, 'foo')
-#         result = context.call(foo, requires(Value('foo').bar))
-#         compare(result, m.bar)
-#
-#     def test_call_requires_item_attr(self):
-#         def foo(x):
-#             return x
-#         m = Mock()
-#         m.bar= dict(baz='bob')
-#         context = Context()
-#         context.add(m, provides='foo')
-#         result = context.call(foo, requires(Value('foo').bar['baz']))
-#         compare(result, 'bob')
-#
-#     def test_call_requires_optional_item_missing(self):
-#         def foo(x: str = Value('foo', default=1)['bar']):
-#             return x
-#         context = Context()
-#         result = context.call(foo)
-#         compare(result, 1)
-#
-#     def test_call_requires_optional_item_present(self):
-#         def foo(x: str = Value('foo', default=1)['bar']):
-#             return x
-#         context = Context()
-#         context.add(dict(bar='baz'), provides='foo')
-#         result = context.call(foo)
-#         compare(result, 'baz')
+class TestOps:
+
+    def test_call_requires_item(self):
+        def foo(x: str = Value(identifier='foo')['bar']):
+            return x
+        context = Context()
+        context.add(dict(bar='baz'), identifier='foo')
+        result = context.call(foo)
+        compare(result, 'baz')
+
+    def test_call_requires_item_missing(self):
+        def foo(obj: str = Value(dict)['foo']): pass
+        context = Context()
+        context.add({})
+        with ShouldRaise(ResourceError(
+            "Value(<class 'dict'>)['foo'] could not be satisfied",
+        )):
+            context.call(foo)
+
+    def test_call_requires_attr(self):
+        @requires(Value('foo').bar)
+        def foo(x):
+            return x
+        m = Mock()
+        context = Context()
+        context.add(m, identifier='foo')
+        result = context.call(foo)
+        compare(result, m.bar)
+
+    def test_call_requires_item_attr(self):
+        @requires(Value('foo').bar['baz'])
+        def foo(x):
+            return x
+        m = Mock()
+        m.bar= dict(baz='bob')
+        context = Context()
+        context.add(m, identifier='foo')
+        result = context.call(foo)
+        compare(result, 'bob')
+
+    def test_call_requires_optional_item_missing(self):
+        def foo(x: str = Value('foo', default=1)['bar']):
+            return x
+        context = Context()
+        result = context.call(foo)
+        compare(result, 1)
+
+    def test_call_requires_optional_item_present(self):
+        def foo(x: str = Value('foo', default=1)['bar']):
+            return x
+        context = Context()
+        context.add(dict(bar='baz'), identifier='foo')
+        result = context.call(foo)
+        compare(result, 'baz')
 
 
 # XXX requirements caching:

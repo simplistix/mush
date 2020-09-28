@@ -1,14 +1,8 @@
-import pytest; pytestmark = pytest.mark.skip("WIP")
-from typing import Tuple
-from unittest.case import TestCase
-
 import pytest
 from testfixtures import compare, ShouldRaise
-from testfixtures.mock import Mock
 
-from mush import Context, Value, missing, requires, ResourceError
-from mush.requirements import Requirement, AttrOp, ItemOp#, AnyOf, Like
-from .helpers import Type1
+from mush import Value
+from mush.requirements import Requirement, AttrOp, ItemOp  # , AnyOf, Like
 
 
 def check_ops(value, data, *, expected):
@@ -19,84 +13,17 @@ def check_ops(value, data, *, expected):
 
 class TestRequirement:
 
-    def test_repr_minimal(self):
-        compare(repr(Requirement('foo')),
-                expected="Requirement('foo')")
-
-    def test_repr_maximal(self):
-        r = Requirement('foo', name='n', type_='ty', default=None, target='ta')
-        r.ops.append(AttrOp('bar'))
-        compare(repr(r),
-                expected="Requirement('foo', default=None).bar")
-
-    def test_make_allows_params_not_passed_to_constructor(self):
-        r = Value.make(key='x', target='a')
-        assert type(r) is Value
-        compare(r.key, expected='x')
-        compare(r.target, expected='a')
-
-    def test_make_can_create_invalid_objects(self):
-        # So be careful!
-
-        class SampleRequirement(Requirement):
-            def __init__(self, foo):
-                super().__init__(key='y')
-                self.foo = foo
-
-        r = SampleRequirement('it')
-        compare(r.foo, expected='it')
-
-        r = SampleRequirement.make(key='x')
-        assert 'foo' not in r.__dict__
-        # ...when it really should be!
-
-    def test_clone_using_make_from(self):
-        r = Value('foo').bar.requirement
-        r_ = r.make_from(r)
-        assert r_ is not r
-        assert r_.ops is not r.ops
-        compare(r_, expected=r)
-
-    def test_make_from_with_mutable_default(self):
-        r = Requirement('foo', default=[])
-        r_ = r.make_from(r)
-        assert r_ is not r
-        assert r_.default is not r.default
-        compare(r_, expected=r)
-
-    def test_make_from_into_new_type(self):
-        r = Requirement('foo').bar.requirement
-        r_ = Value.make_from(r)
-        compare(r_, expected=Value('foo').bar.requirement)
-
-    def test_make_from_with_required_constructor_parameter(self):
-
-        class SampleRequirement(Requirement):
-            def __init__(self, foo):
-                super().__init__('foo')
-                self.foo = foo
-
-        r = Requirement('foo')
-        r_ = SampleRequirement.make_from(r, foo='it')
-        assert r_ is not r
-        compare(r_, expected=SampleRequirement(foo='it'))
-
-    def test_make_from_source_has_more_attributes(self):
-
-        class SampleRequirement(Requirement):
-            def __init__(self, foo):
-                super().__init__('bar')
-                self.foo = foo
-
-        r = SampleRequirement('it')
-        r_ = Requirement.make_from(r)
-        assert r_ is not r
-
-        assert r_.key == 'bar'
-        # while this is a bit ugly, it will hopefully do no harm:
-        assert r_.foo == 'it'
-
-    special_names = ['attr', 'ops', 'target']
+    # def test_repr_minimal(self):
+    #     compare(repr(Requirement('foo')),
+    #             expected="Requirement('foo')")
+    #
+    # def test_repr_maximal(self):
+    #     r = Requirement('foo', name='n', type_='ty', default=None, target='ta')
+    #     r.ops.append(AttrOp('bar'))
+    #     compare(repr(r),
+    #             expected="Requirement('foo', default=None).bar")
+    #
+    special_names = ['attr', 'ops']
 
     @pytest.mark.parametrize("name", special_names)
     def test_attr_special_name(self, name):
@@ -116,22 +43,21 @@ class TestRequirement:
         with ShouldRaise(AttributeError):
             assert v.__len__
         compare(v.ops, [])
-
-    def test_resolve(self):
-        r = Requirement('foo')
-        with ShouldRaise(NotImplementedError):
-            r.resolve(None)
-
-
-class TestValue:
-
-    def test_type_from_key(self):
-        v = Value(str)
-        compare(v.requirement.type, expected=str)
-
-    def test_key_and_type_cannot_disagree(self):
-        with ShouldRaise(TypeError('type_ cannot be specified if key is a type')):
-            Value(key=str, type_=int)
+#
+#
+# class TestValue:
+#
+#     def test_type_from_key(self):
+#         v = Value(str)
+#         compare(v.requirement.type, expected=str)
+#
+#     def test_key_and_type_cannot_disagree(self):
+#         with ShouldRaise(TypeError('type_ cannot be specified if key is a type')):
+#             Value(key=str, type_=int)
+#
+#     def test_at_least_one_param_must_be_specified(self):
+#         with ShouldRaise(TypeError('xx')):
+#             Value()
 #
 #
 # class TestItem:

@@ -112,7 +112,7 @@ class Context:
                 return resource
             exact = False
 
-    def _resolve(self, obj, specials = None):
+    def _resolve(self, obj, specials=None):
         if specials is None:
             specials: Dict[type, Any] = {Context: self}
 
@@ -148,12 +148,12 @@ class Context:
             if o is missing:
                 o = parameter.default
 
-            # if o is not requirement.default:
-            #     for op in requirement.ops:
-            #         o = op(o)
-            #         if o is missing:
-            #             o = requirement.default
-            #             break
+            if o is not requirement.default:
+                for op in requirement.ops:
+                    o = op(o)
+                    if o is missing:
+                        o = requirement.default
+                        break
 
             if o is missing:
                 raise ResourceError(f'{requirement!r} could not be satisfied')
