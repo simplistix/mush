@@ -26,7 +26,7 @@ class TestAdd:
         compare(context._store, expected={(TheType, None): ResourceValue(obj)})
         expected = (
             "<Context: {\n"
-            "    <class 'mush.tests.helpers.TheType'>: <TheType obj>\n"
+            "    TheType: <TheType obj>\n"
             "}>"
         )
         compare(expected, actual=repr(context))
@@ -42,8 +42,8 @@ class TestAdd:
             (None, 'my label'): ResourceValue(obj),
         })
         expected = ("<Context: {\n"
-                    "    <class 'mush.tests.helpers.TheType'>, 'my label': <TheType obj>\n"
                     "    'my label': <TheType obj>\n"
+                    "    TheType, 'my label': <TheType obj>\n"
                     "}>")
         compare(expected, actual=repr(context))
         compare(expected, actual=str(context))
@@ -61,13 +61,12 @@ class TestAdd:
         compare(expected, actual=str(context))
 
     def test_explicit_type(self):
-        class T2(object): pass
         obj = TheType()
         context = Context()
-        context.add(obj, provides=T2)
-        compare(context._store, expected={(T2, None): ResourceValue(obj)})
+        context.add(obj, provides=Type2)
+        compare(context._store, expected={(Type2, None): ResourceValue(obj)})
         expected = ("<Context: {\n"
-                    "    " + repr(T2) + ": <TheType obj>\n"
+                    "    Type2: <TheType obj>\n"
                     "}>")
         compare(expected, actual=repr(context))
         compare(expected, actual=str(context))
@@ -77,7 +76,7 @@ class TestAdd:
         obj2 = TheType()
         context = Context()
         context.add(obj1, TheType)
-        with ShouldRaise(ResourceError(f'Context already contains {TheType!r}')):
+        with ShouldRaise(ResourceError(f'Context already contains TheType')):
             context.add(obj2, TheType)
 
     def test_clash_just_identifier(self):
@@ -144,7 +143,7 @@ class TestCall:
         def foo(obj: TheType): return obj
         context = Context()
         with ShouldRaise(ResourceError(
-            "Value(<class 'mush.tests.helpers.TheType'>, 'obj') could not be satisfied"
+            "Value(TheType, 'obj') could not be satisfied"
         )):
             context.call(foo)
 
@@ -194,7 +193,7 @@ class TestCall:
         context = Context()
         context.add(object())
         with ShouldRaise(ResourceError(
-            "Value(<class 'mush.tests.helpers.TheType'>, 'obj') could not be satisfied"
+            "Value(TheType, 'obj') could not be satisfied"
         )):
             context.call(foo)
 
@@ -228,7 +227,7 @@ class TestCall:
             return request_
 
         with ShouldRaise(ResourceError(
-                "Value(NewType(Request, <class 'dict'>), 'request_') could not be satisfied"
+                "Value(Request, 'request_') could not be satisfied"
         )):
             context.call(returner)
 
@@ -238,7 +237,7 @@ class TestCall:
         def foo(requirement: Requirement): pass
 
         with ShouldRaise(ResourceError(
-                "Value(<class 'mush.requirements.Requirement'>, 'requirement') "
+                "Value(Requirement, 'requirement') "
                 "could not be satisfied"
         )):
             context.call(foo)
@@ -573,7 +572,7 @@ class TestProviders:
         context.add(Provider(lambda: None), provides=object)
 
         with ShouldRaise(ResourceError(
-            "Value(<class 'mush.tests.helpers.TheType'>, 'obj') could not be satisfied"
+            "Value(TheType, 'obj') could not be satisfied"
         )):
             context.call(foo)
 
@@ -668,8 +667,7 @@ class TestProviders:
         context = Context()
         context.add(Provider(provider), provides=str)
         expected = ("<Context: {\n"
-                    f"    <class 'str'>: Provider({provider}, "
-                    f"cache=True, provides_subclasses=False)\n"
+                    f"    str: Provider({provider}, cache=True, provides_subclasses=False)\n"
                     "}>")
         compare(expected, actual=repr(context))
         compare(expected, actual=str(context))
@@ -681,9 +679,9 @@ class TestProviders:
         context = Context()
         context.add(p, provides=str, identifier='the id')
         expected = ("<Context: {\n"
-                    f"    <class 'str'>, 'the id': Provider({provider}, "
-                    f"cached='it', cache=False, provides_subclasses=True)\n"
                     f"    'the id': Provider({provider}, "
+                    f"cached='it', cache=False, provides_subclasses=True)\n"
+                    f"    str, 'the id': Provider({provider}, "
                     f"cached='it', cache=False, provides_subclasses=True)\n"
                     "}>")
         compare(expected, actual=repr(context))

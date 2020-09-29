@@ -1,3 +1,4 @@
+from types import FunctionType
 from typing import Callable, Optional, Type
 
 from .markers import missing
@@ -18,15 +19,21 @@ class ResourceKey(tuple):
         return self[1]
 
     def __str__(self):
-        if self.type is None:
+        type_ = self.type
+        if type_ is None:
             return repr(self.identifier)
-        if hasattr(self.type, '__supertype__'):
-            type_repr = f'NewType({self.type.__name__}, {self.type.__supertype__})'
+        if isinstance(type_, type):
+            type_repr = type_.__qualname__
+        elif isinstance(type_, FunctionType):
+            type_repr = type_.__name__
         else:
-            type_repr = repr(self.type)
+            type_repr = repr(type_)
         if self.identifier is None:
             return type_repr
         return f'{type_repr}, {self.identifier!r}'
+
+    def __repr__(self):
+        return f'ResourceKey({self})'
 
 
 class ResourceValue:
