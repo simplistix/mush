@@ -57,81 +57,53 @@ class TestRequirement:
         with ShouldRaise(AttributeError):
             assert v.__len__
         compare(v.ops, [])
-#
-#
-# class TestValue:
-#
-#     def test_type_from_key(self):
-#         v = Value(str)
-#         compare(v.requirement.type, expected=str)
-#
-#     def test_key_and_type_cannot_disagree(self):
-#         with ShouldRaise(TypeError('type_ cannot be specified if key is a type')):
-#             Value(key=str, type_=int)
-#
-#     def test_at_least_one_param_must_be_specified(self):
-#         with ShouldRaise(TypeError('xx')):
-#             Value()
-#
-#
-# class TestItem:
-#
-#     def test_single(self):
-#         h = Value(Type1)['foo']
-#         compare(repr(h), expected="Value(Type1)['foo']")
-#         check_ops(h, {'foo': 1}, expected=1)
-#
-#     def test_multiple(self):
-#         h = Value(Type1)['foo']['bar']
-#         compare(repr(h), expected="Value(Type1)['foo']['bar']")
-#         check_ops(h, {'foo': {'bar': 1}}, expected=1)
-#
-#     def test_missing_obj(self):
-#         h = Value(Type1)['foo']['bar']
-#         with ShouldRaise(TypeError):
-#             check_ops(h, object(), expected=None)
-#
-#     def test_missing_key(self):
-#         h = Value(Type1)['foo']
-#         check_ops(h, {}, expected=missing)
-#
-#     def test_passed_missing(self):
-#         c = Context()
-#         c.add({}, provides='key')
-#         compare(c.call(lambda x: x, requires(Value('key', default=1)['foo']['bar'])),
-#                 expected=1)
-#
-#     def test_bad_type(self):
-#         h = Value(Type1)['foo']['bar']
-#         with ShouldRaise(TypeError):
-#             check_ops(h, [], expected=None)
-#
-#
-# class TestAttr(TestCase):
-#
-#     def test_single(self):
-#         h = Value(Type1).foo
-#         compare(repr(h), "Value(Type1).foo")
-#         m = Mock()
-#         check_ops(h, m, expected=m.foo)
-#
-#     def test_multiple(self):
-#         h = Value(Type1).foo.bar
-#         compare(repr(h), "Value(Type1).foo.bar")
-#         m = Mock()
-#         check_ops(h, m, expected=m.foo.bar)
-#
-#     def test_missing(self):
-#         h = Value(Type1).foo
-#         compare(repr(h), "Value(Type1).foo")
-#         check_ops(h, object(), expected=missing)
-#
-#     def test_passed_missing(self):
-#         c = Context()
-#         c.add(object(), provides='key')
-#         compare(c.call(lambda x: x, requires(Value('key', default=1).foo.bar)),
-#                 expected=1)
-#
+
+
+class TestItem:
+
+    def test_single(self):
+        h = Value(Type1)['foo']
+        compare(repr(h), expected="Value(Type1)['foo']")
+        check_ops(h, {'foo': 1}, expected=1)
+
+    def test_multiple(self):
+        h = Value(Type1)['foo']['bar']
+        compare(repr(h), expected="Value(Type1)['foo']['bar']")
+        check_ops(h, {'foo': {'bar': 1}}, expected=1)
+
+    def test_missing_obj(self):
+        h = Value(Type1)['foo']['bar']
+        with ShouldRaise(TypeError):
+            check_ops(h, object(), expected=None)
+
+    def test_missing_key(self):
+        h = Value(Type1)['foo']
+        check_ops(h, {}, expected=missing)
+
+    def test_bad_type(self):
+        h = Value(Type1)['foo']['bar']
+        with ShouldRaise(TypeError):
+            check_ops(h, [], expected=None)
+
+
+class TestAttr:
+
+    def test_single(self):
+        h = Value(Type1).foo
+        compare(repr(h), "Value(Type1).foo")
+        m = Mock()
+        check_ops(h, m, expected=m.foo)
+
+    def test_multiple(self):
+        h = Value(Type1).foo.bar
+        compare(repr(h), "Value(Type1).foo.bar")
+        m = Mock()
+        check_ops(h, m, expected=m.foo.bar)
+
+    def test_missing(self):
+        h = Value(Type1).foo
+        compare(repr(h), "Value(Type1).foo")
+        check_ops(h, object(), expected=missing)
 
 
 class TestAnnotation:
@@ -168,6 +140,38 @@ class TestAnnotation:
     def test_repr_max(self):
         compare(repr(Annotation('x', str, 'default')),
                 expected="x: str = 'default'")
+
+
+class TestValue:
+
+    def test_type_only(self):
+        v = Value(str)
+        compare(v.keys, expected=[ResourceKey(str, None)])
+
+    def test_typing_only(self):
+        v = Value(Text)
+        compare(v.keys, expected=[ResourceKey(Text, None)])
+
+    def test_identifier_only(self):
+        v = Value('foo')
+        compare(v.keys, expected=[ResourceKey(None, 'foo')])
+
+    def test_type_and_identifier(self):
+        v = Value(str, 'foo')
+        compare(v.keys, expected=[ResourceKey(str, 'foo')])
+
+    def test_nothing_specified(self):
+        with ShouldRaise(TypeError('type or identifier must be supplied')):
+            Value()
+
+    def test_repr_min(self):
+        compare(repr(Value(Type1)),
+                expected="Value(Type1)")
+
+    def test_repr_max(self):
+        compare(repr(Value(Type1, 'foo')['bar'].baz),
+                expected="Value(Type1, 'foo')['bar'].baz")
+
 #
 # class TestAnyOf:
 #

@@ -1,13 +1,14 @@
 # from typing import Tuple, List
 #
 from typing import NewType, Mapping, Any
+from testfixtures.mock import Mock
 
 from testfixtures import ShouldRaise, compare
 
 # from testfixtures.mock import Mock
 #
 from mush import (
-    Context, Requirement  # , requires, returns, returns_mapping, Value, missing
+    Context, Requirement, Value, requires
 )
 from mush.context import ResourceError
 # from mush.declarations import RequiresType, requires_nothing, returns_nothing
@@ -298,7 +299,7 @@ class TestOps:
         context = Context()
         context.add(dict(bar='baz'), identifier='foo')
         result = context.call(foo)
-        compare(result, 'baz')
+        compare(result, expected='baz')
 
     def test_call_requires_item_missing(self):
         def foo(obj: str = Value(dict)['foo']): pass
@@ -308,6 +309,21 @@ class TestOps:
             "Value(dict)['foo'] could not be satisfied",
         )):
             context.call(foo)
+
+    def test_call_requires_optional_item_missing(self):
+        def foo(x: str = Value('foo', default=1)['bar']):
+            return x
+        context = Context()
+        result = context.call(foo)
+        compare(result, expected=1)
+
+    def test_call_requires_optional_item_present(self):
+        def foo(x: str = Value('foo', default=1)['bar']):
+            return x
+        context = Context()
+        context.add(dict(bar='baz'), identifier='foo')
+        result = context.call(foo)
+        compare(result, expected='baz')
 
     def test_call_requires_attr(self):
         @requires(Value('foo').bar)
@@ -319,31 +335,48 @@ class TestOps:
         result = context.call(foo)
         compare(result, m.bar)
 
+    def test_call_requires_attr_missing(self):
+        @requires(Value('foo').bar)
+        def foo(x):
+            return x
+        o = object()
+        context = Context()
+        context.add(o, identifier='foo')
+        with ShouldRaise(ResourceError(
+            "Value('foo').bar could not be satisfied",
+        )):
+            context.call(foo)
+
+    def test_call_requires_optional_attr_missing(self):
+        @requires(Value('foo', default=1).bar)
+        def foo(x):
+            return x
+        o = object()
+        context = Context()
+        context.add(o, identifier='foo')
+        result = context.call(foo)
+        compare(result,  expected=1)
+
+    def test_call_requires_optional_attr_present(self):
+        @requires(Value('foo', default=1).bar)
+        def foo(x):
+            return x
+        m = Mock()
+        context = Context()
+        context.add(m, identifier='foo')
+        result = context.call(foo)
+        compare(result, expected=m.bar)
+
     def test_call_requires_item_attr(self):
         @requires(Value('foo').bar['baz'])
         def foo(x):
             return x
         m = Mock()
-        m.bar= dict(baz='bob')
+        m.bar = dict(baz='bob')
         context = Context()
         context.add(m, identifier='foo')
         result = context.call(foo)
-        compare(result, 'bob')
-
-    def test_call_requires_optional_item_missing(self):
-        def foo(x: str = Value('foo', default=1)['bar']):
-            return x
-        context = Context()
-        result = context.call(foo)
-        compare(result, 1)
-
-    def test_call_requires_optional_item_present(self):
-        def foo(x: str = Value('foo', default=1)['bar']):
-            return x
-        context = Context()
-        context.add(dict(bar='baz'), identifier='foo')
-        result = context.call(foo)
-        compare(result, 'baz')
+        compare(result,  expected='bob')
 
 
 # XXX requirements caching:

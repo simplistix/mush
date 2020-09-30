@@ -116,6 +116,8 @@ class Value(Requirement):
         if identifier is None:
             if isinstance(type_or_identifier, type):
                 type_ = type_or_identifier
+            elif type_or_identifier is None:
+                raise TypeError('type or identifier must be supplied')
             else:
                 identifier = type_or_identifier
                 type_ = None
