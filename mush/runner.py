@@ -7,7 +7,6 @@ from .extraction import extract_requires#, extract_returns
 from .markers import not_specified
 from .modifier import Modifier
 from .plug import Plug
-from .requirements import name_or_repr#, Lazy
 from .typing import Requires, Returns
 
 

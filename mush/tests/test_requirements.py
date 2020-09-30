@@ -13,16 +13,24 @@ def check_ops(value, data, *, expected):
 
 class TestRequirement:
 
-    # def test_repr_minimal(self):
-    #     compare(repr(Requirement('foo')),
-    #             expected="Requirement('foo')")
-    #
-    # def test_repr_maximal(self):
-    #     r = Requirement('foo', name='n', type_='ty', default=None, target='ta')
-    #     r.ops.append(AttrOp('bar'))
-    #     compare(repr(r),
-    #             expected="Requirement('foo', default=None).bar")
-    #
+    def test_repr_minimal(self):
+        compare(repr(Requirement((), default=missing)),
+                expected="Requirement()")
+
+    def test_repr_maximal(self):
+        r = Requirement(
+            keys=(
+                ResourceKey(type_=str),
+                ResourceKey(identifier='foo'),
+                ResourceKey(type_=int, identifier='bar')
+            ),
+            default=None
+        )
+        r.ops.append(AttrOp('bar'))
+        compare(repr(r),
+                expected="Requirement(ResourceKey(str), ResourceKey('foo'), "
+                         "ResourceKey(int, 'bar'), default=None).bar")
+
     special_names = ['attr', 'ops']
 
     @pytest.mark.parametrize("name", special_names)

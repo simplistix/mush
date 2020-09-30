@@ -5,6 +5,15 @@ from .markers import missing
 from .typing import Resource, Identifier
 
 
+def type_repr(type_):
+    if isinstance(type_, type):
+        return type_.__qualname__
+    elif isinstance(type_, FunctionType):
+        return type_.__name__
+    else:
+        return repr(type_)
+
+
 class ResourceKey(tuple):
 
     def __new__(cls, type_: Type = None, identifier: Identifier = None):
@@ -22,15 +31,10 @@ class ResourceKey(tuple):
         type_ = self.type
         if type_ is None:
             return repr(self.identifier)
-        if isinstance(type_, type):
-            type_repr = type_.__qualname__
-        elif isinstance(type_, FunctionType):
-            type_repr = type_.__name__
-        else:
-            type_repr = repr(type_)
+        type_repr_ = type_repr(type_)
         if self.identifier is None:
-            return type_repr
-        return f'{type_repr}, {self.identifier!r}'
+            return type_repr_
+        return f'{type_repr_}, {self.identifier!r}'
 
     def __repr__(self):
         return f'ResourceKey({self})'

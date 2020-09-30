@@ -5,10 +5,6 @@ from .resources import ResourceKey
 from .typing import Identifier
 
 
-def name_or_repr(obj):
-    return getattr(obj, '__name__', None) or repr(obj)
-
-
 class Op:
 
     def __init__(self, name):

@@ -3,7 +3,7 @@ from itertools import chain
 from typing import _type_check, Any
 
 from .markers import set_mush, missing
-from .requirements import Requirement, Value, name_or_repr
+from .requirements import Requirement, Value
 from .typing import RequirementType, ReturnType
 
 VALID_DECORATION_TYPES = (type, str, Requirement)

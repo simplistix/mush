@@ -5,7 +5,6 @@ from .declarations import (
     requires_nothing, returns as returns_declaration, returns_nothing
 )
 from .extraction import extract_requires#, extract_returns
-from .requirements import name_or_repr
 from .typing import Requires, Returns
 
 if TYPE_CHECKING:

@@ -306,7 +306,7 @@ class TestOps:
         context = Context()
         context.add({})
         with ShouldRaise(ResourceError(
-            "Value(<class 'dict'>)['foo'] could not be satisfied",
+            "Value(dict)['foo'] could not be satisfied",
         )):
             context.call(foo)
 
