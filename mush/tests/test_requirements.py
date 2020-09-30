@@ -181,44 +181,43 @@ class TestValue:
         compare(repr(Value(Type1, 'foo')['bar'].baz),
                 expected="Value(Type1, 'foo')['bar'].baz")
 
-#
-# class TestAnyOf:
-#
-#     def test_first(self):
-#         context = Context()
-#         context.add(('foo', ))
-#         context.add(('bar', ), provides=Tuple[str])
-#
-#         def bob(x: str = AnyOf(tuple, Tuple[str])):
-#             return x[0]
-#
-#         compare(context.call(bob), expected='foo')
-#
-#     def test_second(self):
-#         context = Context()
-#         context.add(('bar', ), provides=Tuple[str])
-#
-#         def bob(x: str = AnyOf(tuple, Tuple[str])):
-#             return x[0]
-#
-#         compare(context.call(bob), expected='bar')
-#
-#     def test_none(self):
-#         context = Context()
-#
-#         def bob(x: str = AnyOf(tuple, Tuple[str])):
-#             pass
-#
-#         with ShouldRaise(ResourceError):
-#             context.call(bob)
-#
-#     def test_default(self):
-#         context = Context()
-#
-#         def bob(x: str = AnyOf(tuple, Tuple[str], default=(42,))):
-#             return x[0]
-#
-#         compare(context.call(bob), expected=42)
+
+class TestAnyOf:
+
+    def test_types_and_typing(self):
+        r = AnyOf(tuple, Tuple[str])
+        compare(r.keys, expected=[
+            ResourceKey(tuple, None),
+            ResourceKey(Tuple[str], None),
+        ])
+        compare(r.default, expected=missing)
+
+    def test_identifiers(self):
+        r = AnyOf('a', 'b')
+        compare(r.keys, expected=[
+            ResourceKey(None, 'a'),
+            ResourceKey(None, 'b'),
+        ])
+        compare(r.default, expected=missing)
+
+    def test_default(self):
+        r = AnyOf(tuple, default='x')
+        compare(r.keys, expected=[
+            ResourceKey(tuple, None),
+        ])
+        compare(r.default, expected='x')
+
+    def test_none(self):
+        with ShouldRaise(TypeError('at least one key must be specified')):
+            AnyOf()
+
+    def test_repr_min(self):
+        compare(repr(AnyOf(Type1)),
+                expected="AnyOf(Type1)")
+
+    def test_repr_max(self):
+        compare(repr(AnyOf(Type1, 'foo', default='baz')['bob'].bar),
+                expected="AnyOf(Type1, 'foo', default='baz')['bob'].bar")
 #
 #
 # class Parent(object):

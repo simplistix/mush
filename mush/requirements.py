@@ -130,23 +130,6 @@ class Value(Requirement):
 
 #
 #
-# class AnyOf(Requirement):
-#     """
-#     A requirement that is resolved by any of the specified keys.
-#     """
-#
-#     def __init__(self, *keys, default=missing):
-#         super().__init__(keys, default=default)
-#
-#     @nonblocking
-#     def resolve(self, context: 'Context'):
-#         for key in self.key:
-#             value = context.get(key, missing)
-#             if value is not missing:
-#                 return value
-#         return self.default
-#
-#
 # class Like(Requirement):
 #     """
 #     A requirements that is resolved by the specified class or
@@ -177,3 +160,26 @@ class Value(Requirement):
 #         if resource is missing:
 #             context.extract(self.provider.obj, self.provider.requires, self.provider.returns)
 #         return self.original.resolve(context)
+
+class AnyOf(Requirement):
+    """
+    A requirement that is resolved by any of the specified keys.
+
+    A key may either be a :class:`type` or an :class:`Identifier`
+    """
+
+    def __init__(self, *keys: Union[Type_, Identifier], default: Any = missing):
+        if not keys:
+            raise TypeError('at least one key must be specified')
+        resource_keys = []
+        for key in keys:
+            type_ = identifier = None
+            if is_type(key):
+                type_ = key
+            else:
+                identifier = key
+            resource_keys.append(ResourceKey(type_, identifier))
+        super().__init__(resource_keys, default)
+
+    def _keys_repr(self):
+        return ', '.join(str(key) for key in self.keys)
