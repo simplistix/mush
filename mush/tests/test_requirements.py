@@ -1,4 +1,4 @@
-from typing import Text
+from typing import Text, Tuple, NewType
 
 from testfixtures.mock import Mock
 
@@ -151,6 +151,15 @@ class TestValue:
     def test_typing_only(self):
         v = Value(Text)
         compare(v.keys, expected=[ResourceKey(Text, None)])
+
+    def test_typing_generic_alias(self):
+        v = Value(Tuple[str])
+        compare(v.keys, expected=[ResourceKey(Tuple[str], None)])
+
+    def test_typing_new_type(self):
+        Type = NewType('Type', str)
+        v = Value(Type)
+        compare(v.keys, expected=[ResourceKey(Type, None)])
 
     def test_identifier_only(self):
         v = Value('foo')

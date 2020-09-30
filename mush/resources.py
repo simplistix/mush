@@ -1,8 +1,8 @@
 from types import FunctionType
-from typing import Callable, Optional, Type
+from typing import Callable, Optional, _GenericAlias
 
 from .markers import missing
-from .typing import Resource, Identifier
+from .typing import Resource, Identifier, Type_
 
 
 def type_repr(type_):
@@ -14,13 +14,20 @@ def type_repr(type_):
         return repr(type_)
 
 
+def is_type(obj):
+    return (
+        isinstance(obj, (type, _GenericAlias)) or
+        (callable(obj) and hasattr(obj, '__supertype__'))
+    )
+
+
 class ResourceKey(tuple):
 
-    def __new__(cls, type_: Type = None, identifier: Identifier = None):
+    def __new__(cls, type_: Type_ = None, identifier: Identifier = None):
         return tuple.__new__(cls, (type_, identifier))
 
     @property
-    def type(self) -> Type:
+    def type(self) -> Type_:
         return self[0]
 
     @property

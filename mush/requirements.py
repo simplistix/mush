@@ -1,8 +1,8 @@
-from typing import Any, List, Sequence, Optional, Union
+from typing import Any, List, Sequence, Optional, Union, Type
 
 from .markers import missing
-from .resources import ResourceKey, type_repr
-from .typing import Identifier
+from .resources import ResourceKey, type_repr, is_type
+from .typing import Identifier, Type_
 
 
 class Op:
@@ -74,7 +74,7 @@ class Requirement:
 
 class Annotation(Requirement):
 
-    def __init__(self, name: str, type_: type = None, default: Any = missing):
+    def __init__(self, name: str, type_: Type_ = None, default: Any = missing):
         if type_ is None:
             keys = [ResourceKey(None, name)]
         else:
@@ -110,19 +110,19 @@ class Value(Requirement):
     """
 
     def __init__(self,
-                 type_or_identifier: Union[type, Identifier] = None,
+                 key: Union[Type_, Identifier] = None,
                  identifier: Identifier = None,
                  default: Any = missing):
         if identifier is None:
-            if isinstance(type_or_identifier, type):
-                type_ = type_or_identifier
-            elif type_or_identifier is None:
+            if is_type(key):
+                type_ = key
+            elif key is None:
                 raise TypeError('type or identifier must be supplied')
             else:
-                identifier = type_or_identifier
+                identifier = key
                 type_ = None
         else:
-            type_ = type_or_identifier
+            type_ = key
         super().__init__([ResourceKey(type_, identifier)], default)
 
     def _keys_repr(self):

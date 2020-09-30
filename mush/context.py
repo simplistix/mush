@@ -1,11 +1,11 @@
 from inspect import signature
-from typing import Optional, Callable, Type, Union, Any, Dict
+from typing import Optional, Callable, Union, Any, Dict
 
 from .extraction import extract_requires
 from .markers import missing, Marker
 from .requirements import Requirement
 from .resources import ResourceKey, ResourceValue, Provider
-from .typing import Resource, Identifier
+from .typing import Resource, Identifier, Type_
 
 NONE_TYPE = type(None)
 unspecified = Marker('unspecified')
@@ -30,7 +30,7 @@ class Context:
 
     def add(self,
             obj: Union[Provider, Resource],
-            provides: Optional[Type] = missing,
+            provides: Optional[Type_] = missing,
             identifier: Identifier = None):
         """
         Add a resource to the context.
