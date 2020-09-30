@@ -130,23 +130,6 @@ class Value(Requirement):
 
 #
 #
-# class Like(Requirement):
-#     """
-#     A requirements that is resolved by the specified class or
-#     any of its base classes.
-#     """
-#
-#     @nonblocking
-#     def resolve(self, context: 'Context'):
-#         for key in self.key.__mro__:
-#             if key is object:
-#                 break
-#             value = context.get(key, missing)
-#             if value is not missing:
-#                 return value
-#         return self.default
-#
-#
 # class Lazy(Requirement):
 #
 #     def __init__(self, original, provider):
@@ -183,3 +166,21 @@ class AnyOf(Requirement):
 
     def _keys_repr(self):
         return ', '.join(str(key) for key in self.keys)
+
+
+class Like(Requirement):
+    """
+    A requirements that is resolved by the specified class or
+    any of its base classes.
+    """
+
+    def __init__(self, type_: type, default: Any = missing):
+        keys = []
+        for type__ in type_.__mro__:
+            if type__ is object:
+                break
+            keys.append(ResourceKey(type__, None))
+        super().__init__(keys, default)
+
+    def _keys_repr(self):
+        return str(self.keys[0])

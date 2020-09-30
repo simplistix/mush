@@ -218,55 +218,37 @@ class TestAnyOf:
     def test_repr_max(self):
         compare(repr(AnyOf(Type1, 'foo', default='baz')['bob'].bar),
                 expected="AnyOf(Type1, 'foo', default='baz')['bob'].bar")
-#
-#
-# class Parent(object):
-#     pass
-#
-#
-# class Child(Parent):
-#     pass
-#
-#
-# class TestLike:
-#
-#     def test_actual(self):
-#         context = Context()
-#         p = Parent()
-#         c = Child()
-#         context.add(p)
-#         context.add(c)
-#
-#         def bob(x: str = Like(Child)):
-#             return x
-#
-#         assert context.call(bob) is c
-#
-#     def test_base(self):
-#         context = Context()
-#         p = Parent()
-#         context.add(p)
-#
-#         def bob(x: str = Like(Child)):
-#             return x
-#
-#         assert context.call(bob) is p
-#
-#     def test_none(self):
-#         context = Context()
-#         # make sure we don't pick up object!
-#         context.add(object())
-#
-#         def bob(x: str = Like(Child)):
-#             pass
-#
-#         with ShouldRaise(ResourceError):
-#             context.call(bob)
-#
-#     def test_default(self):
-#         context = Context()
-#
-#         def bob(x: str = Like(Child, default=42)):
-#             return x
-#
-#         compare(context.call(bob), expected=42)
+
+
+class Parent(object):
+    pass
+
+
+class Child(Parent):
+    pass
+
+
+class TestLike:
+
+    def test_simple(self):
+        r = Like(Child)
+        compare(r.keys, expected=[
+            ResourceKey(Child, None),
+            ResourceKey(Parent, None),
+        ])
+        compare(r.default, expected=missing)
+
+    def test_default(self):
+        r = Like(Parent, default='foo')
+        compare(r.keys, expected=[
+            ResourceKey(Parent, None),
+        ])
+        compare(r.default, expected='foo')
+
+    def test_repr_min(self):
+        compare(repr(Like(Type1)),
+                expected="Like(Type1)")
+
+    def test_repr_max(self):
+        compare(repr(Like(Type1, default='baz')['bob'].bar),
+                expected="Like(Type1, default='baz')['bob'].bar")
