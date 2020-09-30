@@ -143,7 +143,7 @@ class TestCall:
         def foo(obj: TheType): return obj
         context = Context()
         with ShouldRaise(ResourceError(
-            "Value(TheType, 'obj') could not be satisfied"
+            "obj: TheType could not be satisfied"
         )):
             context.call(foo)
 
@@ -193,7 +193,7 @@ class TestCall:
         context = Context()
         context.add(object())
         with ShouldRaise(ResourceError(
-            "Value(TheType, 'obj') could not be satisfied"
+            "obj: TheType could not be satisfied"
         )):
             context.call(foo)
 
@@ -215,7 +215,7 @@ class TestCall:
             return request_
 
         with ShouldRaise(ResourceError(
-                "Value(typing.Mapping[str, typing.Any], 'request_') could not be satisfied"
+                "request_: typing.Mapping[str, typing.Any] could not be satisfied"
         )):
             context.call(returner)
 
@@ -227,7 +227,7 @@ class TestCall:
             return request_
 
         with ShouldRaise(ResourceError(
-                "Value(Request, 'request_') could not be satisfied"
+                "request_: Request could not be satisfied"
         )):
             context.call(returner)
 
@@ -237,8 +237,7 @@ class TestCall:
         def foo(requirement: Requirement): pass
 
         with ShouldRaise(ResourceError(
-                "Value(Requirement, 'requirement') "
-                "could not be satisfied"
+                "requirement: Requirement could not be satisfied"
         )):
             context.call(foo)
 
@@ -572,7 +571,7 @@ class TestProviders:
         context.add(Provider(lambda: None), provides=object)
 
         with ShouldRaise(ResourceError(
-            "Value(TheType, 'obj') could not be satisfied"
+            "obj: TheType could not be satisfied"
         )):
             context.call(foo)
 

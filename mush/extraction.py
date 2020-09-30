@@ -12,7 +12,8 @@ from .declarations import (
     requires_nothing
 )
 from .markers import missing, get_mush
-from .requirements import Value, Requirement
+from .requirements import Value, Requirement, Annotation
+from .resources import ResourceKey
 
 
 def _apply_requires(by_name, by_index, requires_):
@@ -49,7 +50,6 @@ def extract_requires(obj: Callable) -> Requirements:
         if isinstance(obj, partial) and p.name in obj.keywords:
             continue
 
-        type_ = annotations.get(name)
         default = missing if p.default is p.empty else p.default
 
         if isinstance(default, Requirement):
@@ -57,9 +57,10 @@ def extract_requires(obj: Callable) -> Requirements:
             default = requirement.default
         elif isinstance(p.annotation, Requirement):
             requirement = p.annotation
-            default = default if requirement.default is missing else requirement.default
+            if requirement.default is not missing:
+                default = requirement.default
         else:
-            requirement = Value(type_, p.name, default)
+            requirement = Annotation(p.name, annotations.get(name), default)
 
         by_name[name] = Parameter(
             requirement,

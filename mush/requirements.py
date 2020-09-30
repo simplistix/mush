@@ -1,7 +1,7 @@
-from typing import Any, List, Hashable, Sequence, Optional, Union
+from typing import Any, List, Sequence, Optional, Union
 
 from .markers import missing
-from .resources import ResourceKey
+from .resources import ResourceKey, type_repr
 from .typing import Identifier
 
 
@@ -40,7 +40,7 @@ class Requirement:
     The requirement for an individual parameter of a callable.
     """
 
-    def __init__(self, default: Any, *keys: ResourceKey):
+    def __init__(self, keys: Sequence[ResourceKey], default: Optional[Any] = missing):
         self.keys: Sequence[ResourceKey] = keys
         self.default = default
         self.ops: List['Op'] = []
@@ -72,6 +72,29 @@ class Requirement:
         return self
 
 
+class Annotation(Requirement):
+
+    def __init__(self, name: str, type_: type = None, default: Any = missing):
+        if type_ is None:
+            keys = [ResourceKey(None, name)]
+        else:
+            keys = [
+                ResourceKey(type_, name),
+                ResourceKey(None, name),
+                ResourceKey(type_, None),
+            ]
+        super().__init__(keys, default)
+
+    def __repr__(self):
+        type_, name = self.keys[0]
+        r = name
+        if type_ is not None:
+            r += f': {type_repr(type_)}'
+        if self.default is not missing:
+            r += f' = {self.default!r}'
+        return r
+
+
 class Value(Requirement):
     """
     Declaration indicating that the specified resource key is required.
@@ -98,12 +121,7 @@ class Value(Requirement):
                 type_ = None
         else:
             type_ = type_or_identifier
-        super().__init__(
-            default,
-            ResourceKey(type_, identifier),
-            ResourceKey(None, identifier),
-            ResourceKey(type_, None),
-        )
+        super().__init__([ResourceKey(type_, identifier)], default)
 
     def _keys_repr(self):
         return str(self.keys[0])

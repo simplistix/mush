@@ -1,8 +1,14 @@
+from typing import Text
+
+from testfixtures.mock import Mock
+
 import pytest
 from testfixtures import compare, ShouldRaise
 
-from mush import Value
-from mush.requirements import Requirement, AttrOp, ItemOp  # , AnyOf, Like
+from mush import Value, missing
+from mush.requirements import Requirement, AttrOp, ItemOp, AnyOf, Like, Annotation
+from mush.resources import ResourceKey
+from mush.tests.helpers import Type1
 
 
 def check_ops(value, data, *, expected):
@@ -126,6 +132,42 @@ class TestRequirement:
 #         compare(c.call(lambda x: x, requires(Value('key', default=1).foo.bar)),
 #                 expected=1)
 #
+
+
+class TestAnnotation:
+
+    def test_name_only(self):
+        r = Annotation('x', None, missing)
+        compare(r.keys, expected=[
+            ResourceKey(None, 'x')
+        ])
+        compare(r.default, expected=missing)
+
+    def test_name_and_type(self):
+        r = Annotation('x', str, missing)
+        compare(r.keys, expected=[
+            ResourceKey(str, 'x'),
+            ResourceKey(None, 'x'),
+            ResourceKey(str, None),
+        ])
+        compare(r.default, expected=missing)
+
+    def test_all(self):
+        r = Annotation('x', str, 'default')
+        compare(r.keys, expected=[
+            ResourceKey(str, 'x'),
+            ResourceKey(None, 'x'),
+            ResourceKey(str, None),
+        ])
+        compare(r.default, expected='default')
+
+    def test_repr_min(self):
+        compare(repr(Annotation('x', None, missing)),
+                expected="x")
+
+    def test_repr_max(self):
+        compare(repr(Annotation('x', str, 'default')),
+                expected="x: str = 'default'")
 #
 # class TestAnyOf:
 #
