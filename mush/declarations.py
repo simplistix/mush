@@ -30,16 +30,16 @@ class Parameter:
         self.default = default
 
 
-class Requirements(list):
+class RequirementsDeclaration(list):
+
+    def __call__(self, obj):
+        set_mush(obj, 'requires', self)
+        return obj
 
     def __repr__(self):
         parts = (repr(r) if r.target is None else f'{r.target}={r!r}'
                  for r in self)
         return f"requires({', '.join(parts)})"
-
-    def __call__(self, obj):
-        set_mush(obj, 'requires', self)
-        return obj
 
 
 def requires(*args: RequirementType, **kw: RequirementType):
@@ -53,7 +53,7 @@ def requires(*args: RequirementType, **kw: RequirementType):
     String names for resources must be used instead of types where the callable
     returning those resources is configured to return the named resource.
     """
-    requires_ = Requirements()
+    requires_ = RequirementsDeclaration()
     valid_decoration_types(*args)
     valid_decoration_types(*kw.values())
     for target, possible in chain(
@@ -68,10 +68,10 @@ def requires(*args: RequirementType, **kw: RequirementType):
     return requires_
 
 
-requires_nothing = Requirements()
+requires_nothing = RequirementsDeclaration()
 
 
-class Return(object):
+class ReturnsDeclaration(object):
 
     def __call__(self, obj):
         set_mush(obj, 'returns', self)

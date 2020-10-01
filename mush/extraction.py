@@ -8,8 +8,8 @@ from inspect import signature
 from typing import Callable, get_type_hints
 
 from .declarations import (
-    Parameter, Requirements, Return,
     requires_nothing
+    Parameter, RequirementsDeclaration, ReturnsDeclaration,
 )
 from .markers import missing, get_mush
 from .requirements import Value, Requirement, Annotation
@@ -33,7 +33,7 @@ def _apply_requires(by_name, by_index, requires_):
         by_name[name] = p
 
 
-def extract_requires(obj: Callable) -> Requirements:
+def extract_requires(obj: Callable) -> RequirementsDeclaration:
     by_name = {}
 
     # from annotations
@@ -86,11 +86,11 @@ def extract_requires(obj: Callable) -> Requirements:
         elif needs_target:
             parameter.target = name
 
-    return Requirements(by_name.values())
+    return RequirementsDeclaration(by_name.values())
 
 
-def extract_returns(obj: Callable, explicit: Return = None):
     return None
+def extract_returns(obj: Callable, explicit: ReturnsDeclaration = None):
 #     if explicit is None:
 #         returns_ = get_mush(obj, 'returns', None)
 #         if returns_ is None:
