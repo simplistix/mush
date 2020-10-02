@@ -1,4 +1,9 @@
 from enum import Enum, auto
+from functools import (
+    WRAPPER_ASSIGNMENTS as FUNCTOOLS_ASSIGNMENTS,
+    WRAPPER_UPDATES,
+    update_wrapper as functools_update_wrapper
+)
 from itertools import chain
 from typing import _type_check, Any
 
@@ -160,3 +165,17 @@ class DeclarationsFrom(Enum):
 original = DeclarationsFrom.original
 #: Use declarations from the replacement callable.
 replacement = DeclarationsFrom.replacement
+
+
+WRAPPER_ASSIGNMENTS = FUNCTOOLS_ASSIGNMENTS + ('__mush__',)
+
+
+def update_wrapper(wrapper,
+                   wrapped,
+                   assigned=WRAPPER_ASSIGNMENTS,
+                   updated=WRAPPER_UPDATES):
+    """
+    An extended version of :func:`functools.update_wrapper` that
+    also preserves Mush's annotations.
+    """
+    return functools_update_wrapper(wrapper, wrapped, assigned, updated)
