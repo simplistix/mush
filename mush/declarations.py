@@ -77,84 +77,25 @@ def requires(*args: RequirementType, **kw: RequirementType):
 requires_nothing = RequirementsDeclaration()
 
 
-class ReturnsDeclaration(object):
+class ReturnsDeclaration(Set[ResourceKey]):
 
     def __call__(self, obj):
         set_mush(obj, 'returns', self)
         return obj
 
     def __repr__(self):
-        return self.__class__.__name__ + '()'
+        return f"returns({', '.join(str(k) for k in sorted(self, key=lambda o: str(o)))})"
 
 
-class returns(Return):
+def returns(*keys: ReturnType):
     """
-    Declaration that specifies names for returned resources or overrides
-    the type of a returned resource.
-
-    This declaration can be used to indicate the type or name of a single
-    returned resource or, if multiple arguments are passed, that the callable
-    will return a sequence of values where each one should be named or have its
-    type overridden.
     """
-
-    def __init__(self, *args: ReturnType):
-        valid_decoration_types(*args)
-        self.args = args
-
-    def process(self, obj):
-        if len(self.args) == 1:
-            yield self.args[0], obj
-        elif self.args:
-            for t, o in zip(self.args, obj):
-                yield t, o
-
-    def __repr__(self):
-        args_repr = ', '.join(name_or_repr(arg) for arg in self.args)
-        return self.__class__.__name__ + '(' + args_repr + ')'
+    check_decoration_types(*keys)
+    return ReturnsDeclaration(ResourceKey.guess(k) for k in keys)
 
 
-class returns_result_type(Return):
-    """
-    Default declaration that indicates a callable's return value
-    should be used as a resource based on the type of the object returned.
+returns_nothing = ignore_return = ReturnsDeclaration()
 
-    ``None`` is ignored as a return value, as are context managers
-    """
-
-    def process(self, obj):
-        if not (obj is None or hasattr(obj, '__enter__') or hasattr(obj, '__aenter__')):
-            yield obj.__class__, obj
-
-
-class returns_mapping(Return):
-    """
-    Declaration that indicates a callable returns a mapping of type or name
-    to resource.
-    """
-
-    def process(self, mapping):
-        return mapping.items()
-
-
-class returns_sequence(returns_result_type):
-    """
-    Declaration that indicates a callable's returns a sequence of values
-    that should be used as a resources based on the type of the object returned.
-
-    Any ``None`` values in the sequence are ignored.
-    """
-
-    def process(self, sequence):
-        super_process = super(returns_sequence, self).process
-        for obj in sequence:
-            for pair in super_process(obj):
-                yield pair
-
-
-returns_nothing = returns()
-
-result_type = returns_result_type()
 
 
 class DeclarationsFrom(Enum):

@@ -432,24 +432,6 @@ class TestOps:
 #         compare(result, 'bar')
 #         compare({TheType: 'bar'}, actual=context._store)
 #
-#     def test_returns_sequence(self):
-#         def foo():
-#             return 1, 2
-#         context = Context()
-#         result = context.extract(foo, requires_nothing, returns('foo', 'bar'))
-#         compare(result, (1, 2))
-#         compare({'foo': 1, 'bar': 2},
-#                 actual=context._store)
-#
-#     def test_returns_mapping(self):
-#         def foo():
-#             return {'foo': 1, 'bar': 2}
-#         context = Context()
-#         result = context.extract(foo, requires_nothing, returns_mapping())
-#         compare(result, {'foo': 1, 'bar': 2})
-#         compare({'foo': 1, 'bar': 2},
-#                 actual=context._store)
-#
 #     def test_ignore_return(self):
 #         def foo():
 #             return 'bar'

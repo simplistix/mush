@@ -5,11 +5,11 @@ from inspect import signature
 from typing import Callable, get_type_hints
 
 from .declarations import (
-    requires_nothing
     Parameter, RequirementsDeclaration, ReturnsDeclaration,
+    requires_nothing
 )
 from .markers import missing, get_mush
-from .requirements import Value, Requirement, Annotation
+from .requirements import Requirement, Annotation
 from .resources import ResourceKey
 
 
@@ -86,21 +86,35 @@ def extract_requires(obj: Callable) -> RequirementsDeclaration:
     return RequirementsDeclaration(by_name.values())
 
 
-    return None
-def extract_returns(obj: Callable, explicit: ReturnsDeclaration = None):
-#     if explicit is None:
-#         returns_ = get_mush(obj, 'returns', None)
-#         if returns_ is None:
-#             annotations = getattr(obj, '__annotations__', {})
-#             returns_ = annotations.get('return')
-#     else:
-#         returns_ = explicit
-#
-#     if returns_ is None or isinstance(returns_, ReturnsType):
-#         pass
-#     elif isinstance(returns_, (list, tuple)):
-#         returns_ = returns(*returns_)
-#     else:
-#         returns_ = returns(returns_)
-#
-#     return returns_ or result_type
+def extract_returns(obj: Callable):
+    returns_ = get_mush(obj, 'returns', None)
+    if returns_ is not None:
+        return returns_
+
+    returns_ = ReturnsDeclaration()
+    try:
+        type_ = get_type_hints(obj).get('return')
+    except TypeError:
+        type_ = None
+    else:
+        if type_ is type(None):
+            return returns_
+
+    if type_ is None and isinstance(obj, type):
+        type_ = obj
+
+    if isinstance(obj, partial):
+        obj = obj.func
+    identifier = getattr(obj, '__name__', None)
+
+    type_supplied = type_ is not None
+    identifier_supplied = identifier is not None
+
+    if type_supplied:
+        returns_.add(ResourceKey(type_, None))
+    if identifier_supplied:
+        returns_.add(ResourceKey(None, identifier))
+    if type_supplied and identifier_supplied:
+        returns_.add(ResourceKey(type_, identifier))
+
+    return returns_
