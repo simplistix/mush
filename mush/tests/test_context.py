@@ -397,56 +397,50 @@ class TestOps:
 #         compare(context._requires_cache, expected={})
 #
 
-    # XXX extract
 
-#     def test_extract_minimal(self):
-#         o = TheType()
-#         def foo() -> TheType:
-#             return o
-#         context = Context()
-#         result = context.extract(foo)
-#         assert result is o
-#         compare({TheType: o}, actual=context._store)
-#         compare(context._requires_cache[foo], expected=RequiresType())
-#         compare(context._returns_cache[foo], expected=returns(TheType))
-#
-#     def test_extract_maximal(self):
-#         def foo(*args):
-#             return args
-#         context = Context()
-#         context.add('a')
-#         result = context.extract(foo, requires(str), returns(Tuple[str]))
-#         compare(result, expected=('a',))
-#         compare({
-#             str: 'a',
-#             Tuple[str]: ('a',),
-#         }, actual=context._store)
-#         compare(context._requires_cache, expected={})
-#         compare(context._returns_cache, expected={})
-#
-#     def test_returns_single(self):
-#         def foo():
-#             return 'bar'
-#         context = Context()
-#         result = context.extract(foo, requires_nothing, returns(TheType))
-#         compare(result, 'bar')
-#         compare({TheType: 'bar'}, actual=context._store)
-#
-#     def test_ignore_return(self):
-#         def foo():
-#             return 'bar'
-#         context = Context()
-#         result = context.extract(foo, requires_nothing, returns_nothing)
-#         compare(result, 'bar')
-#         compare({}, context._store)
-#
-#     def test_ignore_non_iterable_return(self):
-#         def foo(): pass
-#         context = Context()
-#         result = context.extract(foo)
-#         compare(result, expected=None)
-#         compare(context._store, expected={})
-#
+class TestExtract:
+
+    def test_extract_minimal(self):
+        o = TheType()
+        def foo():
+            return o
+        context = Context()
+        result = context.extract(foo)
+        assert result is o
+        compare({ResourceKey(identifier='foo'): ResourceValue(o)}, actual=context._store)
+
+    def test_extract_maximal(self):
+        def foo(o: str) -> Tuple[str, ...]:
+            return o, o
+        context = Context()
+        context.add('a')
+        result = context.extract(foo)
+        compare(result, expected=('a', 'a'))
+        compare({
+            ResourceKey(str): ResourceValue('a'),
+            ResourceKey(identifier='foo'): ResourceValue(result),
+            ResourceKey(Tuple[str, ...], 'foo'): ResourceValue(result),
+            ResourceKey(Tuple[str, ...]): ResourceValue(result),
+        }, actual=context._store)
+
+    def test_ignore_return(self):
+        @ignore_return
+        def foo():
+            return 'bar'
+        context = Context()
+        result = context.extract(foo)
+        compare(result, 'bar')
+        compare({}, context._store)
+
+    def test_returns_none(self):
+        def foo(): pass
+        context = Context()
+        result = context.extract(foo)
+        compare(result, expected=None)
+        compare(context._store, expected={
+            ResourceKey(identifier='foo'): ResourceValue(None),
+        })
+
 
     # XXX - remove
 
@@ -647,10 +641,13 @@ class TestProviders:
         assert isinstance(context.call(returner), Type1)
 
     def test_no_provides(self):
-        def provider(): pass
+        provider = Mock()
         context = Context()
-        with ShouldRaise(ResourceError(f'Could not determine what is provided by {provider}')):
-            context.add(Provider(provider))
+        with ShouldRaise(ResourceError(
+                f'Could not determine what is provided by '
+                f'Provider(functools.partial({provider}), cache=True, provides_subclasses=False)'
+        )):
+            context.add(Provider(partial(provider)))
 
     def test_identifier(self):
         def provider() -> str:

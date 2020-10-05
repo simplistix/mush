@@ -28,6 +28,12 @@ class Context:
         # self._requires_cache = {}
         # self._returns_cache = {}
 
+    def add_by_keys(self, resource: ResourceValue, keys: Iterable[ResourceKey]):
+        for key in keys:
+            if key in self._store:
+                raise ResourceError(f'Context already contains {key}')
+            self._store[key] = resource
+
     def add(self,
             obj: Union[Provider, Resource],
             provides: Optional[Type_] = missing,
@@ -39,33 +45,28 @@ class Context:
 
         ``provides`` can be explicitly specified as ``None`` to only register against the identifier
         """
+        keys = set()
         if isinstance(obj, Provider):
             resource = obj
             if provides is missing:
-                sig = signature(obj.provider)
-                annotation = sig.return_annotation
-                if annotation is sig.empty:
-                    if identifier is None:
-                        raise ResourceError(
-                            f'Could not determine what is provided by {obj.provider}'
-                        )
-                else:
-                    provides = annotation
+                keys.update(extract_returns(resource.provider))
 
         else:
             resource = ResourceValue(obj)
             if provides is missing:
                 provides = type(obj)
 
-        to_add = []
         if provides is not missing:
-            to_add.append(ResourceKey(provides, identifier))
+            keys.add(ResourceKey(provides, identifier))
         if not (identifier is None or provides is None):
-            to_add.append(ResourceKey(None, identifier))
-        for key in to_add:
-            if key in self._store:
-                raise ResourceError(f'Context already contains {key}')
-            self._store[key] = resource
+            keys.add(ResourceKey(None, identifier))
+
+        if not keys:
+            raise ResourceError(
+                f'Could not determine what is provided by {resource}'
+            )
+
+        self.add_by_keys(resource, keys)
 
     # def remove(self, key: ResourceKey, *, strict: bool = True):
     #     """
@@ -85,21 +86,21 @@ class Context:
         if bits:
             bits.append('\n')
         return f"<Context: {{{''.join(bits)}}}>"
-    #
-    # def _process(self, obj, result, returns):
-    #     if returns is None:
-    #         returns = self._returns_cache.get(obj)
-    #         if returns is None:
-    #             returns = extract_returns(obj, explicit=None)
-    #             self._returns_cache[obj] = returns
-    #
-    #     for type, obj in returns.process(result):
-    #         self.add(obj, type)
-    #
-    # def extract(self, obj: Callable, requires: RequiresType = None, returns: ReturnsType = None):
-    #     result = self.call(obj, requires)
-    #     self._process(obj, result, returns)
-    #     return result
+
+    def _process(self, obj, result, returns):
+        if returns is None:
+            # returns = self._returns_cache.get(obj)
+            # if returns is None:
+            returns = extract_returns(obj)
+                # self._returns_cache[obj] = returns
+
+        if returns:
+            self.add_by_keys(ResourceValue(result), returns)
+
+    def extract(self, obj: Callable):#, requires: RequiresType = None, returns: ReturnsType = None):
+        result = self.call(obj)
+        self._process(obj, result, returns=None)
+        return result
 
     def _find_resource(self, key):
         if not isinstance(key[0], type):
