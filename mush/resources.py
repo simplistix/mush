@@ -26,6 +26,15 @@ class ResourceKey(tuple):
     def __new__(cls, type_: Type_ = None, identifier: Identifier = None):
         return tuple.__new__(cls, (type_, identifier))
 
+    @classmethod
+    def guess(cls, key):
+        type_ = identifier = None
+        if is_type(key):
+            type_ = key
+        else:
+            identifier = key
+        return cls(type_, identifier)
+
     @property
     def type(self) -> Type_:
         return self[0]

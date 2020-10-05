@@ -7,7 +7,7 @@ if TYPE_CHECKING:
 Type_ = Union[type, Type, _GenericAlias]
 Identifier = Hashable
 
-RequirementType = Union['Requirement', Type_, str]
+RequirementType = Union['Requirement', Type_, Identifier]
 Requires = Union['RequirementDeclaraction',
                  RequirementType,
                  List[RequirementType],

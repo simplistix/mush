@@ -1,15 +1,13 @@
-import pytest; pytestmark = pytest.mark.skip("WIP")
 from typing import Tuple
 from unittest import TestCase
 
 from testfixtures import compare, ShouldRaise
 
-from mush import Value
-from mush.declarations import (
-    requires, returns,
-    returns_mapping, returns_sequence, returns_result_type
-)
+from mush import Value, AnyOf
+from mush.declarations import requires, returns, Parameter, RequirementsDeclaration, \
+    ReturnsDeclaration
 from .helpers import PY_36, Type1, Type2, Type3, Type4
+from ..resources import ResourceKey
 
 
 class TestRequires(TestCase):
@@ -23,27 +21,27 @@ class TestRequires(TestCase):
         r_ = requires(Type1, Type2, x=Type3, y=Type4)
         compare(repr(r_), 'requires(Value(Type1), Value(Type2), x=Value(Type3), y=Value(Type4))')
         compare(r_, expected=[
-            Value(Type1),
-            Value(Type2),
-            Value.make(key=Type3, type=Type3, name='x', target='x'),
-            Value.make(key=Type4, type=Type4, name='y', target='y'),
+            Parameter(Value(Type1)),
+            Parameter(Value(Type2)),
+            Parameter(Value(Type3), target='x'),
+            Parameter(Value(Type4), target='y'),
         ])
 
     def test_strings(self):
         r_ = requires('1', '2', x='3', y='4')
         compare(repr(r_), "requires(Value('1'), Value('2'), x=Value('3'), y=Value('4'))")
         compare(r_, expected=[
-            Value('1'),
-            Value('2'),
-            Value.make(key='3', name='x', target='x'),
-            Value.make(key='4', name='y', target='y'),
+            Parameter(Value('1')),
+            Parameter(Value('2')),
+            Parameter(Value('3'), target='x'),
+            Parameter(Value('4'), target='y'),
         ])
 
     def test_typing(self):
         r_ = requires(Tuple[str])
         text = 'Tuple' if PY_36 else 'typing.Tuple[str]'
         compare(repr(r_),expected=f"requires(Value({text}))")
-        compare(r_, expected=[Value.make(key=Tuple[str], type=Tuple[str])])
+        compare(r_, expected=[Parameter(Value(Tuple[str]))])
 
     def test_tuple_arg(self):
         with ShouldRaise(TypeError("('1', '2') is not a valid decoration type")):
@@ -58,8 +56,13 @@ class TestRequires(TestCase):
         def foo():
             return 'bar'
 
-        compare(foo.__mush__['requires'], expected=[Value(Type1)])
+        compare(foo.__mush__['requires'], expected=[Parameter(Value(Type1))])
         compare(foo(), 'bar')
+
+    def test_requirement_instance(self):
+        compare(requires(x=AnyOf('foo', 'bar')),
+                expected=RequirementsDeclaration([Parameter(AnyOf('foo', 'bar'), target='x')]),
+                strict=True)
 
 
 class TestReturns(TestCase):

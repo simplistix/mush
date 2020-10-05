@@ -35,9 +35,9 @@ def extract_requires(obj: Callable) -> RequirementsDeclaration:
 
     # from annotations
     try:
-        annotations = get_type_hints(obj)
+        hints = get_type_hints(obj)
     except TypeError:
-        annotations = {}
+        hints = {}
 
     for name, p in signature(obj).parameters.items():
         if p.kind in (p.VAR_POSITIONAL, p.VAR_KEYWORD):
@@ -57,7 +57,7 @@ def extract_requires(obj: Callable) -> RequirementsDeclaration:
             if requirement.default is not missing:
                 default = requirement.default
         else:
-            requirement = Annotation(p.name, annotations.get(name), default)
+            requirement = Annotation(p.name, hints.get(name), default)
 
         by_name[name] = Parameter(
             requirement,

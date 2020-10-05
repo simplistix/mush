@@ -114,16 +114,12 @@ class Value(Requirement):
                  identifier: Identifier = None,
                  default: Any = missing):
         if identifier is None:
-            if is_type(key):
-                type_ = key
-            elif key is None:
+            if key is None:
                 raise TypeError('type or identifier must be supplied')
-            else:
-                identifier = key
-                type_ = None
+            resource_key = ResourceKey.guess(key)
         else:
-            type_ = key
-        super().__init__([ResourceKey(type_, identifier)], default)
+            resource_key = ResourceKey(key, identifier)
+        super().__init__([resource_key], default)
 
     def _keys_repr(self):
         return str(self.keys[0])

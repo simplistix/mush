@@ -5,16 +5,17 @@ from functools import (
     update_wrapper as functools_update_wrapper
 )
 from itertools import chain
-from typing import _type_check, Any
+from typing import _type_check, Any, List, Set
 
 from .markers import set_mush, missing
 from .requirements import Requirement, Value
+from .resources import ResourceKey
 from .typing import RequirementType, ReturnType
 
 VALID_DECORATION_TYPES = (type, str, Requirement)
 
 
-def valid_decoration_types(*objs):
+def check_decoration_types(*objs):
     for obj in objs:
         if isinstance(obj, VALID_DECORATION_TYPES):
             continue
@@ -35,15 +36,15 @@ class Parameter:
         self.default = default
 
 
-class RequirementsDeclaration(list):
+class RequirementsDeclaration(List[Parameter]):
 
     def __call__(self, obj):
         set_mush(obj, 'requires', self)
         return obj
 
     def __repr__(self):
-        parts = (repr(r) if r.target is None else f'{r.target}={r!r}'
-                 for r in self)
+        parts = (repr(p.requirement) if p.target is None else f'{p.target}={p.requirement!r}'
+                 for p in self)
         return f"requires({', '.join(parts)})"
 
 
@@ -59,8 +60,8 @@ def requires(*args: RequirementType, **kw: RequirementType):
     returning those resources is configured to return the named resource.
     """
     requires_ = RequirementsDeclaration()
-    valid_decoration_types(*args)
-    valid_decoration_types(*kw.values())
+    check_decoration_types(*args)
+    check_decoration_types(*kw.values())
     for target, possible in chain(
         ((None, arg) for arg in args),
         kw.items(),
