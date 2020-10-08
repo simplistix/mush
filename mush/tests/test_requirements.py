@@ -119,8 +119,8 @@ class TestAnnotation:
         r = Annotation('x', str, missing)
         compare(r.keys, expected=[
             ResourceKey(str, 'x'),
-            ResourceKey(None, 'x'),
             ResourceKey(str, None),
+            ResourceKey(None, 'x'),
         ])
         compare(r.default, expected=missing)
 
@@ -128,8 +128,8 @@ class TestAnnotation:
         r = Annotation('x', str, 'default')
         compare(r.keys, expected=[
             ResourceKey(str, 'x'),
-            ResourceKey(None, 'x'),
             ResourceKey(str, None),
+            ResourceKey(None, 'x'),
         ])
         compare(r.default, expected='default')
 

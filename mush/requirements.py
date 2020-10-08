@@ -80,8 +80,8 @@ class Annotation(Requirement):
         else:
             keys = [
                 ResourceKey(type_, name),
-                ResourceKey(None, name),
                 ResourceKey(type_, None),
+                ResourceKey(None, name),
             ]
         super().__init__(keys, default)
 
