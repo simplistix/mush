@@ -1,6 +1,7 @@
 from functools import partial
 from typing import NewType, Mapping, Any, Tuple
 
+import pytest
 from testfixtures import ShouldRaise, compare
 from testfixtures.mock import Mock
 
@@ -367,25 +368,6 @@ class TestOps:
         compare(result,  expected='bob')
 
 
-# XXX requirements caching:
-#
-#     def test_call_caches_requires(self):
-#         context = Context()
-#         def foo(): pass
-#         context.call(foo)
-#         compare(context._requires_cache[foo], expected=RequiresType())
-#
-#     def test_call_explict_explicit_requires_no_cache(self):
-#         context = Context()
-#         context.add('a')
-#         def foo(*args):
-#             return args
-#         result = context.call(foo, requires(str))
-#         compare(result, ('a',))
-#         compare(context._requires_cache, expected={})
-#
-
-
 class TestExtract:
 
     def test_extract_minimal(self):
@@ -430,61 +412,50 @@ class TestExtract:
         })
 
 
-    # XXX - remove
+@pytest.mark.skip('requirements/returns caching')
+class TestExtractionCaching:
 
-#     def test_remove(self):
-#         context = Context()
-#         context.add('foo')
-#         context.remove(str)
-#         compare(context._store, expected={})
-#
-#     def test_remove_not_there_strict(self):
-#         context = Context()
-#         with ShouldRaise(ResourceError("Context does not contain 'foo'",
-#                                        key='foo')):
-#             context.remove('foo')
-#         compare(context._store, expected={})
-#
-#     def test_remove_not_there_not_strict(self):
-#         context = Context()
-#         context.remove('foo', strict=False)
-#         compare(context._store, expected={})
-#
-# XXX - nest
-#
-#     def test_nest(self):
-#         c1 = Context()
-#         c1.add('a', provides='a')
-#         c1.add('c', provides='c')
-#         c2 = c1.nest()
-#         c2.add('b', provides='b')
-#         c2.add('d', provides='c')
-#         compare(c2.get('a'), expected='a')
-#         compare(c2.get('b'), expected='b')
-#         compare(c2.get('c'), expected='d')
-#         compare(c1.get('a'), expected='a')
-#         compare(c1.get('b', default=None), expected=None)
-#         compare(c1.get('c'), expected='c')
-#
-#     def test_nest_with_overridden_default_requirement_type(self):
-#         def modifier(): pass
-#         c1 = Context(modifier)
-#         c2 = c1.nest()
-#         assert c2.requirement_modifier is modifier
-#
-#     def test_nest_with_explicit_default_requirement_type(self):
-#         def modifier1(): pass
-#         def modifier2(): pass
-#         c1 = Context(modifier1)
-#         c2 = c1.nest(modifier2)
-#         assert c2.requirement_modifier is modifier2
-#
-#     def test_nest_keeps_declarations_cache(self):
-#         c1 = Context()
-#         c2 = c1.nest()
-#         assert c2._requires_cache is c1._requires_cache
-#         assert c2._returns_cache is c1._returns_cache
-#  - XXX nesting versus cached providers!
+    def test_call_caches_requires(self):
+        context = Context()
+
+        def foo(): pass
+
+        context.call(foo)
+        compare(context._requires_cache[foo], expected=RequiresType())
+
+    def test_call_explict_explicit_requires_no_cache(self):
+        context = Context()
+        context.add('a')
+
+        def foo(*args):
+            return args
+
+        result = context.call(foo, requires(str))
+        compare(result, ('a',))
+        compare(context._requires_cache, expected={})
+
+
+@pytest.mark.skip('remove')
+class TestRemove:
+
+    def test_remove(self):
+        context = Context()
+        context.add('foo')
+        context.remove(str)
+        compare(context._store, expected={})
+
+    def test_remove_not_there_strict(self):
+        context = Context()
+        with ShouldRaise(ResourceError("Context does not contain 'foo'",
+                                       key='foo')):
+            context.remove('foo')
+        compare(context._store, expected={})
+
+    def test_remove_not_there_not_strict(self):
+        context = Context()
+        context.remove('foo', strict=False)
+        compare(context._store, expected={})
+
 
 class TestProviders:
 
@@ -710,3 +681,47 @@ class TestProviders:
                 "FromRequest(ResourceKey('request')) could not be satisfied"
         )):
             context.call(foo, requires=FromRequest('baz'))
+
+
+@pytest.mark.skip('remove')
+class TestNesting:
+
+    def test_nest(self):
+        c1 = Context()
+        c1.add('a', provides='a')
+        c1.add('c', provides='c')
+        c2 = c1.nest()
+        c2.add('b', provides='b')
+        c2.add('d', provides='c')
+        compare(c2.get('a'), expected='a')
+        compare(c2.get('b'), expected='b')
+        compare(c2.get('c'), expected='d')
+        compare(c1.get('a'), expected='a')
+        compare(c1.get('b', default=None), expected=None)
+        compare(c1.get('c'), expected='c')
+
+    def test_nest_with_overridden_default_requirement_type(self):
+        def modifier(): pass
+
+        c1 = Context(modifier)
+        c2 = c1.nest()
+        assert c2.requirement_modifier is modifier
+
+    def test_nest_with_explicit_default_requirement_type(self):
+        def modifier1(): pass
+
+        def modifier2(): pass
+
+        c1 = Context(modifier1)
+        c2 = c1.nest(modifier2)
+        assert c2.requirement_modifier is modifier2
+
+    def test_nest_keeps_declarations_cache(self):
+        c1 = Context()
+        c2 = c1.nest()
+        assert c2._requires_cache is c1._requires_cache
+        assert c2._returns_cache is c1._returns_cache
+
+    def test_test_versus_caching_providers(self):
+        # should the nested context get the cache?
+        pass
