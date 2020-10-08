@@ -2,7 +2,8 @@ import pytest
 
 from mush.declarations import requires, returns, replacement, original
 from mush import Value, ContextError, Context, Requirement
-from mush.resources import Provider
+from mush.requirements import ItemOp
+from mush.resources import Provider, ResourceKey
 from mush.runner import Runner
 from testfixtures import (
     ShouldRaise,
@@ -1208,23 +1209,21 @@ class TestRunner:
         runner = Runner(foo)
         compare(runner(context), expected=42)
 
-    @pytest.mark.skip('need another approach')
-    def test_requirement_modifier(self):
+    def test_default_requirement(self):
 
         class FromRequest(Requirement):
-            def resolve(self, context):
-                return context.get('request')[self.key]
+
+            def __init__(self, name, type_, default):
+                keys = [ResourceKey(None, 'request')]
+                super().__init__(keys, default)
+                self.ops.append(ItemOp(name))
 
         def foo(bar):
             return bar
 
-        def modifier(requirement):
-            if type(requirement) is Requirement:
-                requirement = FromRequest.make_from(requirement)
-            return requirement
+        context = Context(default_requirement=FromRequest)
+        context.add({'bar': 'foo'}, identifier='request')
 
-        runner = Runner(requirement_modifier=modifier)
+        runner = Runner()
         runner.add(foo)
-        context = Context()
-        context.add({'bar': 'foo'}, provides='request')
         compare(runner(context), expected='foo')

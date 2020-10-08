@@ -11,7 +11,7 @@ from .declarations import (
 from .markers import missing, get_mush
 from .requirements import Requirement, Annotation
 from .resources import ResourceKey
-from .typing import Requires, Returns
+from .typing import Requires, Returns, DefaultRequirement
 
 
 def _apply_requires(by_name, by_index, requires_):
@@ -34,6 +34,7 @@ def _apply_requires(by_name, by_index, requires_):
 def extract_requires(
         obj: Callable,
         explicit: Requires = None,
+        default_requirement: DefaultRequirement = Annotation
 ) -> RequirementsDeclaration:
     by_name = {}
 
@@ -61,7 +62,7 @@ def extract_requires(
             if requirement.default is not missing:
                 default = requirement.default
         else:
-            requirement = Annotation(p.name, hints.get(name), default)
+            requirement = default_requirement(p.name, hints.get(name), default)
 
         by_name[name] = Parameter(
             requirement,

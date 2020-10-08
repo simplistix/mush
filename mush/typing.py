@@ -1,4 +1,7 @@
-from typing import NewType, Union, Hashable, Any, TYPE_CHECKING, List, Tuple, Type, _GenericAlias
+from typing import (
+    NewType, Union, Hashable, Any, TYPE_CHECKING, List, Tuple, Type, _GenericAlias,
+    Callable, Optional
+)
 
 if TYPE_CHECKING:
     from .declarations import RequirementsDeclaration, ReturnsDeclaration
@@ -17,3 +20,6 @@ ReturnType = Union[Type_, str]
 Returns = Union['ReturnsDeclaration', ReturnType]
 
 Resource = NewType('Resource', Any)
+
+
+DefaultRequirement = Callable[[str, Optional[Type], Any], 'Requirement']

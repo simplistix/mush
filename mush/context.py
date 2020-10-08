@@ -1,12 +1,11 @@
-from inspect import signature
 from typing import Optional, Callable, Union, Any, Dict, Iterable
 
 from .callpoints import CallPoint
 from .extraction import extract_requires, extract_returns
 from .markers import missing, Marker
-from .requirements import Requirement
+from .requirements import Requirement, Annotation
 from .resources import ResourceKey, ResourceValue, Provider
-from .typing import Resource, Identifier, Type_, Requires, Returns
+from .typing import Resource, Identifier, Type_, Requires, Returns, DefaultRequirement
 
 NONE_TYPE = type(None)
 unspecified = Marker('unspecified')
@@ -24,8 +23,9 @@ class Context:
     # _parent: 'Context' = None
     point: CallPoint = None
 
-    def __init__(self):
+    def __init__(self, default_requirement: DefaultRequirement = Annotation):
         self._store = {}
+        self._default_requirement = default_requirement
         # self._requires_cache = {}
         # self._returns_cache = {}
 
@@ -110,7 +110,7 @@ class Context:
         if specials is None:
             specials: Dict[type, Any] = {Context: self}
 
-        requires = extract_requires(obj, requires)
+        requires = extract_requires(obj, requires, self._default_requirement)
 
         args = []
         kw = {}
