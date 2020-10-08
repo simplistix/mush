@@ -1,22 +1,13 @@
-# from typing import Tuple, List
-#
 from functools import partial
 from typing import NewType, Mapping, Any, Tuple
 
 from testfixtures import ShouldRaise, compare
 from testfixtures.mock import Mock
 
-# from testfixtures.mock import Mock
-#
-from mush import (
-    Context, Requirement, Value, requires
-)
+from mush import Context, Requirement, Value, requires, missing
 from mush.context import ResourceError
-# from mush.declarations import RequiresType, requires_nothing, returns_nothing
-# from mush.requirements import Requirement
 from .helpers import TheType, Type1, Type2
 from ..declarations import ignore_return
-from ..requirements import ItemOp
 from ..resources import ResourceValue, Provider, ResourceKey
 
 
@@ -695,33 +686,27 @@ class TestProviders:
         compare(expected, actual=repr(context))
         compare(expected, actual=str(context))
 
-# XXX "custom requirement" stuff
-#
-#     def test_custom_requirement(self):
-#
-#         class FromRequest(Requirement):
-#             def resolve(self, context):
-#                 return context.get('request')[self.key]
-#
-#         def foo(bar: FromRequest('bar')):
-#             return bar
-#
-#         context = Context()
-#         context.add({'bar': 'foo'}, provides='request')
-#         compare(context.call(foo), expected='foo')
-#
-#     def test_custom_requirement_returns_missing(self):
-#
-#         class FromRequest(Requirement):
-#             def resolve(self, context):
-#                 return context.get('request').get(self.key, missing)
-#
-#         def foo(bar: FromRequest('bar')):
-#             pass
-#
-#         context = Context()
-#         context.add({}, provides='request')
-#         with ShouldRaise(ResourceError("No FromRequest('bar') in context",
-#                                        key='bar',
-#                                        requirement=FromRequest.make(key='bar', name='bar'))):
-#             compare(context.call(foo))
+    def test_custom_requirement(self):
+
+        class FromRequest(Requirement):
+
+            def __init__(self, name):
+                super().__init__([ResourceKey(identifier='request')])
+                self.name = name
+
+            def process(self, obj):
+                # this example doesn't show it, but this is a method so
+                # there can be conditional stuff in here:
+                return obj.get(self.name, missing)
+
+        def foo(bar: str):
+            return bar
+
+        context = Context()
+        context.add({'bar': 'foo'}, identifier='request')
+        compare(context.call(foo, requires=FromRequest('bar')), expected='foo')
+        # real world, FromRequest would have a decent repr:
+        with ShouldRaise(ResourceError(
+                "FromRequest(ResourceKey('request')) could not be satisfied"
+        )):
+            context.call(foo, requires=FromRequest('baz'))

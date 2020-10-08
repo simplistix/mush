@@ -143,12 +143,7 @@ class Context:
                 o = parameter.default
 
             if o is not requirement.default:
-                # move to requirement.process?
-                for op in requirement.ops:
-                    o = op(o)
-                    if o is missing:
-                        o = requirement.default
-                        break
+                o = requirement.process(o)
 
             if o is missing:
                 raise ResourceError(f'{requirement!r} could not be satisfied')

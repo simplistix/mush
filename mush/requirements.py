@@ -10,6 +10,9 @@ class Op:
     def __init__(self, name):
         self.name = name
 
+    def __call__(self, o):  # pragma: no cover
+        raise NotImplementedError()
+
 
 class AttrOp(Op):
 
@@ -70,6 +73,14 @@ class Requirement:
     def __getitem__(self, name):
         self.ops.append(ItemOp(name))
         return self
+
+    def process(self, obj):
+        for op in self.ops:
+            obj = op(obj)
+            if obj is missing:
+                obj = self.default
+                break
+        return obj
 
 
 class Annotation(Requirement):
