@@ -26,7 +26,7 @@ def check_extract(obj, expected_rq, expected_rt=returns_foo):
     compare(rt, expected=expected_rt, strict=True)
 
 
-class TestRequirementsExtraction(object):
+class TestRequirementsExtraction:
 
     def test_default_requirements_for_function(self):
         def foo(a, b=None): pass
@@ -152,7 +152,7 @@ class Foo: pass
 class Bar: pass
 
 
-class TestExtractDeclarationsFromTypeAnnotations(object):
+class TestExtractDeclarationsFromTypeAnnotations:
 
     def test_extract_from_annotations(self):
         def foo(a: Type1, b, c: Type2 = 1, d=2) -> Type3: pass
@@ -296,6 +296,57 @@ class TestExtractDeclarationsFromTypeAnnotations(object):
                           Parameter(Value(str), default=1),
                       )),
                       expected_rt=ReturnsDeclaration([ResourceKey(identifier='foo')]))
+
+
+def it():
+    pass
+
+
+class TestExplicitDeclarations:
+
+    def test_requires_from_string(self):
+        compare(extract_requires(it, 'bar'), strict=True, expected=RequirementsDeclaration((
+            Parameter(Value(identifier='bar')),
+        )))
+
+    def test_requires_from_type(self):
+        compare(extract_requires(it, Type1), strict=True, expected=RequirementsDeclaration((
+            Parameter(Value(Type1)),
+        )))
+
+    def test_requires_requirement(self):
+        compare(extract_requires(it, Value(Type1, 'bar')), strict=True, expected=RequirementsDeclaration((
+            Parameter(Value(Type1, 'bar')),
+        )))
+
+    def test_requires_from_tuple(self):
+        compare(extract_requires(it, ('bar', 'baz')), strict=True, expected=RequirementsDeclaration((
+            Parameter(Value(identifier='bar')),
+            Parameter(Value(identifier='baz')),
+        )))
+
+    def test_requires_from_list(self):
+        compare(extract_requires(it, ['bar', 'baz']), strict=True, expected=RequirementsDeclaration((
+            Parameter(Value(identifier='bar')),
+            Parameter(Value(identifier='baz')),
+        )))
+
+    def test_explicit_requires_where_parameter_has_default(self):
+        def foo(x=1): pass
+        compare(extract_requires(foo, 'bar'), strict=True, expected=RequirementsDeclaration((
+            # default is not longer considered:
+            Parameter(Value(identifier='bar')),
+        )))
+
+    def test_returns_from_string(self):
+        compare(extract_returns(it, 'bar'), strict=True, expected=ReturnsDeclaration([
+            ResourceKey(identifier='bar')
+        ]))
+
+    def test_returns_from_type(self):
+        compare(extract_returns(it, Type1), strict=True, expected=ReturnsDeclaration([
+            ResourceKey(Type1)
+        ]))
 
 
 class TestDeclarationsFromMultipleSources:

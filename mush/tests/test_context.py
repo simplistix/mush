@@ -1,9 +1,10 @@
 # from typing import Tuple, List
 #
-from typing import NewType, Mapping, Any
-from testfixtures.mock import Mock
+from functools import partial
+from typing import NewType, Mapping, Any, Tuple
 
 from testfixtures import ShouldRaise, compare
+from testfixtures.mock import Mock
 
 # from testfixtures.mock import Mock
 #
@@ -14,7 +15,9 @@ from mush.context import ResourceError
 # from mush.declarations import RequiresType, requires_nothing, returns_nothing
 # from mush.requirements import Requirement
 from .helpers import TheType, Type1, Type2
-from ..resources import ResourceValue, Provider
+from ..declarations import ignore_return
+from ..requirements import ItemOp
+from ..resources import ResourceValue, Provider, ResourceKey
 
 
 class TestAdd:
@@ -251,44 +254,38 @@ class TestCall:
         result = context.call(foo)
         compare(result, expected=2)
 
-# XXX - these are for explicit requires() objects:
-    # def test_call_requires_string(self):
-    #     def foo(obj):
-    #         return obj
-    #     context = Context()
-    #     context.add('bar', identifier='baz')
-    #     result = context.call(foo, requires('baz'))
-    #     compare(result, expected='bar')
-    #     compare({'baz': 'bar'}, actual=context._store)
+    def test_call_requires_string(self):
+        def foo(obj):
+            return obj
+        context = Context()
+        context.add('bar', identifier='baz')
+        result = context.call(foo, requires('baz'))
+        compare(result, expected='bar')
 
-#     def test_call_requires_type(self):
-#         def foo(obj):
-#             return obj
-#         context = Context()
-#         context.add('bar', TheType)
-#         result = context.call(foo, requires(TheType))
-#         compare(result, 'bar')
-#         compare({TheType: 'bar'}, actual=context._store)
-#
-    #
-    #     def test_call_requires_accidental_tuple(self):
-    #         def foo(obj): return obj
-    #         context = Context()
-    #         with ShouldRaise(TypeError(
-    #                 "(<class 'mush.tests.helpers.TheType'>, "
-    #                 "<class 'mush.tests.helpers.TheType'>) "
-    #                 "is not a valid decoration type"
-    #         )):
-    #             context.call(foo, requires((TheType, TheType)))
-#
-#     def test_call_requires_optional_override_source_and_default(self):
-#         def foo(x=1):
-#             return x
-#         context = Context()
-#         context.add(2, provides='x')
-#         result = context.call(foo, requires(x=Value('y', default=3)))
-#         compare(result, expected=3)
-#
+    def test_call_requires_type(self):
+        def foo(obj):
+            return obj
+        context = Context()
+        context.add('bar', TheType)
+        result = context.call(foo, requires(TheType))
+        compare(result, 'bar')
+
+    def test_call_requires_optional_override_source_and_default(self):
+        def foo(x=1):
+            return x
+        context = Context()
+        context.add(2, provides='x')
+        result = context.call(foo, requires(x=Value('y', default=3)))
+        compare(result, expected=3)
+
+    def test_kw_parameter(self):
+        def foo(x, y):
+            return x, y
+        context = Context()
+        context.add('foo', TheType)
+        context.add('bar', identifier='baz')
+        result = context.call(foo, requires(y='baz', x=TheType))
+        compare(result, expected=('foo', 'bar'))
 
 
 class TestOps:

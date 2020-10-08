@@ -6,11 +6,12 @@ from typing import Callable, get_type_hints
 
 from .declarations import (
     Parameter, RequirementsDeclaration, ReturnsDeclaration,
-    requires_nothing
+    requires_nothing, returns, requires
 )
 from .markers import missing, get_mush
 from .requirements import Requirement, Annotation
 from .resources import ResourceKey
+from .typing import Requires, Returns
 
 
 def _apply_requires(by_name, by_index, requires_):
@@ -30,7 +31,10 @@ def _apply_requires(by_name, by_index, requires_):
         by_name[name] = p
 
 
-def extract_requires(obj: Callable) -> RequirementsDeclaration:
+def extract_requires(
+        obj: Callable,
+        explicit: Requires = None,
+) -> RequirementsDeclaration:
     by_name = {}
 
     # from annotations
@@ -72,6 +76,14 @@ def extract_requires(obj: Callable) -> RequirementsDeclaration:
     if mush_requires is not None:
         _apply_requires(by_name, by_index, mush_requires)
 
+    # explicit
+    if explicit is not None:
+        if not isinstance(explicit, RequirementsDeclaration):
+            if not isinstance(explicit, (list, tuple)):
+                explicit = (explicit,)
+            explicit = requires(*explicit)
+        _apply_requires(by_name, by_index, explicit)
+
     if not by_name:
         return requires_nothing
 
@@ -86,7 +98,12 @@ def extract_requires(obj: Callable) -> RequirementsDeclaration:
     return RequirementsDeclaration(by_name.values())
 
 
-def extract_returns(obj: Callable):
+def extract_returns(obj: Callable, explicit: Returns = None):
+    if explicit is not None:
+        if not isinstance(explicit, ReturnsDeclaration):
+            return returns(explicit)
+        return explicit
+
     returns_ = get_mush(obj, 'returns', None)
     if returns_ is not None:
         return returns_
