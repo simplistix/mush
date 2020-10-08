@@ -1,11 +1,12 @@
 from inspect import signature
-from typing import Optional, Callable, Union, Any, Dict
+from typing import Optional, Callable, Union, Any, Dict, Iterable
 
-from .extraction import extract_requires
+from .callpoints import CallPoint
+from .extraction import extract_requires, extract_returns
 from .markers import missing, Marker
 from .requirements import Requirement
 from .resources import ResourceKey, ResourceValue, Provider
-from .typing import Resource, Identifier, Type_
+from .typing import Resource, Identifier, Type_, Requires, Returns
 
 NONE_TYPE = type(None)
 unspecified = Marker('unspecified')
@@ -21,7 +22,7 @@ class Context:
     "Stores resources for a particular run."
 
     # _parent: 'Context' = None
-    # point: CallPoint = None
+    point: CallPoint = None
 
     def __init__(self):
         self._store = {}
@@ -87,19 +88,11 @@ class Context:
             bits.append('\n')
         return f"<Context: {{{''.join(bits)}}}>"
 
-    def _process(self, obj, result, returns):
-        if returns is None:
-            # returns = self._returns_cache.get(obj)
-            # if returns is None:
-            returns = extract_returns(obj)
-                # self._returns_cache[obj] = returns
-
+    def extract(self, obj: Callable, requires: Requires = None, returns: Returns = None):
+        result = self.call(obj, requires)
+        returns = extract_returns(obj, returns)
         if returns:
             self.add_by_keys(ResourceValue(result), returns)
-
-    def extract(self, obj: Callable):#, requires: RequiresType = None, returns: ReturnsType = None):
-        result = self.call(obj)
-        self._process(obj, result, returns=None)
         return result
 
     def _find_resource(self, key):
@@ -113,11 +106,11 @@ class Context:
                 return resource
             exact = False
 
-    def _resolve(self, obj, specials=None):
+    def _resolve(self, obj, requires=None, specials=None):
         if specials is None:
             specials: Dict[type, Any] = {Context: self}
 
-        requires = extract_requires(obj)
+        requires = extract_requires(obj, requires)
 
         args = []
         kw = {}
@@ -137,7 +130,7 @@ class Context:
                     if resource.obj is missing:
                         specials_ = specials.copy()
                         specials_[Requirement] = requirement
-                        o = self._resolve(resource.provider, specials_)
+                        o = self._resolve(resource.provider, specials=specials_)
                         if resource.cache:
                             resource.obj = o
                     else:
@@ -150,6 +143,7 @@ class Context:
                 o = parameter.default
 
             if o is not requirement.default:
+                # move to requirement.process?
                 for op in requirement.ops:
                     o = op(o)
                     if o is missing:
@@ -166,8 +160,8 @@ class Context:
 
         return obj(*args, **kw)
 
-    def call(self, obj: Callable):
-        return self._resolve(obj)
+    def call(self, obj: Callable, requires: Requires = None):
+        return self._resolve(obj, requires)
 
     #
     # def nest(self, requirement_modifier: RequirementModifier = None):

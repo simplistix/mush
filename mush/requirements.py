@@ -124,21 +124,6 @@ class Value(Requirement):
     def _keys_repr(self):
         return str(self.keys[0])
 
-#
-#
-# class Lazy(Requirement):
-#
-#     def __init__(self, original, provider):
-#         super().__init__(original.key)
-#         self.original = original
-#         self.provider = provider
-#         self.ops = original.ops
-#
-#     def resolve(self, context):
-#         resource = context.get(self.key, missing)
-#         if resource is missing:
-#             context.extract(self.provider.obj, self.provider.requires, self.provider.returns)
-#         return self.original.resolve(context)
 
 class AnyOf(Requirement):
     """

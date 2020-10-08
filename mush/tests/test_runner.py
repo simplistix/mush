@@ -1,10 +1,8 @@
-import pytest; pytestmark = pytest.mark.skip("WIP")
-from unittest import TestCase
+import pytest
 
-from mush.declarations import (
-    requires, returns, returns_mapping,
-    replacement, original)
+from mush.declarations import requires, returns, replacement, original
 from mush import Value, ContextError, Context, Requirement
+from mush.resources import Provider
 from mush.runner import Runner
 from testfixtures import (
     ShouldRaise,
@@ -39,7 +37,7 @@ def verify(runner, *expected):
     compare(seen_labels, runner.labels.keys())
 
 
-class RunnerTests(TestCase):
+class TestRunner:
 
     def test_simple(self):
         m = Mock()
@@ -199,23 +197,21 @@ class RunnerTests(TestCase):
 
     def test_declarative(self):
         m = Mock()
-        class T1(object): pass
-        class T2(object): pass
+        class T1: pass
+        class T2: pass
 
         t1 = T1()
         t2 = T2()
 
-        def job1():
+        def job1() -> T1:
             m.job1()
             return t1
 
-        @requires(T1)
-        def job2(obj):
+        def job2(obj: T1) -> T2:
             m.job2(obj)
             return t2
 
-        @requires(T2)
-        def job3(obj):
+        def job3(obj: T2) -> None:
             m.job3(obj)
 
         runner = Runner(job1, job2, job3)
@@ -229,8 +225,8 @@ class RunnerTests(TestCase):
 
     def test_imperative(self):
         m = Mock()
-        class T1(object): pass
-        class T2(object): pass
+        class T1: pass
+        class T2: pass
 
         t1 = T1()
         t2 = T2()
@@ -246,14 +242,14 @@ class RunnerTests(TestCase):
         def job3(t2_):
             m.job3(t2_)
 
-        # imperative config trumps declarative
+        # imperative config overrides decorator
         @requires(T1)
         def job4(t2_):
             m.job4(t2_)
 
         runner = Runner()
-        runner.add(job1)
-        runner.add(job2, requires(T1))
+        runner.add(job1, returns=T1)
+        runner.add(job2, requires(T1), returns(T2))
         runner.add(job3, requires(t2_=T2))
         runner.add(job4, requires(T2))
         runner()
@@ -265,11 +261,10 @@ class RunnerTests(TestCase):
                 call.job4(t2),
                 ], m.mock_calls)
 
-
     def test_return_type_specified_decorator(self):
         m = Mock()
-        class T1(object): pass
-        class T2(object): pass
+        class T1: pass
+        class T2: pass
         t = T1()
 
         @returns(T2)
@@ -290,8 +285,8 @@ class RunnerTests(TestCase):
 
     def test_return_type_specified_imperative(self):
         m = Mock()
-        class T1(object): pass
-        class T2(object): pass
+        class T1: pass
+        class T2: pass
         t = T1()
 
         def job1():
@@ -314,8 +309,8 @@ class RunnerTests(TestCase):
 
     def test_lazy(self):
         m = Mock()
-        class T1(object): pass
-        class T2(object): pass
+        class T1: pass
+        class T2: pass
         t = T1()
 
         def lazy_used():
@@ -325,12 +320,15 @@ class RunnerTests(TestCase):
         def lazy_unused():
             raise AssertionError('should not be called')  # pragma: no cover
 
+        def providers(context: Context):
+            context.add(Provider(lazy_used), provides=T1)
+            context.add(Provider(lazy_unused), provides=T2)
+
         def job(obj):
             m.job(obj)
 
         runner = Runner()
-        runner.add(lazy_used, returns=returns(T1), lazy=True)
-        runner.add(lazy_unused, returns=returns(T2), lazy=True)
+        runner.add(providers)
         runner.add(job, requires(T1))
         runner()
 
@@ -338,176 +336,9 @@ class RunnerTests(TestCase):
             call.lazy_used(),
             call.job(t),
         ], )
-
-    def test_lazy_no_return_type_specified(self):
-        runner = Runner()
-        with ShouldRaise(
-            TypeError('a single return type must be explicitly specified')
-        ):
-            runner.add(lambda: None, lazy=True)
-
-    def test_returns_more_than_one_type(self):
-        class T1(object): pass
-        class T2(object): pass
-        runner = Runner()
-        with ShouldRaise(
-            TypeError('a single return type must be explicitly specified')
-        ):
-            runner.add(lambda: None, returns=returns(T1, T2), lazy=True)
-
-    def test_lazy_two_callable_provide_same_type(self):
-        class T1(object): pass
-        def foo(): pass
-        def bar(): pass
-        runner = Runner()
-        runner.add(foo, returns=returns(T1), lazy=True)
-        with ShouldRaise(TypeError(
-                'T1 has more than one lazy provider:\n'
-                f'{foo!r}\n'
-                f'{bar!r}'
-        )):
-            runner.add(bar, returns=returns(T1), lazy=True)
-
-    def test_lazy_per_context(self):
-        m = Mock()
-        class T1(object): pass
-        t = T1()
-
-        def lazy():
-            m.lazy_used()
-            return t
-
-        def job(obj):
-            m.job(obj)
-
-        runner = Runner()
-        runner.add(lazy, returns=returns(T1), lazy=True)
-        runner.add(job, requires(T1))
-        runner()
-        runner()
-
-        compare(m.mock_calls, expected=[
-            call.lazy_used(),
-            call.job(t),
-            call.lazy_used(),
-            call.job(t),
-        ], )
-
-    def test_lazy_after_clone(self):
-        m = Mock()
-        class T1(object): pass
-        t = T1()
-
-        def lazy():
-            m.lazy_used()
-            return t
-
-        def job(obj):
-            m.job(obj)
-
-        runner = Runner()
-        runner.add(lazy, returns=returns(T1), lazy=True)
-        runner_ = runner.clone()
-        runner_.add(job, requires(T1))
-        runner_()
-
-        compare(m.mock_calls, expected=[
-            call.lazy_used(),
-            call.job(t),
-        ], )
-
-    def test_lazy_after_add(self):
-        m = Mock()
-        class T1(object): pass
-        t = T1()
-
-        def lazy():
-            m.lazy_used()
-            return t
-
-        def job(obj):
-            m.job(obj)
-
-        runner1 = Runner()
-        runner1.add(lazy, returns=returns(T1), lazy=True)
-        runner2 = Runner()
-        runner2.add(job, requires(T1))
-        runner = runner1 + runner2
-        runner()
-
-        compare(m.mock_calls, expected=[
-            call.lazy_used(),
-            call.job(t),
-        ], )
-
-    def test_lazy_add_clash(self):
-        class T1(object): pass
-        def foo(): pass
-        def bar(): pass
-        runner1 = Runner()
-        runner1.add(foo, returns=returns(T1), lazy=True)
-        runner2 = Runner()
-        runner2.add(bar, returns=returns(T1), lazy=True)
-        with ShouldRaise(TypeError(
-                'both runners have lazy providers for these resources:\n'
-                'T1: \n'
-                f'  {foo!r}\n'
-                f'  {bar!r}'
-        )):
-            runner1 + runner2
-
-    def test_lazy_only_resolved_once(self):
-        m = Mock()
-        class T1(object): pass
-        t = T1()
-
-        def lazy_used():
-            m.lazy_used()
-            return t
-
-        def job1(obj):
-            m.job1(obj)
-
-        def job2(obj):
-            m.job2(obj)
-
-        runner = Runner()
-        runner.add(lazy_used, returns=returns(T1), lazy=True)
-        runner.add(job1, requires(T1))
-        runner.add(job2, requires(T1))
-        runner()
-
-        compare(m.mock_calls, expected=[
-            call.lazy_used(),
-            call.job1(t),
-            call.job2(t),
-        ], )
-
-    def test_lazy_with_requirement_modifier(self):
-        def make_data():
-            return {'foo': 'bar'}
-
-        class FromKey(Requirement):
-            def resolve(self, context):
-                return context.get('data')[self.data_key]
-
-        def modifier(requirement):
-            if type(requirement) is Requirement:
-                # another limitation of lazy:
-                requirement = FromKey.make_from(requirement,
-                                                key='data',
-                                                data_key=requirement.key)
-            return requirement
-
-        runner = Runner(requirement_modifier=modifier)
-        runner.add(make_data, returns='data', lazy=True)
-        runner.add(lambda foo: foo+'baz', returns='processed')
-        runner.add(lambda *args: args, requires(Value('data')['foo'], 'processed'))
-
-        compare(runner(), expected=('bar', 'barbaz'))
 
     def test_missing_from_context_no_chain(self):
-        class T(object): pass
+        class T: pass
 
         @requires(T)
         def job(arg):
@@ -518,20 +349,21 @@ class RunnerTests(TestCase):
         with ShouldRaise(ContextError) as s:
             runner()
 
+        t_str = 'TestRunner.test_missing_from_context_no_chain.<locals>.T'
         text = '\n'.join((
-            'While calling: '+repr(job)+' requires(Value(T)) returns_result_type()',
+            f"While calling: {job!r} requires(Value({t_str})) returns('job')",
             'with <Context: {}>:',
             '',
-            "No Value(T) in context",
+            f"Value({t_str}) could not be satisfied",
         ))
         compare(text, actual=repr(s.raised))
         compare(text, actual=str(s.raised))
 
     def test_missing_from_context_with_chain(self):
-        class T(object): pass
+        class T: pass
 
-        def job1(): pass
-        def job2(): pass
+        def job1() -> None: pass
+        def job2() -> None: pass
 
         @requires(T)
         def job3(arg):
@@ -550,20 +382,22 @@ class RunnerTests(TestCase):
         with ShouldRaise(ContextError) as s:
             runner()
 
+        t_str = 'TestRunner.test_missing_from_context_with_chain.<locals>.T'
+
         text = '\n'.join((
             '',
             '',
             'Already called:',
-            repr(job1)+' requires() returns_result_type() <-- 1',
-            repr(job2)+' requires() returns_result_type()',
+            repr(job1)+' requires() returns() <-- 1',
+            repr(job2)+' requires() returns()',
             '',
-            'While calling: '+repr(job3)+' requires(Value(T)) returns_result_type()',
+            f"While calling: {job3!r} requires(Value({t_str})) returns('job3')",
             'with <Context: {}>:',
             '',
-            "No Value(T) in context",
+            f"Value({t_str}) could not be satisfied",
             '',
             'Still to call:',
-            repr(job4)+' requires() returns_result_type() <-- 4',
+            repr(job4)+" requires() returns('job4') <-- 4",
             repr(job5)+" requires(Value('foo'), bar=Value('baz')) returns('bob')",
         ))
         compare(text, actual=repr(s.raised))
@@ -575,29 +409,37 @@ class RunnerTests(TestCase):
         runner = Runner(job)
         with ShouldRaise(ContextError) as s:
             runner()
-        compare(s.raised.text, expected="No Value('arg') in context")
+        compare(s.raised.text, expected='arg could not be satisfied')
 
     def test_already_in_context(self):
-        class T(object): pass
+        class T: pass
 
         t1 = T()
+        t2 = T()
+        ts = [t2, t1]
 
-        @returns(T, T)
+        @returns(T)
         def job():
-            return t1, T()
+            return ts.pop()
 
-        runner = Runner(job)
+        runner = Runner(job, job)
 
         with ShouldRaise(ContextError) as s:
             runner()
 
+        t_str = 'TestRunner.test_already_in_context.<locals>.T'
         text = '\n'.join((
-            'While calling: '+repr(job)+' requires() returns(T, T)',
+            '',
+            '',
+            'Already called:',
+            f"{job!r} requires() returns({t_str})",
+            '',
+            f"While calling: {job!r} requires() returns({t_str})",
             'with <Context: {\n'
-            '    '+repr(T)+': '+repr(t1)+'\n'
+            f'    {t_str}: {t1!r}\n'
             '}>:',
             '',
-            'Context already contains '+repr(T),
+            f'Context already contains {t_str}',
         ))
         compare(text, repr(s.raised))
         compare(text, str(s.raised))
@@ -619,7 +461,7 @@ class RunnerTests(TestCase):
         def job2(obj):
             m.job2(obj)
         runner = Runner()
-        runner.add(job1)
+        runner.add(job1, returns=T)
         runner.add(job2, requires(Value(T).foo))
         runner()
 
@@ -641,7 +483,7 @@ class RunnerTests(TestCase):
         def job2(obj):
             m.job2(obj)
         runner = Runner()
-        runner.add(job1)
+        runner.add(job1, returns=T)
         runner.add(job2, requires(Value(T).foo.bar))
         runner()
 
@@ -661,7 +503,7 @@ class RunnerTests(TestCase):
         def job2(obj):
             m.job2(obj)
         runner = Runner()
-        runner.add(job1)
+        runner.add(job1, returns=MyDict)
         runner.add(job2, requires(Value(MyDict)['the_thing']))
         runner()
         compare([
@@ -680,7 +522,7 @@ class RunnerTests(TestCase):
         def job2(obj):
             m.job2(obj)
         runner = Runner()
-        runner.add(job1)
+        runner.add(job1, returns=MyDict)
         runner.add(job2, requires(Value(MyDict)['the_thing']['other_thing']))
         runner()
         compare([
@@ -688,7 +530,7 @@ class RunnerTests(TestCase):
                 call.job2(m.the_thing),
                 ], m.mock_calls)
 
-    def test_nested(self):
+    def test_item_of_attr(self):
         class T(object):
             foo = dict(baz='bar')
         m = Mock()
@@ -698,7 +540,7 @@ class RunnerTests(TestCase):
         def job2(obj):
             m.job2(obj)
         runner = Runner()
-        runner.add(job1)
+        runner.add(job1, returns=T)
         runner.add(job2, requires(Value(T).foo['baz']))
         runner()
 
@@ -984,17 +826,15 @@ class RunnerTests(TestCase):
         t1 = T1()
         t2 = T2()
 
-        def job1():
+        def job1() -> T1:
             m.job1()
             return t1
 
-        @requires(T1)
-        def job2(obj):
+        def job2(obj: T1) -> T2:
             m.job2(obj)
             return t2
 
-        @requires(T2)
-        def job3(obj):
+        def job3(obj: T2):
             m.job3(obj)
 
         runner = Runner()
@@ -1043,17 +883,15 @@ class RunnerTests(TestCase):
         t1 = T1()
         t2 = T2()
 
-        def job1():
+        def job1() -> T1:
             m.job1()
             return t1
 
-        @requires(T1)
-        def job2(obj):
+        def job2(obj: T1) -> T2:
             m.job2(obj)
             return t2
 
-        @requires(T2)
-        def job3(obj):
+        def job3(obj: T2):
             m.job3(obj)
 
         runner1 = Runner(job1)
@@ -1083,15 +921,13 @@ class RunnerTests(TestCase):
         t1 = T1()
         t2 = T2()
 
-        def job1():
+        def job1() -> T1:
             raise Exception() # pragma: nocover
 
-        @requires(T1)
-        def job2(obj):
+        def job2(obj: T1) -> T2:
             raise Exception() # pragma: nocover
 
-        @requires(T2)
-        def job3(obj):
+        def job3(obj: T2):
             raise Exception() # pragma: nocover
 
         runner = Runner(job1, job2, job3)
@@ -1116,7 +952,8 @@ class RunnerTests(TestCase):
         class T4(object): pass
 
         t2 = T2()
-        def job0():
+
+        def job0() -> T2:
             return t2
 
         @requires(T1)
@@ -1145,7 +982,8 @@ class RunnerTests(TestCase):
         class T4(object): pass
 
         t2 = T2()
-        def job0():
+
+        def job0() -> T2:
             return t2
 
         @requires(T1)
@@ -1233,7 +1071,7 @@ class RunnerTests(TestCase):
             call.jobnew2(),
         ], actual=m.mock_calls)
 
-    def test_replace_keep_explicit_requirements(self):
+    def test_replace_keep_explicit_requires(self):
         def foo():
             return 'bar'
         def barbar(sheep):
@@ -1246,6 +1084,20 @@ class RunnerTests(TestCase):
 
         runner.replace(barbar, lambda dog: None, requires_from=original)
         compare(runner(), expected=None)
+
+    def test_replace_keep_explicit_returns(self):
+        def foo():
+            return 'bar'
+        def barbar(sheep):
+            return sheep*2
+
+        runner = Runner()
+        runner.add(foo, returns='flossy')
+        runner.add(barbar, requires='flossy')
+        compare(runner(), expected='barbar')
+
+        runner.replace(foo, lambda: 'woof')
+        compare(runner(), expected='woofwoof')
 
     def test_modifier_changes_endpoint(self):
         m = Mock()
@@ -1288,7 +1140,7 @@ class RunnerTests(TestCase):
         runner.add(m.job2)
         with ShouldRaise(ValueError(
             "'label' already points to "+repr(m.job1)+" requires() "
-            "returns_result_type() <-- label"
+            "returns() <-- label"
         )):
             runner.add(m.job3, label='label')
         verify(runner,
@@ -1302,7 +1154,7 @@ class RunnerTests(TestCase):
         runner.add(m.job1, label='label')
         with ShouldRaise(ValueError(
             "'label' already points to "+repr(m.job1)+" requires() "
-            "returns_result_type() <-- label"
+            "returns() <-- label"
         )):
             runner.add(m.job2, label='label')
         verify(runner,
@@ -1317,7 +1169,7 @@ class RunnerTests(TestCase):
         mod.add(m.job2, label='label2')
         with ShouldRaise(ValueError(
             "'label1' already points to "+repr(m.job1)+" requires() "
-            "returns_result_type() <-- label1"
+            "returns() <-- label1"
         )):
             mod.add(m.job3, label='label1')
         verify(runner,
@@ -1334,11 +1186,14 @@ class RunnerTests(TestCase):
         runner.add(m.job2, requires('foo', T1), returns(T2), label='label2')
         runner.add(m.job3)
 
+        t1_str = 'TestRunner.test_repr.<locals>.T1'
+        t2_str = 'TestRunner.test_repr.<locals>.T2'
+
         compare('\n'.join((
             '<Runner>',
-            '    '+repr(m.job1)+' requires() returns_result_type() <-- label1',
-            '    '+repr(m.job2)+" requires(Value('foo'), Value(T1)) returns(T2) <-- label2",
-            '    '+repr(m.job3)+' requires() returns_result_type()',
+            f'    {m.job1!r} requires() returns() <-- label1',
+            f"    {m.job2!r} requires(Value('foo'), Value({t1_str})) returns({t2_str}) <-- label2",
+            f'    {m.job3!r} requires() returns()',
             '</Runner>'
 
         )), repr(runner))
@@ -1353,6 +1208,7 @@ class RunnerTests(TestCase):
         runner = Runner(foo)
         compare(runner(context), expected=42)
 
+    @pytest.mark.skip('need another approach')
     def test_requirement_modifier(self):
 
         class FromRequest(Requirement):
@@ -1372,24 +1228,3 @@ class RunnerTests(TestCase):
         context = Context()
         context.add({'bar': 'foo'}, provides='request')
         compare(runner(context), expected='foo')
-
-    def test_clone_requirement_modifier(self):
-        def modifier(requirement): pass
-        runner = Runner(requirement_modifier=modifier)
-        assert runner.clone().requirement_modifier is runner.requirement_modifier
-
-    def test_add_clashing_requirement_modifier(self):
-        def modifier1(requirement): pass
-        runner1 = Runner(requirement_modifier=modifier1)
-        def modifier2(requirement): pass
-        runner2 = Runner(requirement_modifier=modifier2)
-        with ShouldRaise(TypeError('requirement_modifier must be identical')):
-            runner1 + runner2
-
-    def test_extend_other_runner_clashing_requirement_modifier(self):
-        def modifier1(requirement): pass
-        runner1 = Runner(requirement_modifier=modifier1)
-        def modifier2(requirement): pass
-        runner2 = Runner(requirement_modifier=modifier2)
-        with ShouldRaise(TypeError('requirement_modifier must be identical')):
-            runner1.extend(runner2)

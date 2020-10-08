@@ -3,6 +3,7 @@ from unittest import TestCase
 from testfixtures import TempDirectory, Replacer, OutputCapture
 import sqlite3
 
+
 class Tests(TestCase):
 
     def test_main(self):

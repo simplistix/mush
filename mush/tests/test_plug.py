@@ -1,6 +1,3 @@
-import pytest; pytestmark = pytest.mark.skip("WIP")
-
-from unittest import TestCase
 
 from testfixtures import compare, ShouldRaise
 from testfixtures.mock import Mock, call
@@ -10,7 +7,7 @@ from mush.plug import insert, ignore, append
 from mush.tests.test_runner import verify
 
 
-class TestPlug(TestCase):
+class TestPlug:
 
     def test_simple(self):
         m = Mock()

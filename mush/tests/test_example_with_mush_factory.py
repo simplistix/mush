@@ -1,5 +1,4 @@
-# from .example_with_mush_factory import main
-import pytest; pytestmark = pytest.mark.skip("WIP")
+from .example_with_mush_factory import main
 
 from unittest import TestCase
 from testfixtures import TempDirectory, Replacer

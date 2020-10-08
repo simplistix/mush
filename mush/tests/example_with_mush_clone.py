@@ -1,6 +1,6 @@
 from argparse import ArgumentParser, Namespace
 from configparser import RawConfigParser
-from mush import Runner, requires, Value
+from mush import Runner, requires, Value, returns
 import logging, os, sqlite3, sys
 
 log = logging.getLogger()
@@ -12,10 +12,11 @@ def base_options(parser: ArgumentParser):
     parser.add_argument('--verbose', action='store_true',
                         help='Log more to the console')
 
-def parse_args(parser: ArgumentParser):
+def parse_args(parser: ArgumentParser) -> Namespace:
     return parser.parse_args()
 
-def parse_config(args: Namespace) -> 'config':
+@returns('config')
+def parse_config(args: Namespace):
     config = RawConfigParser()
     config.read(args.config)
     return dict(config.items('main'))

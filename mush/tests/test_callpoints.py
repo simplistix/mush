@@ -1,43 +1,38 @@
-import pytest; pytestmark = pytest.mark.skip("WIP")
-
-from functools import update_wrapper
-from unittest import TestCase
-
 from testfixtures import compare
 from testfixtures.mock import Mock, call
+import pytest
 
 from mush.callpoints import CallPoint
-from mush.declarations import requires, returns, RequirementsDeclaration
-# from mush.extraction import update_wrapper
+from mush.declarations import (
+    requires, returns, RequirementsDeclaration, ReturnsDeclaration, update_wrapper
+)
 from mush.requirements import Value
-from mush.runner import Runner
 
 
-class TestCallPoints(TestCase):
+@pytest.fixture()
+def context():
+    return Mock()
 
-    def setUp(self):
-        self.context = Mock()
-        self.runner = Runner()
+
+class TestCallPoints:
 
     def test_passive_attributes(self):
         # these are managed by Modifiers
-        point = CallPoint(self.runner, Mock())
+        point = CallPoint(Mock())
         compare(point.previous, None)
         compare(point.next, None)
         compare(point.labels, set())
 
-    def test_supplied_explicitly(self):
+    def test_supplied_explicitly(self, context):
         def foo(a1): pass
         rq = requires('foo')
         rt = returns('bar')
-        result = CallPoint(self.runner, foo, rq, rt)(self.context)
-        compare(result, self.context.extract.return_value)
-        compare(self.context.extract.mock_calls,
-                expected=[call(foo,
-                               RequirementsDeclaration([Value.make(key='foo', name='a1')]),
-                               rt)])
+        result = CallPoint(foo, rq, rt)(context)
+        compare(result, context.extract.return_value)
+        compare(context.extract.mock_calls,
+                expected=[call(foo, rq, rt)])
 
-    def test_extract_from_decorations(self):
+    def test_extract_from_decorations(self, context):
         rq = requires('foo')
         rt = returns('bar')
 
@@ -45,14 +40,12 @@ class TestCallPoints(TestCase):
         @rt
         def foo(a1): pass
 
-        result = CallPoint(self.runner, foo)(self.context)
-        compare(result, self.context.extract.return_value)
-        compare(self.context.extract.mock_calls,
-                expected=[call(foo,
-                               RequirementsDeclaration([Value.make(key='foo', name='a1')]),
-                               returns('bar'))])
+        result = CallPoint(foo)(context)
+        compare(result, context.extract.return_value)
+        compare(context.extract.mock_calls,
+                expected=[call(foo, None, None)])
 
-    def test_extract_from_decorated_class(self):
+    def test_extract_from_decorated_class(self, context):
 
         rq = requires('foo')
         rt = returns('bar')
@@ -72,33 +65,18 @@ class TestCallPoints(TestCase):
         def foo(prefix):
             return prefix+'answer'
 
-        self.context.extract.side_effect = lambda func, rq, rt: (func(), rq, rt)
-        result = CallPoint(self.runner, foo)(self.context)
-        compare(result, expected=('the answer',
-                                  RequirementsDeclaration([Value.make(key='foo', name='prefix')]),
-                                  rt))
-
-    def test_explicit_trumps_decorators(self):
-        @requires('foo')
-        @returns('bar')
-        def foo(a1): pass
-
-        point = CallPoint(self.runner, foo, requires('baz'), returns('bob'))
-        result = point(self.context)
-        compare(result, self.context.extract.return_value)
-        compare(self.context.extract.mock_calls,
-                expected=[call(foo,
-                               RequirementsDeclaration([Value.make(key='baz', name='a1')]),
-                               returns('bob'))])
+        context.extract.side_effect = lambda func, rq, rt: (func(), rq, rt)
+        result = CallPoint(foo)(context)
+        compare(result, expected=('the answer', None, None))
 
     def test_repr_minimal(self):
         def foo(): pass
-        point = CallPoint(self.runner, foo)
-        compare(repr(foo)+" requires() returns_result_type()", repr(point))
+        point = CallPoint(foo)
+        compare(repr(foo)+" requires() returns('foo')", repr(point))
 
     def test_repr_maximal(self):
         def foo(a1): pass
-        point = CallPoint(self.runner, foo, requires('foo'), returns('bar'))
+        point = CallPoint(foo, requires('foo'), returns('bar'))
         point.labels.add('baz')
         point.labels.add('bob')
         compare(expected=repr(foo)+" requires(Value('foo')) returns('bar') <-- baz, bob",
@@ -106,30 +84,9 @@ class TestCallPoints(TestCase):
 
     def test_convert_to_requires_and_returns(self):
         def foo(baz): pass
-        point = CallPoint(self.runner, foo, requires='foo', returns='bar')
-        self.assertTrue(isinstance(point.requires, RequirementsDeclaration))
-        self.assertTrue(isinstance(point.returns, returns))
+        point = CallPoint(foo, requires='foo', returns='bar')
+        # this is deferred until later
+        assert isinstance(point.requires, str)
+        assert isinstance(point.returns, str)
         compare(repr(foo)+" requires(Value('foo')) returns('bar')",
-                repr(point))
-
-    def test_convert_to_requires_and_returns_tuple(self):
-        def foo(a1, a2): pass
-        point = CallPoint(self.runner,
-                          foo,
-                          requires=('foo', 'bar'),
-                          returns=('baz', 'bob'))
-        self.assertTrue(isinstance(point.requires, RequirementsDeclaration))
-        self.assertTrue(isinstance(point.returns, returns))
-        compare(repr(foo)+" requires(Value('foo'), Value('bar')) returns('baz', 'bob')",
-                repr(point))
-
-    def test_convert_to_requires_and_returns_list(self):
-        def foo(a1, a2): pass
-        point = CallPoint(self.runner,
-                          foo,
-                          requires=['foo', 'bar'],
-                          returns=['baz', 'bob'])
-        self.assertTrue(isinstance(point.requires, RequirementsDeclaration))
-        self.assertTrue(isinstance(point.returns, returns))
-        compare(repr(foo)+" requires(Value('foo'), Value('bar')) returns('baz', 'bob')",
                 repr(point))
