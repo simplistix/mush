@@ -69,17 +69,6 @@ class Context:
 
         self.add_by_keys(resource, keys)
 
-    # def remove(self, key: ResourceKey, *, strict: bool = True):
-    #     """
-    #     Remove the specified resource key from the context.
-    #
-    #     If ``strict``, then a :class:`ResourceError` will be raised if the
-    #     specified resource is not present in the context.
-    #     """
-    #     if strict and key not in self._store:
-    #         raise ResourceError(f'Context does not contain {key!r}', key)
-    #     self._store.pop(key, None)
-    #
     def __repr__(self):
         bits = []
         for key, value in sorted(self._store.items(), key=lambda o: repr(o)):

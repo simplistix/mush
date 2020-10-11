@@ -435,28 +435,6 @@ class TestExtractionCaching:
         compare(context._requires_cache, expected={})
 
 
-@pytest.mark.skip('remove')
-class TestRemove:
-
-    def test_remove(self):
-        context = Context()
-        context.add('foo')
-        context.remove(str)
-        compare(context._store, expected={})
-
-    def test_remove_not_there_strict(self):
-        context = Context()
-        with ShouldRaise(ResourceError("Context does not contain 'foo'",
-                                       key='foo')):
-            context.remove('foo')
-        compare(context._store, expected={})
-
-    def test_remove_not_there_not_strict(self):
-        context = Context()
-        context.remove('foo', strict=False)
-        compare(context._store, expected={})
-
-
 class TestProviders:
 
     def test_cached(self):
