@@ -26,8 +26,6 @@ class Context:
     def __init__(self, default_requirement: DefaultRequirement = Annotation):
         self._store = {}
         self._default_requirement = default_requirement
-        # self._requires_cache = {}
-        # self._returns_cache = {}
 
     def add_by_keys(self, resource: ResourceValue, keys: Iterable[ResourceKey]):
         for key in keys:
@@ -153,6 +151,4 @@ class Context:
     #         requirement_modifier = self.requirement_modifier
     #     nested = self.__class__(requirement_modifier)
     #     nested._parent = self
-    #     nested._requires_cache = self._requires_cache
-    #     nested._returns_cache = self._returns_cache
     #     return nested

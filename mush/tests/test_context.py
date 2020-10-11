@@ -412,29 +412,6 @@ class TestExtract:
         })
 
 
-@pytest.mark.skip('requirements/returns caching')
-class TestExtractionCaching:
-
-    def test_call_caches_requires(self):
-        context = Context()
-
-        def foo(): pass
-
-        context.call(foo)
-        compare(context._requires_cache[foo], expected=RequiresType())
-
-    def test_call_explict_explicit_requires_no_cache(self):
-        context = Context()
-        context.add('a')
-
-        def foo(*args):
-            return args
-
-        result = context.call(foo, requires(str))
-        compare(result, ('a',))
-        compare(context._requires_cache, expected={})
-
-
 class TestProviders:
 
     def test_cached(self):
