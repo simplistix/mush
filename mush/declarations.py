@@ -10,7 +10,7 @@ from typing import _type_check, Any, List, Set
 from .markers import set_mush, missing
 from .requirements import Requirement, Value
 from .resources import ResourceKey
-from .typing import RequirementType, ReturnType
+from .typing import RequirementType, ReturnType, Type_
 
 VALID_DECORATION_TYPES = (type, str, Requirement)
 
@@ -30,10 +30,12 @@ def check_decoration_types(*objs):
 
 
 class Parameter:
-    def __init__(self, requirement: Requirement, target: str = None, default: Any = missing):
+    def __init__(self, requirement: Requirement, target: str = None,
+                 type_: Type_ = None, default: Any = missing):
         self.requirement = requirement
         self.target = target
         self.default = default
+        self.type = type_
 
 
 class RequirementsDeclaration(List[Parameter]):
@@ -95,7 +97,6 @@ def returns(*keys: ReturnType):
 
 
 returns_nothing = ignore_return = ReturnsDeclaration()
-
 
 
 class DeclarationsFrom(Enum):

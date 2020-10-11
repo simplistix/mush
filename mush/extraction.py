@@ -23,12 +23,15 @@ def _apply_requires(by_name, by_index, requires_):
                 name = by_index[i]
             except IndexError:
                 # case where something takes *args
-                by_name[i] = p
+                by_name[i] = Parameter(p.requirement, p.target, p.type, p.default)
                 continue
         else:
             name = p.target
 
-        by_name[name] = p
+        original_p = by_name[name]
+        original_p.requirement = p.requirement
+        original_p.target = p.target
+        original_p.default = p.default
 
 
 def extract_requires(
@@ -52,22 +55,20 @@ def extract_requires(
         if isinstance(obj, partial) and p.name in obj.keywords:
             continue
 
+        type_ = hints.get(name)
         default = missing if p.default is p.empty else p.default
 
         if isinstance(default, Requirement):
             requirement = default
             default = requirement.default
-        elif isinstance(p.annotation, Requirement):
-            requirement = p.annotation
-            if requirement.default is not missing:
-                default = requirement.default
         else:
-            requirement = default_requirement(p.name, hints.get(name), default)
+            requirement = default_requirement(p.name, type_, default)
 
         by_name[name] = Parameter(
             requirement,
             target=p.name if p.kind is p.KEYWORD_ONLY else None,
-            default=default
+            default=default,
+            type_=type_
         )
 
     by_index = list(by_name)
@@ -95,6 +96,9 @@ def extract_requires(
             needs_target = True
         elif needs_target:
             parameter.target = name
+        parameter.requirement = parameter.requirement.complete(
+            name, parameter.type, parameter.default
+        )
 
     return RequirementsDeclaration(by_name.values())
 

@@ -74,6 +74,9 @@ class Requirement:
         self.ops.append(ItemOp(name))
         return self
 
+    def complete(self, name: str, type_: Type_, default: Any):
+        return self
+
     def process(self, obj):
         for op in self.ops:
             obj = op(obj)
