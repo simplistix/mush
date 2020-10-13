@@ -20,7 +20,7 @@ class ResourceError(Exception):
 class Context:
     "Stores resources for a particular run."
 
-    # _parent: 'Context' = None
+    _parent: 'Context' = None
     point: CallPoint = None
 
     def __init__(self, default_requirement: DefaultRequirement = Annotation):
@@ -28,6 +28,7 @@ class Context:
         self._default_requirement = default_requirement
 
     def add_by_keys(self, resource: ResourceValue, keys: Iterable[ResourceKey]):
+        keys_ = keys
         for key in keys:
             if key in self._store:
                 raise ResourceError(f'Context already contains {key}')
@@ -83,15 +84,16 @@ class Context:
         return result
 
     def _find_resource(self, key):
-        if not isinstance(key[0], type):
-            return self._store.get(key)
-        type_, identifier = key
         exact = True
+        if not isinstance(key[0], type):
+            return self._store.get(key), exact
+        type_, identifier = key
         for type__ in type_.__mro__:
             resource = self._store.get((type__, identifier))
             if resource is not None and (exact or resource.provides_subclasses):
-                return resource
+                return resource, exact
             exact = False
+        return None, exact
 
     def _resolve(self, obj, requires=None, specials=None):
         if specials is None:
@@ -109,19 +111,32 @@ class Context:
 
             for key in requirement.keys:
 
-                resource = self._find_resource(key)
+                context = self
 
-                if resource is None:
-                    o = specials.get(key[0], missing)
-                else:
-                    if resource.obj is missing:
-                        specials_ = specials.copy()
-                        specials_[Requirement] = requirement
-                        o = self._resolve(resource.provider, specials=specials_)
-                        if resource.cache:
-                            resource.obj = o
+                while True:
+                    resource, exact = context._find_resource(key)
+
+                    if resource is None:
+                        o = specials.get(key[0], missing)
                     else:
-                        o = resource.obj
+                        if resource.obj is missing:
+                            specials_ = specials.copy()
+                            specials_[Requirement] = requirement
+                            o = context._resolve(resource.provider, specials=specials_)
+                            if resource.cache:
+                                if exact and context is self:
+                                    resource.obj = o
+                                else:
+                                    self.add_by_keys(ResourceValue(o), (key,))
+                        else:
+                            o = resource.obj
+
+                    if o is not missing:
+                        break
+
+                    context = context._parent
+                    if context is None:
+                        break
 
                 if o is not missing:
                     break
@@ -145,10 +160,7 @@ class Context:
     def call(self, obj: Callable, requires: Requires = None):
         return self._resolve(obj, requires)
 
-    #
-    # def nest(self, requirement_modifier: RequirementModifier = None):
-    #     if requirement_modifier is None:
-    #         requirement_modifier = self.requirement_modifier
-    #     nested = self.__class__(requirement_modifier)
-    #     nested._parent = self
-    #     return nested
+    def nest(self):
+        nested = self.__class__(self._default_requirement)
+        nested._parent = self
+        return nested

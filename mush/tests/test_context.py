@@ -487,6 +487,31 @@ class TestProviders:
 
         assert isinstance(context.call(foo), TheType)
 
+    def test_provides_subclasses_caching(self):
+        class Base: pass
+        class Type1(Base): pass
+        class Type2(Base): pass
+
+        t1 = Type1()
+        t2 = Type2()
+        instances = {Type1: t1, Type2: t2}
+
+        def provider(requirement: Requirement):
+            # .pop so each instance can only be obtained once!
+            return instances.pop(requirement.keys[0].type)
+
+        def foo(bar):
+            return bar
+
+        context = Context()
+        context.add(Provider(provider, cache=True, provides_subclasses=True), provides=Base)
+
+        assert context.call(foo, requires=Type1) is t1
+        # cached:
+        assert context.call(foo, requires=Type1) is t1
+        assert context.call(foo, requires=Type2) is t2
+        assert context.call(foo, requires=Type2) is t2
+
     def test_does_not_provide_subclasses(self):
         def foo(obj: TheType): pass
 
@@ -638,45 +663,86 @@ class TestProviders:
             context.call(foo, requires=FromRequest('baz'))
 
 
-@pytest.mark.skip('remove')
 class TestNesting:
 
     def test_nest(self):
         c1 = Context()
-        c1.add('a', provides='a')
-        c1.add('c', provides='c')
+        c1.add('c1a', identifier='a')
+        c1.add('c1c', identifier='c')
         c2 = c1.nest()
-        c2.add('b', provides='b')
-        c2.add('d', provides='c')
-        compare(c2.get('a'), expected='a')
-        compare(c2.get('b'), expected='b')
-        compare(c2.get('c'), expected='d')
-        compare(c1.get('a'), expected='a')
-        compare(c1.get('b', default=None), expected=None)
-        compare(c1.get('c'), expected='c')
+        c2.add('c2b', identifier='b')
+        c2.add('c2c', identifier='c')
 
-    def test_nest_with_overridden_default_requirement_type(self):
-        def modifier(): pass
+        def foo(a, b=None, c=None):
+            return a, b, c
 
-        c1 = Context(modifier)
-        c2 = c1.nest()
-        assert c2.requirement_modifier is modifier
+        compare(c2.call(foo), expected=('c1a', 'c2b', 'c2c'))
+        compare(c1.call(foo), expected=('c1a', None, 'c1c'))
 
-    def test_nest_with_explicit_default_requirement_type(self):
-        def modifier1(): pass
+    def test_uses_existing_cached_value(self):
+        class X: pass
 
-        def modifier2(): pass
+        x_ = X()
 
-        c1 = Context(modifier1)
-        c2 = c1.nest(modifier2)
-        assert c2.requirement_modifier is modifier2
+        xs = [x_]
 
-    def test_nest_keeps_declarations_cache(self):
+        def make_x():
+            return xs.pop()
+
         c1 = Context()
-        c2 = c1.nest()
-        assert c2._requires_cache is c1._requires_cache
-        assert c2._returns_cache is c1._returns_cache
+        c1.add(Provider(make_x, cache=True), identifier='x')
 
-    def test_test_versus_caching_providers(self):
-        # should the nested context get the cache?
-        pass
+        assert c1.call(lambda x: x) is x_
+        c2 = c1.nest()
+        assert c2.call(lambda x: x) is x_
+
+        assert c2.call(lambda x: x) is x_
+        assert c1.call(lambda x: x) is x_
+
+    def test_stored_cached_value_in_nested_context(self):
+        class X: pass
+
+        x1 = X()
+        x2 = X()
+
+        xs = [x2, x1]
+
+        def make_x():
+            return xs.pop()
+
+        c1 = Context()
+        c1.add(Provider(make_x, cache=True), identifier='x')
+
+        c2 = c1.nest()
+        assert c2.call(lambda x: x) is x1
+        assert c1.call(lambda x: x) is x2
+
+        assert c1.call(lambda x: x) is x2
+        assert c2.call(lambda x: x) is x1
+
+    def test_no_cache_in_nested(self):
+        class X: pass
+
+        x1 = X()
+        x2 = X()
+
+        xs = [x2, x1]
+
+        def make_x():
+            return xs.pop()
+
+        c1 = Context()
+        c1.add(Provider(make_x, cache=False), identifier='x')
+
+        c2 = c1.nest()
+        assert c2.call(lambda x: x) is x1
+        assert c2.call(lambda x: x) is x2
+
+    def test_with_default_requirement(self):
+
+        def make_requirement(name, type_, default) -> Requirement:
+            pass
+
+        c1 = Context(default_requirement=make_requirement)
+        c2 = c1.nest()
+        assert c2._default_requirement is make_requirement
