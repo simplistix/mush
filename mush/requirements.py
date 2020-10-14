@@ -44,6 +44,7 @@ class Requirement:
     """
 
     def __init__(self, keys: Sequence[ResourceKey], default: Optional[Any] = missing):
+        #: Note that the first key returned should be the "most specific"
         self.keys: Sequence[ResourceKey] = keys
         self.default = default
         self.ops: List['Op'] = []

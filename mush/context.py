@@ -108,8 +108,11 @@ class Context:
             requirement = parameter.requirement
 
             o = missing
+            first_key = None
 
             for key in requirement.keys:
+                if first_key is None:
+                    first_key = key
 
                 context = self
 
@@ -122,6 +125,7 @@ class Context:
                         if resource.obj is missing:
                             specials_ = specials.copy()
                             specials_[Requirement] = requirement
+                            specials_[ResourceKey] = first_key
                             o = context._resolve(resource.provider, specials=specials_)
                             if resource.cache:
                                 if exact and context is self:

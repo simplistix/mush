@@ -471,6 +471,18 @@ class TestProviders:
 
         compare(context.call(returner), expected='obj')
 
+    def test_needs_resource_key(self):
+        def provider(key: ResourceKey):
+            return key.type, key.identifier
+
+        context = Context()
+        context.add(Provider(provider), provides=tuple)
+
+        def returner(obj: tuple):
+            return obj
+
+        compare(context.call(returner), expected=(tuple, 'obj'))
+
     def test_provides_subclasses(self):
         class Base: pass
 
