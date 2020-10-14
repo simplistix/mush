@@ -1,7 +1,7 @@
 version: 2.1
 
 orbs:
-  python: cjw296/python-ci@1.2
+  python: cjw296/python-ci@2.1
 
 common: &common
   jobs:
@@ -11,11 +11,11 @@ common: &common
           parameters:
             image:
               - circleci/python:3.6
-              - circleci/python:3.7
-              - circleci/python:3.8
+              - circleci/python:3.9
 
     - python/coverage:
         name: coverage
+        image: circleci/python:3.9
         requires:
           - python/pip-run-tests
 
