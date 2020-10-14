@@ -8,6 +8,7 @@ from testfixtures.mock import Mock
 from mush import Context, Requirement, Value, requires, missing
 from mush.context import ResourceError
 from .helpers import TheType, Type1, Type2
+from ..compat import PY_37_PLUS
 from ..declarations import ignore_return
 from ..resources import ResourceValue, Provider, ResourceKey
 
@@ -210,9 +211,12 @@ class TestCall:
         def returner(request_: Mapping[str, Any]):
             return request_
 
-        with ShouldRaise(ResourceError(
-                "request_: typing.Mapping[str, typing.Any] could not be satisfied"
-        )):
+        if PY_37_PLUS:
+            expected = "request_: typing.Mapping[str, typing.Any] could not be satisfied"
+        else:
+            expected = "request_: Mapping could not be satisfied"
+
+        with ShouldRaise(ResourceError(expected)):
             context.call(returner)
 
     def test_requires_typing_missing_new_type(self):

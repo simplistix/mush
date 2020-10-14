@@ -1,7 +1,9 @@
 from typing import (
-    NewType, Union, Hashable, Any, TYPE_CHECKING, List, Tuple, Type, _GenericAlias,
+    NewType, Union, Hashable, Any, TYPE_CHECKING, List, Tuple, Type,
     Callable, Optional
 )
+
+from .compat import _GenericAlias
 
 if TYPE_CHECKING:
     from .declarations import RequirementsDeclaration, ReturnsDeclaration

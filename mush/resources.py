@@ -1,6 +1,7 @@
 from types import FunctionType
-from typing import Callable, Optional, _GenericAlias
+from typing import Callable, Optional
 
+from .compat import _GenericAlias
 from .markers import missing
 from .typing import Resource, Identifier, Type_
 
