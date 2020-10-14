@@ -1,4 +1,3 @@
-import pytest; pytestmark = pytest.mark.skip("WIP")
 
 import asyncio
 from testfixtures.mock import Mock, call
@@ -7,7 +6,7 @@ import pytest
 from testfixtures import compare, ShouldRaise, Comparison as C
 
 from mush import ContextError, requires, returns
-# from mush.asyncio import Runner, Context
+from mush.asyncio import Runner, Context
 from .helpers import no_threads, must_run_in_thread
 
 
@@ -47,9 +46,8 @@ async def test_cloned_still_async():
 async def test_addition_still_async():
     async def foo():
         return 'foo'
-    @requires(str)
     @returns()
-    async def bar(foo):
+    async def bar(foo: str):
         return foo+'bar'
     r1 = Runner(foo)
     r2 = Runner(bar)

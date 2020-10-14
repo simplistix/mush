@@ -1,5 +1,3 @@
-import pytest; pytestmark = pytest.mark.skip("WIP")
-
 import asyncio
 from functools import partial
 from typing import Tuple
@@ -7,12 +5,12 @@ from typing import Tuple
 import pytest
 from testfixtures import compare, ShouldRaise
 
-from mush import Value, requires, returns, Context as SyncContext, blocking, nonblocking
-# from mush.asyncio import Context
-from mush.declarations import RequirementsDeclaration
-# from mush.requirements import Requirement, AnyOf, Like
+from mush import requires, returns, Context as SyncContext, blocking, nonblocking
+from mush.asyncio import Context
+from mush.requirements import Requirement, AnyOf, Like
 from .helpers import TheType, no_threads, must_run_in_thread
 from ..markers import AsyncType
+from ..resources import ResourceKey, Provider
 
 
 @pytest.mark.asyncio
@@ -29,7 +27,7 @@ async def test_call_is_async():
 @pytest.mark.asyncio
 async def test_call_async():
     context = Context()
-    context.add('1', provides='a')
+    context.add('1', identifier='a')
     async def it(a, b='2'):
         return a+b
     with no_threads():
@@ -60,27 +58,19 @@ async def test_call_partial_around_async():
 
 
 @pytest.mark.asyncio
-async def test_call_async_requires_context():
-    context = Context()
-    context.add('bar', provides='baz')
-    async def it(context: SyncContext):
-        return context.get('baz')
-    compare(await context.call(it), expected='bar')
-
-
-@pytest.mark.asyncio
 async def test_call_async_requires_async_context():
     context = Context()
-    context.add('bar', provides='baz')
+    async def baz():
+        return 'bar'
     async def it(context: Context):
-        return context.get('baz')
-    compare(await context.call(it), expected='bar')
+        return await context.call(baz) + 'bob'
+    compare(await context.call(it), expected='barbob')
 
 
 @pytest.mark.asyncio
 async def test_call_sync():
     context = Context()
-    context.add('foo', provides='baz')
+    context.add('foo', identifier='baz')
     def it(*, baz):
         return baz+'bar'
     with must_run_in_thread(it):
@@ -90,19 +80,66 @@ async def test_call_sync():
 @pytest.mark.asyncio
 async def test_call_sync_requires_context():
     context = Context()
-    context.add('bar', provides='baz')
-    def it(context: Context):
-        return context.get('baz')
-    compare(await context.call(it), expected='bar')
+    # NB: this is intentionally async to test calling async
+    # in a sync context:
+    async def baz():
+        return 'bar'
+    # sync method, so needs a sync context:
+    def it(context: SyncContext):
+        return context.call(baz) + 'bob'
+    compare(await context.call(it), expected='barbob')
 
 
 @pytest.mark.asyncio
-async def test_call_sync_requires_async_context():
+async def test_async_provider_async_user():
+    o = TheType()
+    lookup = {TheType: o}
+    async def provider(key: ResourceKey):
+        return lookup[key.type]
     context = Context()
-    context.add('bar', provides='baz')
-    def it(context: Context):
-        return context.get('baz')
-    compare(await context.call(it), expected='bar')
+    context.add(Provider(provider), provides=TheType)
+    async def returner(obj: TheType):
+        return obj
+    assert await context.call(returner) is o
+
+
+@pytest.mark.asyncio
+async def test_async_provider_sync_user():
+    o = TheType()
+    lookup = {TheType: o}
+    async def provider(key: ResourceKey):
+        return lookup[key.type]
+    context = Context()
+    context.add(Provider(provider), provides=TheType)
+    def returner(obj: TheType):
+        return obj
+    assert await context.call(returner) is o
+
+
+@pytest.mark.asyncio
+async def test_sync_provider_async_user():
+    o = TheType()
+    lookup = {TheType: o}
+    def provider(key: ResourceKey):
+        return lookup[key.type]
+    context = Context()
+    context.add(Provider(provider), provides=TheType)
+    async def returner(obj: TheType):
+        return obj
+    assert await context.call(returner) is o
+
+
+@pytest.mark.asyncio
+async def test_sync_provider_sync_user():
+    o = TheType()
+    lookup = {TheType: o}
+    def provider(key: ResourceKey):
+        return lookup[key.type]
+    context = Context()
+    context.add(Provider(provider), provides=TheType)
+    def returner(obj: TheType):
+        return obj
+    assert await context.call(returner) is o
 
 
 @pytest.mark.asyncio
@@ -161,14 +198,6 @@ async def test_call_async_function_explicitly_marked_as_blocking():
 
 
 @pytest.mark.asyncio
-async def test_call_cache_requires():
-    context = Context()
-    def foo(): pass
-    await context.call(foo)
-    compare(context._requires_cache[foo], expected=RequirementsDeclaration())
-
-
-@pytest.mark.asyncio
 async def test_call_caches_asyncness():
     async def foo():
         return 42
@@ -185,29 +214,39 @@ async def test_extract_is_async():
     result = context.extract(it, requires(), returns('baz'))
     assert asyncio.iscoroutine(result)
     compare(await result, expected='bar')
-    compare(context.get('baz'), expected='bar')
+    async def returner(baz):
+        return baz
+    compare(await context.call(returner), expected='bar')
 
 
 @pytest.mark.asyncio
 async def test_extract_async():
     context = Context()
-    context.add('foo', provides='bar')
+    async def bob():
+        return 'foo'
     async def it(context):
-        return context.get('bar')+'bar'
+        return await context.extract(bob)+'bar'
     result = context.extract(it, requires(Context), returns('baz'))
     compare(await result, expected='foobar')
-    compare(context.get('baz'), expected='foobar')
+    async def returner(bob):
+        return bob
+    compare(await context.call(returner), expected='foo')
 
 
 @pytest.mark.asyncio
 async def test_extract_sync():
     context = Context()
-    context.add('foo', provides='bar')
+    # NB: this is intentionally async to test calling async
+    # in a sync context:
+    def bob():
+        return 'foo'
     def it(context):
-        return context.get('bar')+'bar'
-    result = context.extract(it, requires(Context), returns('baz'))
+        return context.extract(bob)+'bar'
+    result = context.extract(it, requires(SyncContext), returns('baz'))
     compare(await result, expected='foobar')
-    compare(context.get('baz'), expected='foobar')
+    def returner(bob):
+        return bob
+    compare(await context.call(returner), expected='foo')
 
 
 @pytest.mark.asyncio
@@ -218,9 +257,9 @@ async def test_extract_minimal():
     context = Context()
     result = await context.extract(foo)
     assert result is o
-    compare({TheType: o}, actual=context._store)
-    compare(context._requires_cache[foo], expected=RequirementsDeclaration())
-    compare(context._returns_cache[foo], expected=returns(TheType))
+    async def returner(x: TheType):
+        return x
+    compare(await context.call(returner), expected=o)
 
 
 @pytest.mark.asyncio
@@ -231,19 +270,16 @@ async def test_extract_maximal():
     context.add('a')
     result = await context.extract(foo, requires(str), returns(Tuple[str]))
     compare(result, expected=('a',))
-    compare({
-        str: 'a',
-        Tuple[str]: ('a',),
-    }, actual=context._store)
-    compare(context._requires_cache, expected={})
-    compare(context._returns_cache, expected={})
+    async def returner(x: Tuple[str]):
+        return x
+    compare(await context.call(returner), expected=('a',))
 
 
 @pytest.mark.asyncio
 async def test_value_resolve_does_not_run_in_thread():
     with no_threads():
         context = Context()
-        context.add('foo', provides='baz')
+        context.add('foo', identifier='baz')
 
         async def it(baz):
             return baz+'bar'
@@ -277,108 +313,19 @@ async def test_like_resolve_does_not_run_in_thread():
 
 
 @pytest.mark.asyncio
-async def test_custom_requirement_async_resolve():
-
-    class FromRequest(Requirement):
-        async def resolve(self, context):
-            return (context.get('request'))[self.key]
-
-    def foo(bar: FromRequest('bar')):
-        return bar
-
-    context = Context()
-    context.add({'bar': 'foo'}, provides='request')
-    compare(await context.call(foo), expected='foo')
-
-
-@pytest.mark.asyncio
-async def test_custom_requirement_sync_resolve_get():
-
-    class FromRequest(Requirement):
-        def resolve(self, context):
-            return context.get('request')[self.key]
-
-    def foo(bar: FromRequest('bar')):
-        return bar
-
-    context = Context()
-    context.add({'bar': 'foo'}, provides='request')
-    compare(await context.call(foo), expected='foo')
-
-
-@pytest.mark.asyncio
-async def test_custom_requirement_sync_resolve_call():
-
-    async def baz(request: dict = Value('request')):
-        return request['bar']
-
-    class Syncer(Requirement):
-        def resolve(self, context):
-            return context.call(self.key)
-
-    def foo(bar: Syncer(baz)):
-        return bar
-
-    context = Context()
-    context.add({'bar': 'foo'}, provides='request')
-    compare(await context.call(foo), expected='foo')
-
-
-@pytest.mark.asyncio
-async def test_custom_requirement_sync_resolve_extract():
-
-    @returns('response')
-    async def baz(request: dict = Value('request')):
-        return request['bar']
-
-    class Syncer(Requirement):
-        def resolve(self, context):
-            return context.extract(self.key)
-
-    def foo(bar: Syncer(baz)):
-        return bar
-
-    context = Context()
-    context.add({'bar': 'foo'}, provides='request')
-    compare(await context.call(foo), expected='foo')
-    compare(context.get('response'), expected='foo')
-
-
-@pytest.mark.asyncio
-async def test_custom_requirement_sync_resolve_add_remove():
-
-    class Syncer(Requirement):
-        def resolve(self, context):
-            request = context.get('request')
-            context.remove('request')
-            context.add(request['bar'], provides='response')
-            return request['bar']
-
-    def foo(bar: Syncer('request')):
-        return bar
-
-    context = Context()
-    context.add({'bar': 'foo'}, provides='request')
-    compare(await context.call(foo), expected='foo')
-    compare(context.get('request', default=None), expected=None)
-    compare(context.get('response'), expected='foo')
-
-
-@pytest.mark.asyncio
 async def test_default_custom_requirement():
 
     class FromRequest(Requirement):
-        async def resolve(self, context):
-            return (context.get('request'))[self.key]
+        def __init__(self, name, type_, default):
+            self.name = name
+            self.type = type_
+            super().__init__(keys=[ResourceKey(identifier='request')], default=default)
+        def process(self, obj):
+            return self.type(obj[self.name])
 
-    def default_requirement_type(requirement):
-        if type(requirement) is Requirement:
-            requirement = FromRequest.make_from(requirement)
-        return requirement
-
-    def foo(bar):
+    def foo(bar: int):
         return bar
 
-    context = Context(default_requirement_type)
-    context.add({'bar': 'foo'}, provides='request')
-    compare(await context.call(foo), expected='foo')
+    context = Context(FromRequest)
+    context.add({'bar': '42'}, identifier='request')
+    compare(await context.call(foo), expected=42)

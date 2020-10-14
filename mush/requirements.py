@@ -79,6 +79,9 @@ class Requirement:
         return self
 
     def process(self, obj):
+        """
+        .. warning:: This must not block when used with an async context!
+        """
         for op in self.ops:
             obj = op(obj)
             if obj is missing:

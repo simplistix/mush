@@ -1,14 +1,15 @@
 import asyncio
 from functools import partial
-from typing import Callable
+from typing import Callable, Dict, Any
 
 from . import (
-    Context as SyncContext, Runner as SyncRunner, ResourceError, ContextError
+    Context as SyncContext, Runner as SyncRunner, ResourceError, ContextError, extract_returns
 )
 from .declarations import RequirementsDeclaration, ReturnsDeclaration
-from .extraction import default_requirement_type
 from .markers import get_mush, AsyncType
-from .typing import RequirementModifier
+from .requirements import Annotation
+from .resources import ResourceValue
+from .typing import DefaultRequirement
 
 
 class AsyncFromSyncContext:
@@ -16,50 +17,59 @@ class AsyncFromSyncContext:
     def __init__(self, context, loop):
         self.context: Context = context
         self.loop = loop
-        self.remove = context.remove
         self.add = context.add
-        self.get = context.get
 
     def call(self, obj: Callable, requires: RequirementsDeclaration = None):
         coro = self.context.call(obj, requires)
         future = asyncio.run_coroutine_threadsafe(coro, self.loop)
         return future.result()
 
-    def extract(self, obj: Callable, requires: RequirementsDeclaration = None, returns: ReturnsDeclaration = None):
+    def extract(
+            self,
+            obj: Callable,
+            requires: RequirementsDeclaration = None,
+            returns: ReturnsDeclaration = None
+    ):
         coro = self.context.extract(obj, requires, returns)
         future = asyncio.run_coroutine_threadsafe(coro, self.loop)
         return future.result()
 
 
+def async_behaviour(callable_):
+    to_check = callable_
+    if isinstance(callable_, partial):
+        to_check = callable_.func
+    if asyncio.iscoroutinefunction(to_check):
+        return AsyncType.async_
+    elif asyncio.iscoroutinefunction(to_check.__call__):
+        return AsyncType.async_
+    else:
+        async_type = get_mush(callable_, 'async', default=None)
+        if async_type is None:
+            if isinstance(callable_, type):
+                return AsyncType.nonblocking
+            else:
+                return AsyncType.blocking
+        else:
+            return async_type
+
+
 class Context(SyncContext):
 
-    def __init__(self, requirement_modifier: RequirementModifier = default_requirement_type):
-        super().__init__(requirement_modifier)
+    def __init__(self, default_requirement: DefaultRequirement = Annotation):
+        super().__init__(default_requirement)
         self._sync_context = AsyncFromSyncContext(self, asyncio.get_event_loop())
         self._async_cache = {}
 
     async def _ensure_async(self, func, *args, **kw):
-        async_type = self._async_cache.get(func)
-        if async_type is None:
-            to_check = func
-            if isinstance(func, partial):
-                to_check = func.func
-            if asyncio.iscoroutinefunction(to_check):
-                async_type = AsyncType.async_
-            elif asyncio.iscoroutinefunction(to_check.__call__):
-                async_type = AsyncType.async_
-            else:
-                async_type = get_mush(func, 'async', default=None)
-                if async_type is None:
-                    if isinstance(func, type):
-                        async_type = AsyncType.nonblocking
-                    else:
-                        async_type = AsyncType.blocking
-            self._async_cache[func] = async_type
+        behaviour = self._async_cache.get(func)
+        if behaviour is None:
+            behaviour = async_behaviour(func)
+            self._async_cache[func] = behaviour
             
-        if async_type is AsyncType.nonblocking:
+        if behaviour is AsyncType.nonblocking:
             return func(*args, **kw)
-        elif async_type is AsyncType.blocking:
+        elif behaviour is AsyncType.blocking:
             if kw:
                 func = partial(func, **kw)
             loop = asyncio.get_event_loop()
@@ -67,25 +77,25 @@ class Context(SyncContext):
         else:
             return await func(*args, **kw)
 
-    def _context_for(self, obj):
-        return self if asyncio.iscoroutinefunction(obj) else self._sync_context
+    def _specials(self) -> Dict[type, Any]:
+        return {Context: self, SyncContext: self._sync_context}
 
     async def call(self, obj: Callable, requires: RequirementsDeclaration = None):
-        args = []
-        kw = {}
-        resolving = self._resolve(obj, requires, args, kw, self._context_for(obj))
-        for requirement in resolving:
-            r = requirement.resolve
-            o = await self._ensure_async(r, self._context_for(r))
-            resolving.send(o)
-        return await self._ensure_async(obj, *args, **kw)
+        resolving = self._resolve(obj, requires)
+        for call in resolving:
+            result = await self._ensure_async(call.obj, *call.args, **call.kw)
+            if call.send:
+                resolving.send(result)
+        return result
 
     async def extract(self,
                       obj: Callable,
                       requires: RequirementsDeclaration = None,
                       returns: ReturnsDeclaration = None):
         result = await self.call(obj, requires)
-        self._process(obj, result, returns)
+        returns = extract_returns(obj, returns)
+        if returns:
+            self.add_by_keys(ResourceValue(result), returns)
         return result
 
 
@@ -128,7 +138,7 @@ class Runner(SyncRunner):
 
             if getattr(manager, '__aenter__', None):
                 async with manager as managed:
-                    if managed is not None:
+                    if managed is not None and managed is not result:
                         context.add(managed)
                     # If the context manager swallows an exception,
                     # None should be returned, not the context manager:

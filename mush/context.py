@@ -1,3 +1,4 @@
+from collections import namedtuple
 from typing import Optional, Callable, Union, Any, Dict, Iterable
 
 from .callpoints import CallPoint
@@ -15,6 +16,9 @@ class ResourceError(Exception):
     """
     An exception raised when there is a problem with a resource.
     """
+
+
+Call = namedtuple('Call', ('obj', 'args', 'kw', 'send'))
 
 
 class Context:
@@ -95,9 +99,12 @@ class Context:
             exact = False
         return None, exact
 
+    def _specials(self) -> Dict[type, Any]:
+        return {Context: self}
+
     def _resolve(self, obj, requires=None, specials=None):
         if specials is None:
-            specials: Dict[type, Any] = {Context: self}
+            specials = self._specials()
 
         requires = extract_requires(obj, requires, self._default_requirement)
 
@@ -127,6 +134,13 @@ class Context:
                             specials_[Requirement] = requirement
                             specials_[ResourceKey] = first_key
                             o = context._resolve(resource.provider, specials=specials_)
+                            provider = resource.provider
+                            resolving = context._resolve(provider, specials=specials_)
+                            for call in resolving:
+                                o = yield Call(call.obj, call.args, call.kw, send=True)
+                                yield
+                                if call.send:
+                                    resolving.send(o)
                             if resource.cache:
                                 if exact and context is self:
                                     resource.obj = o
@@ -159,10 +173,15 @@ class Context:
             else:
                 kw[parameter.target] = o
 
-        return obj(*args, **kw)
+        yield Call(obj, args, kw, send=False)
 
     def call(self, obj: Callable, requires: Requires = None):
-        return self._resolve(obj, requires)
+        resolving = self._resolve(obj, requires)
+        for call in resolving:
+            result = call.obj(*call.args, **call.kw)
+            if call.send:
+                resolving.send(result)
+        return result
 
     def nest(self):
         nested = self.__class__(self._default_requirement)
