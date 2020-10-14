@@ -94,7 +94,7 @@ class TestReturns(TestCase):
     def test_decorator(self):
         @returns(Type1)
         def foo():
-            return 'foo'
+            pass
         r = foo.__mush__['returns']
         compare(repr(r), 'returns(Type1)')
         compare(r, expected=ReturnsDeclaration((ResourceKey(Type1),)))

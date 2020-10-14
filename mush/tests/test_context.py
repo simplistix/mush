@@ -144,7 +144,7 @@ class TestCall:
         )):
             context.call(foo)
 
-    def tes_optional_type_present(self):
+    def test_optional_type_present(self):
         def foo(x: TheType = 1):
             return x
         context = Context()
@@ -209,7 +209,7 @@ class TestCall:
         context = Context()
 
         def returner(request_: Mapping[str, Any]):
-            return request_
+            pass
 
         if PY_37_PLUS:
             expected = "request_: typing.Mapping[str, typing.Any] could not be satisfied"
@@ -224,7 +224,7 @@ class TestCall:
         context = Context()
 
         def returner(request_: Request):
-            return request_
+            pass
 
         with ShouldRaise(ResourceError(
                 "request_: Request could not be satisfied"
@@ -331,7 +331,7 @@ class TestOps:
     def test_call_requires_attr_missing(self):
         @requires(Value('foo').bar)
         def foo(x):
-            return x
+            pass
         o = object()
         context = Context()
         context.add(o, identifier='foo')
