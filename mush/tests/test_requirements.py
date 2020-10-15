@@ -39,6 +39,15 @@ class TestRequirement:
 
     special_names = ['attr', 'ops']
 
+    def test_repr_subclass(self):
+        class SubClass(Requirement):
+            def __init__(self):
+                self.foo = 42
+                self.bar = 'baz'
+                super().__init__([ResourceKey(str)], missing)
+        compare(repr(SubClass()),
+                expected="SubClass(ResourceKey(str), foo=42, bar='baz')")
+
     @pytest.mark.parametrize("name", special_names)
     def test_attr_special_name(self, name):
         v = Requirement('foo')

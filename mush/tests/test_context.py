@@ -672,9 +672,8 @@ class TestProviders:
         context = Context()
         context.add({'bar': 'foo'}, identifier='request')
         compare(context.call(foo, requires=FromRequest('bar')), expected='foo')
-        # real world, FromRequest would have a decent repr:
         with ShouldRaise(ResourceError(
-                "FromRequest(ResourceKey('request')) could not be satisfied"
+                "FromRequest(ResourceKey('request'), name='baz') could not be satisfied"
         )):
             context.call(foo, requires=FromRequest('baz'))
 

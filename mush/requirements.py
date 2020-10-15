@@ -54,8 +54,12 @@ class Requirement:
 
     def __repr__(self):
         default = '' if self.default is missing else f', default={self.default!r}'
+        other = ', '.join(f'{n}={v!r}' for n, v in vars(self).items()
+                          if n not in ('keys', 'default', 'ops'))
+        if other:
+            other = ', '+other
         ops = ''.join(repr(o) for o in self.ops)
-        return f"{type(self).__name__}({self._keys_repr()}{default}){ops}"
+        return f"{type(self).__name__}({self._keys_repr()}{default}{other}){ops}"
 
     def attr(self, name):
         """
