@@ -25,7 +25,8 @@ class CallPoint(object):
     def __repr__(self):
         requires = extract_requires(self.obj, self.requires)
         returns = extract_returns(self.obj, self.returns)
-        txt = f'{self.obj!r} {requires!r} {returns!r}'
+        name = getattr(self.obj, '__qualname__', repr(self.obj))
+        txt = f'{name} {requires!r} {returns!r}'
         if self.labels:
             txt += (' <-- ' + ', '.join(sorted(self.labels)))
         return txt

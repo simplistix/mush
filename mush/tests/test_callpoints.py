@@ -1,3 +1,5 @@
+from functools import partial
+
 from testfixtures import compare
 from testfixtures.mock import Mock, call
 import pytest
@@ -72,14 +74,22 @@ class TestCallPoints:
     def test_repr_minimal(self):
         def foo(): pass
         point = CallPoint(foo)
-        compare(repr(foo)+" requires() returns('foo')", repr(point))
+        compare("TestCallPoints.test_repr_minimal.<locals>.foo requires() returns('foo')",
+                actual=repr(point))
+
+    def test_repr_partial(self):
+        def foo(): pass
+        point = CallPoint(partial(foo))
+        compare(f"functools.partial({foo!r}) requires() returns('foo')",
+                actual=repr(point))
 
     def test_repr_maximal(self):
         def foo(a1): pass
         point = CallPoint(foo, requires('foo'), returns('bar'))
         point.labels.add('baz')
         point.labels.add('bob')
-        compare(expected=repr(foo)+" requires(Value('foo')) returns('bar') <-- baz, bob",
+        compare("TestCallPoints.test_repr_maximal.<locals>.foo "
+                "requires(Value('foo')) returns('bar') <-- baz, bob",
                 actual=repr(point))
 
     def test_convert_to_requires_and_returns(self):
@@ -88,5 +98,6 @@ class TestCallPoints:
         # this is deferred until later
         assert isinstance(point.requires, str)
         assert isinstance(point.returns, str)
-        compare(repr(foo)+" requires(Value('foo')) returns('bar')",
-                repr(point))
+        compare("TestCallPoints.test_convert_to_requires_and_returns.<locals>.foo "
+                "requires(Value('foo')) returns('bar')",
+                expected=repr(point))

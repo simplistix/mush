@@ -352,7 +352,11 @@ class TestRunner:
 
         t_str = 'TestRunner.test_missing_from_context_no_chain.<locals>.T'
         text = '\n'.join((
-            f"While calling: {job!r} requires(Value({t_str})) returns('job')",
+            '',
+            '',
+            "While calling:",
+            f"{job.__qualname__} requires(Value({t_str})) returns('job')",
+            '',
             'with <Context: {}>:',
             '',
             f"Value({t_str}) could not be satisfied",
@@ -389,17 +393,20 @@ class TestRunner:
             '',
             '',
             'Already called:',
-            repr(job1)+' requires() returns() <-- 1',
-            repr(job2)+' requires() returns()',
+            f'{job1.__qualname__} requires() returns() <-- 1',
+            f'{job2.__qualname__} requires() returns()',
             '',
-            f"While calling: {job3!r} requires(Value({t_str})) returns('job3')",
+            "While calling:",
+            f"{job3.__qualname__} requires(Value({t_str})) returns('job3')",
+            '',
             'with <Context: {}>:',
             '',
             f"Value({t_str}) could not be satisfied",
             '',
             'Still to call:',
-            repr(job4)+" requires() returns('job4') <-- 4",
-            repr(job5)+" requires(Value('foo'), bar=Value('baz')) returns('bob')",
+            f''
+            f"{job4.__qualname__} requires() returns('job4') <-- 4",
+            f"{job5.__qualname__} requires(Value('foo'), bar=Value('baz')) returns('bob')",
         ))
         compare(text, actual=repr(s.raised))
         compare(text, actual=str(s.raised))
@@ -433,9 +440,11 @@ class TestRunner:
             '',
             '',
             'Already called:',
-            f"{job!r} requires() returns({t_str})",
+            f"{job.__qualname__} requires() returns({t_str})",
             '',
-            f"While calling: {job!r} requires() returns({t_str})",
+            "While calling:",
+            f"{job.__qualname__} requires() returns({t_str})",
+            '',
             'with <Context: {\n'
             f'    {t_str}: {t1!r}\n'
             '}>:',

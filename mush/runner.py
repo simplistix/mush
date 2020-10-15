@@ -297,22 +297,23 @@ class ContextError(Exception):
         self.context: Context = context
 
     def __str__(self):
-        rows = []
+        rows = ['', '']
         if self.point:
+            already_called = []
             point = self.point.previous
             while point:
-                rows.append(repr(point))
+                already_called.append(repr(point))
                 point = point.previous
-            if rows:
+            if already_called:
                 rows.append('Already called:')
-                rows.append('')
-                rows.append('')
-                rows.reverse()
+                rows.extend(reversed(already_called))
                 rows.append('')
 
-            rows.append('While calling: '+repr(self.point))
+            rows.append('While calling:')
+            rows.append(repr(self.point))
+            rows.append('')
         if self.context is not None:
-            rows.append('with '+repr(self.context)+':')
+            rows.append(f'with {self.context!r}:')
             rows.append('')
 
         rows.append(self.text)
