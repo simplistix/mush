@@ -135,7 +135,7 @@ class Context:
                             specials_[ResourceKey] = first_key
                             o = context._resolve(resource.provider, specials=specials_)
                             provider = resource.provider
-                            resolving = context._resolve(provider, specials=specials_)
+                            resolving = self._resolve(provider, specials=specials_)
                             for call in resolving:
                                 o = yield Call(call.obj, call.args, call.kw, send=True)
                                 yield

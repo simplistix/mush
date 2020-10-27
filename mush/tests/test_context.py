@@ -753,6 +753,19 @@ class TestNesting:
         assert c2.call(lambda x: x) is x1
         assert c2.call(lambda x: x) is x2
 
+    def test_provider_uses_resources_from_nested_context(self):
+
+        def expanded(it: str):
+            return it*2
+
+        c1 = Context()
+        c1.add(Provider(expanded))
+
+        c2 = c1.nest()
+        c2.add('foo')
+
+        compare(c2.call(lambda expanded: expanded), expected='foofoo')
+
     def test_with_default_requirement(self):
 
         def make_requirement(name, type_, default) -> Requirement:
