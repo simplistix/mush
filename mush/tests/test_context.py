@@ -283,6 +283,30 @@ class TestCall:
         result = context.call(foo, requires(y='baz', x=TheType))
         compare(result, expected=('foo', 'bar'))
 
+    def test_custom_requirement(self):
+
+        class FromRequest(Requirement):
+
+            def __init__(self, name):
+                super().__init__([ResourceKey(identifier='request')])
+                self.name = name
+
+            def process(self, obj):
+                # this example doesn't show it, but this is a method so
+                # there can be conditional stuff in here:
+                return obj.get(self.name, missing)
+
+        def foo(bar: str):
+            return bar
+
+        context = Context()
+        context.add({'bar': 'foo'}, identifier='request')
+        compare(context.call(foo, requires=FromRequest('bar')), expected='foo')
+        with ShouldRaise(ResourceError(
+                "FromRequest(ResourceKey('request'), name='baz') could not be satisfied"
+        )):
+            context.call(foo, requires=FromRequest('baz'))
+
 
 class TestOps:
 
@@ -652,30 +676,6 @@ class TestProviders:
                     "}>")
         compare(expected, actual=repr(context))
         compare(expected, actual=str(context))
-
-    def test_custom_requirement(self):
-
-        class FromRequest(Requirement):
-
-            def __init__(self, name):
-                super().__init__([ResourceKey(identifier='request')])
-                self.name = name
-
-            def process(self, obj):
-                # this example doesn't show it, but this is a method so
-                # there can be conditional stuff in here:
-                return obj.get(self.name, missing)
-
-        def foo(bar: str):
-            return bar
-
-        context = Context()
-        context.add({'bar': 'foo'}, identifier='request')
-        compare(context.call(foo, requires=FromRequest('bar')), expected='foo')
-        with ShouldRaise(ResourceError(
-                "FromRequest(ResourceKey('request'), name='baz') could not be satisfied"
-        )):
-            context.call(foo, requires=FromRequest('baz'))
 
 
 class TestNesting:
