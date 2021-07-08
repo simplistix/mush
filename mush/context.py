@@ -1,130 +1,22 @@
-from collections import deque
+from typing import Callable
 
-from .declarations import how, nothing
-from .factory import Factory
-from .markers import missing
-
-NONE_TYPE = None.__class__
+from .paradigms import Call, Paradigm, Paradigms, paradigms
+from .typing import Calls
 
 
-class ContextError(Exception):
-    """
-    Errors likely caused by incorrect building of a runner.
-    """
-    def __init__(self, text, point=None, context=None):
-        self.text = text
-        self.point = point
-        self.context = context
+class Context:
 
-    def __str__(self):
-        rows = []
-        if self.point:
-            point = self.point.previous
-            while point:
-                rows.append(repr(point))
-                point = point.previous
-            if rows:
-                rows.append('Already called:')
-                rows.append('')
-                rows.append('')
-                rows.reverse()
-                rows.append('')
+    paradigms: Paradigms = paradigms
 
-            rows.append('While calling: '+repr(self.point))
-        if self.context is not None:
-            rows.append('with '+repr(self.context)+':')
-            rows.append('')
+    def __init__(self, paradigm: Paradigm = None):
+        self.paradigm = paradigm
 
-        rows.append(self.text)
+    def _resolve(self, obj: Callable, target_paradigm: Paradigm) -> Calls:
+        caller = self.paradigms.find_caller(obj, target_paradigm)
+        yield Call(caller, (), {})
 
-        if self.point:
-            point = self.point.next
-            if point:
-                rows.append('')
-                rows.append('Still to call:')
-            while point:
-                rows.append(repr(point))
-                point = point.next
+    def call(self, obj: Callable, *, paradigm: Paradigm = None):
+        paradigm = paradigm or self.paradigm or self.paradigms.find_paradigm(obj)
+        calls = self._resolve(obj, paradigm)
+        return paradigm.process(calls)
 
-        return '\n'.join(rows)
-
-    __repr__ = __str__
-
-
-def type_key(type_tuple):
-    type, _ = type_tuple
-    if isinstance(type, str):
-        return type
-    return type.__name__
-
-
-class Context(dict):
-    "Stores resources for a particular run."
-
-    def add(self, it, type):
-        """
-        Add a resource to the context.
-
-        Optionally specify the type to use for the object rather than
-        the type of the object itself.
-        """
-
-        if type is NONE_TYPE:
-            raise ValueError('Cannot add None to context')
-        if type in self:
-            raise ContextError('Context already contains %r' % (
-                    type
-                    ))
-        self[type] = it
-
-    def __repr__(self):
-        bits = []
-        for type, value in sorted(self.items(), key=type_key):
-            bits.append('\n    %r: %r' % (type, value))
-        if bits:
-            bits.append('\n')
-        return '<Context: {%s}>' % ''.join(bits)
-
-    def extract(self, obj, requires, returns):
-        result = self.call(obj, requires)
-        for type, obj in returns.process(result):
-            self.add(obj, type)
-        return result
-
-    def call(self, obj, requires):
-
-        if isinstance(obj, Factory):
-            self.add(obj, obj.returns.args[0])
-            return
-
-        args = []
-        kw = {}
-
-        for name, required in requires:
-
-            type = required
-            ops = deque()
-            while isinstance(type, how):
-                ops.appendleft(type.process)
-                type = type.type
-
-            o = self.get(type, missing)
-            if isinstance(o, Factory):
-                o = self.call(o.__wrapped__, o.requires)
-                self[type] = o
-
-            for op in ops:
-                o = op(o)
-                if o is nothing:
-                    break
-
-            if o is nothing:
-                pass
-            elif o is missing:
-                raise ContextError('No %s in context' % repr(required))
-            elif name is None:
-                args.append(o)
-            else:
-                kw[name] = o
-
-        return obj(*args, **kw)

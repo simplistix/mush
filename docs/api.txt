@@ -12,7 +12,7 @@ API Reference
   :members: Modifier
 
 .. automodule:: mush.declarations
-  :members: how, nothing, result_type, update_wrapper
+  :members: how, nothing, result_type, update_wrapper, DeclarationsFrom
 
 .. automodule:: mush.plug
   :members: insert, ignore, append, Plug

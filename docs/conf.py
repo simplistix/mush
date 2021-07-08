@@ -37,3 +37,4 @@ latex_documents = [
    'Simplistix Ltd', 'manual'),
 ]
 
+default_role = 'any'

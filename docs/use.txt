@@ -198,8 +198,6 @@ I made an apple
 I turned an apple into an orange
 I made juice out of an apple and an orange
 
-.. _optional-resources:
-
 Optional requirements
 ~~~~~~~~~~~~~~~~~~~~~
 
@@ -209,17 +207,17 @@ take this into account. Take the following function:
 
 .. code-block:: python
 
-  def greet(name='stranger'):
+  def greet(name: str = 'stranger'):
       print('Hello ' + name + '!')
 
-If a name is not always be available, it can be added to a runner as follows:
+If a name is not always be available, the callable's default will be used:
 
 .. code-block:: python
 
-  from mush import Runner, optional
+  from mush import Runner
 
   runner = Runner()
-  runner.add(greet, requires=optional(str))
+  runner.add(greet)
 
 Now, when this runner is called, the default will be used:
 
@@ -231,13 +229,14 @@ available:
 
 .. code-block:: python
 
-  from mush import Runner, optional
+  from mush import Runner, returns
 
+  @returns('name')
   def my_name_is():
      return 'Slim Shady'
 
   runner = Runner(my_name_is)
-  runner.add(greet, requires=optional(str))
+  runner.add(greet)
 
 In this case, the string returned will be used:
 
@@ -276,12 +275,12 @@ of the returns resources through to the :func:`pick` function:
 
 .. code-block:: python
 
-    from mush import Runner, attr, item, requires
+    from mush import Runner, requires, Value
 
     runner = Runner(some_attributes, some_items)
-    runner.add(pick, requires(fruit1=attr(Stuff, 'fruit'),
-                              fruit2=item(dict, 'fruit'),
-                              fruit3=item(attr(Stuff, 'tree'), 'fruit')))
+    runner.add(pick, requires(fruit1=Value(Stuff).fruit,
+                              fruit2=Value(dict)['fruit'],
+                              fruit3=Value(Stuff).tree['fruit']))
 
 So now we can pick fruit from some interesting places:
 
@@ -376,17 +375,18 @@ I sold vegetables as fruit
 I made juice out of a tomato and a cucumber
 
 Finally, if you have a callable that returns results that you wish to ignore,
-you can do so using :attr:`~mush.declarations.nothing`:
+you can do so as follows:
 
 .. code-block:: python
 
-  from mush import Runner, nothing
+  from mush import Runner
 
+  @returns()
   def spam():
       return 'spam'
 
   runner = Runner()
-  runner.add(spam, returns=nothing)
+  runner.add(spam)
 
 .. _named-resources:
 
@@ -538,9 +538,6 @@ I turned an apple into an orange
 I made juice out of an apple and an orange
 a refreshing fruit beverage
 
-If an argument has a default, then the requirement will be made
-:ref:`optional <optional-resources>`.
-
 Configuration Precedence
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -653,10 +650,10 @@ the representation of a runner gives all this information:
 >>> runner
 <Runner>
     <function forge ...> requires() returns_result_type()
-    <function polish ...> requires(Ring) returns_result_type() <-- forged
-    <function engrave ...> requires(Ring) returns_result_type()
-    <function more_polish ...> requires(Ring) returns_result_type() <-- engraved
-    <function package at ...> requires(Ring) returns_result_type()
+    <function polish ...> requires(Value(Ring)) returns_result_type() <-- forged
+    <function engrave ...> requires(Value(Ring)) returns_result_type()
+    <function more_polish ...> requires(Value(Ring)) returns_result_type() <-- engraved
+    <function package at ...> requires(Value(Ring)) returns_result_type()
 </Runner>
 
 As you can see above, when a callable is inserted at a label, the label
@@ -679,7 +676,7 @@ Now, when you add to a specific label, only that label is moved:
 >>> runner
 <Runner>
     <function forge ...> requires() returns_result_type() <-- before_polish
-    <function polish ...> requires('ring') returns_result_type() <-- after_polish
+    <function polish ...> requires(Value('ring')) returns_result_type() <-- after_polish
 </Runner>
 
 Of course, you can still add to the end of the runner:
@@ -689,8 +686,8 @@ Of course, you can still add to the end of the runner:
 >>> runner
 <Runner>
     <function forge ...> requires() returns_result_type() <-- before_polish
-    <function polish ...> requires('ring') returns_result_type() <-- after_polish
-    <function package ...> requires('ring') returns_result_type()
+    <function polish ...> requires(Value('ring')) returns_result_type() <-- after_polish
+    <function package ...> requires(Value('ring')) returns_result_type()
 </Runner>
 
 However, the point modifier returned by getting a label from a runner will
@@ -700,9 +697,9 @@ keep on moving the label as more callables are added using it:
 >>> runner
 <Runner>
     <function forge ...> requires() returns_result_type() <-- before_polish
-    <function polish ...> requires('ring') returns_result_type()
-    <function more_polish ...> requires('ring') returns_result_type() <-- after_polish
-    <function package ...> requires('ring') returns_result_type()
+    <function polish ...> requires(Value('ring')) returns_result_type()
+    <function more_polish ...> requires(Value('ring')) returns_result_type() <-- after_polish
+    <function package ...> requires(Value('ring')) returns_result_type()
 </Runner>
 
 .. _plugs:
@@ -924,11 +921,13 @@ a remote web service:
 
 .. code-block:: python
 
+  from mush import Runner, Value
+
   def load_config() -> 'config':
       return json.loads(urllib2.urlopen('...').read())
 
-  def do_stuff(username: item('config', 'username'),
-               password: item('config', 'password')):
+  def do_stuff(username: Value('config')['username'],
+               password: Value('config')['password']):
       print('doing stuff as ' + username + ' with '+ password)
 
   runner = Runner(load_config, do_stuff)
@@ -949,6 +948,7 @@ If you have a base runner such as this:
 .. code-block:: python
 
   from argparse import ArgumentParser, Namespace
+  from mush import Runner, Value
 
   def base_args(parser):
       parser.add_argument('config_url')
@@ -956,7 +956,7 @@ If you have a base runner such as this:
   def parse_args(parser):
       return parser.parse_args()
 
-  def load_config():
+  def load_config(config_url):
       return json.loads(urllib2.urlopen('...').read())
 
   def finalise_things():
@@ -965,7 +965,7 @@ If you have a base runner such as this:
   base_runner = Runner(ArgumentParser)
   base_runner.add(base_args, requires=ArgumentParser, label='args')
   base_runner.add(parse_args, requires=ArgumentParser)
-  point = base_runner.add(load_config, requires=attr(Namespace, 'config_url'),
+  point = base_runner.add(load_config, requires=Value(Namespace).config_url,
                           returns='config')
   point.add_label('body')
   base_runner.add(finalise_things, label='ending')
@@ -977,8 +977,8 @@ That runner might be used for a specific script as follows:
   def job_args(parser: ArgumentParser):
       parser.add_argument('--colour')
 
-  def do_stuff(username: item('config', 'username'),
-               colour: attr(Namespace, 'colour')):
+  def do_stuff(username: Value('config')['username'],
+               colour: Value(Namespace).colour):
       print(username + ' is '+ colour)
 
   runner = base_runner.clone()
@@ -1019,12 +1019,12 @@ For example, consider this runner:
 
 .. code-block:: python
 
-  from mush import Runner
+  from mush import Runner, Value
 
   def make_config() -> 'config':
       return {'foo': 'bar'}
 
-  def connect(foo: item('config', 'foo')):
+  def connect(foo = Value('config')['foo']):
       return 'connection'
 
   def process(connection):
@@ -1040,8 +1040,8 @@ To see how the configuration panned out, we would look at the :func:`repr`:
 >>> runner
 <Runner>
     <function make_config ...> requires() returns('config')
-    <function connect ...> requires(foo='config'['foo']) returns_result_type() <-- config
-    <function process ...> requires('connection') returns_result_type()
+    <function connect ...> requires(Value('config')['foo']) returns_result_type() <-- config
+    <function process ...> requires(Value('connection')) returns_result_type()
 </Runner>
 
 As you can see, there is a problem with this configuration that will be exposed
