@@ -3,8 +3,8 @@ Mush
 
 |CircleCI|_ |Docs|_
 
-.. |CircleCI| image:: https://circleci.com/gh/Simplistix/mush/tree/master.svg?style=shield
-.. _CircleCI: https://circleci.com/gh/Simplistix/mush/tree/master
+.. |CircleCI| image:: https://circleci.com/gh/simplistix/mush/tree/master.svg?style=shield
+.. _CircleCI: https://circleci.com/gh/simplistix/mush/tree/master
 
 .. |Docs| image:: https://readthedocs.org/projects/mush/badge/?version=latest
 .. _Docs: http://mush.readthedocs.org/en/latest/
