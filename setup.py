@@ -32,6 +32,6 @@ setup(
     zip_safe=False,
     include_package_data=True,
     extras_require=dict(
-        test=['pytest', 'pytest-cov', 'mock', 'sybil', 'testfixtures'],
+        test=['pytest', 'pytest-cov', 'mock', 'sybil<3', 'testfixtures'],
         build=['sphinx', 'setuptools-git', 'wheel', 'twine']
     ))
